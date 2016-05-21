@@ -3,6 +3,7 @@ extern crate sdl2;
 extern crate sdl2_sys;
 #[macro_use]
 extern crate log;
+extern crate env_logger;
 
 // use mpv::mpv;
 use std::env;
@@ -72,6 +73,9 @@ fn sdl_example(video_path: &Path) {
                             true => {mpv.set_property_async("pause",false,1).expect("Failed to pause player");},
                             false => {mpv.set_property_async("pause",true,1).expect("Failed to unpause player");}
                         }
+                    },
+                    SdlEvent::KeyDown { keycode: Some(Keycode::F),repeat: false, .. } => {
+
                     },
                     _ => {}
                 }
