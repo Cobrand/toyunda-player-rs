@@ -6,6 +6,7 @@ extern crate log;
 extern crate env_logger;
 
 mod init;
+mod displayer;
 // use mpv::mpv;
 use std::env;
 use std::path::Path;
@@ -17,13 +18,16 @@ use sdl2::event::Event as SdlEvent;
 use sdl2::keyboard::Keycode;
 
 fn sdl_example(video_path: &Path) {
+    // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
     let mut renderer = init::init_sdl(&mut video_subsystem);
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
+    // INIT MPV
     let mut mpv = mpv::MpvHandler::create().expect("Error while creating MPV");
     mpv.init_with_gl(Some(init::get_proc_address), video_subsystem_ptr).expect("Error while initializing MPV");
-
+    // BIND MPV WITH SDL
+    let mut displayer = displayer::Displayer::new(renderer).expect("Failed to init displayer");
     let video_path = video_path.to_str().expect("Expected a string for Path, got None");
     mpv.command(&["loadfile", video_path as &str])
        .expect("Error loading file");
@@ -52,11 +56,11 @@ fn sdl_example(video_path: &Path) {
                 SdlEvent::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } => {mpv.set_property_async("speed",0.1,1).unwrap();},
                 SdlEvent::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } => {mpv.set_property_async("speed",1.0,1).unwrap();},
                 SdlEvent::KeyDown { keycode: Some(Keycode::F), repeat: false, .. } => {
-                    if (renderer.window().unwrap().window_flags() &
+                    if (displayer.sdl_renderer().window().unwrap().window_flags() &
                         (SDL_WindowFlags::SDL_WINDOW_FULLSCREEN as u32)) != 0 {
-                        renderer.window_mut().unwrap().set_fullscreen(FullscreenType::Off)
+                        displayer.sdl_renderer_mut().window_mut().unwrap().set_fullscreen(FullscreenType::Off)
                     } else {
-                        renderer.window_mut().unwrap().set_fullscreen(FullscreenType::Desktop)
+                        displayer.sdl_renderer_mut().window_mut().unwrap().set_fullscreen(FullscreenType::Desktop)
                     }
                     .expect("Failed to change fullscreen parameter of toyunda-player");
                 }
@@ -71,11 +75,12 @@ fn sdl_example(video_path: &Path) {
                 _ => {}
             };
         }
-        let (width, height) = renderer.window().unwrap().size();
+        let (width, height) = displayer.sdl_renderer().window().unwrap().size();
         if mpv.is_update_available(){
             mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw ");
         }
-        renderer.window().unwrap().gl_swap_window();
+        displayer.display("hajimete kara mada wasurenai desho' YOUR DREAM");
+        displayer.sdl_renderer().window().unwrap().gl_swap_window();
     }
 }
 
