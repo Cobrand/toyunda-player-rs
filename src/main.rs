@@ -5,6 +5,7 @@ extern crate sdl2_sys;
 extern crate log;
 extern crate env_logger;
 
+mod init;
 // use mpv::mpv;
 use std::env;
 use std::path::Path;
@@ -23,96 +24,79 @@ unsafe extern "C" fn get_proc_address(arg: *mut c_void,
 }
 
 fn sdl_example(video_path: &Path) {
-    let mut opengl_driver : Option<i32> = None ;
-    info!("Detecting drivers ...");
-    // SDL drivers are counted from 0
-    // Typically here if we want to draw with SDL on mpv we must use the "opengl" driver,
-    // and for instance not the direct3d driver (on windows), nor the opengles driver, ...
-    let mut driver_index = -1 ;
-    for item in sdl2::render::drivers() {
-        driver_index = driver_index + 1 ;
-        info!("* Found driver '{}'",item.name);
-        if item.name == "opengl"{
-            opengl_driver = Some(driver_index);
-        }
-    }
-    if opengl_driver.is_some(){
-        let opengl_driver = opengl_driver.unwrap() as u32;
-        let sdl_context = sdl2::init().unwrap();
-        let mut video_subsystem = sdl_context.video().unwrap();
-        let window = video_subsystem.window("Toyunda Player", 960, 540)
-            .resizable()
-            .position_centered()
-            .opengl()
-            .build()
+    let opengl_driver = init::find_sdl_gl_driver().unwrap() as u32;
+    let sdl_context = sdl2::init().unwrap();
+    let mut video_subsystem = sdl_context.video().unwrap();
+    let window = video_subsystem.window("Toyunda Player", 960, 540)
+        .resizable()
+        .position_centered()
+        .opengl()
+        .build()
+        .unwrap();
+    let mut renderer = window.renderer()
+        .present_vsync()
+        .index(opengl_driver)
+        .build()
+        .expect("Failed to create renderer with given parameters");
+    renderer.window()
+            .expect("Failed to extract window from displayer")
+            .gl_set_context_to_current()
             .unwrap();
-        let mut renderer = window.renderer()
-            .present_vsync()
-            .index(opengl_driver)
-            .build()
-            .expect("Failed to create renderer with given parameters");
-        renderer.window()
-                .expect("Failed to extract window from displayer")
-                .gl_set_context_to_current()
-                .unwrap();
-        let ptr = &mut video_subsystem as *mut _ as *mut c_void;
-        let mut mpv = mpv::MpvHandler::create().expect("Error while creating MPV");
-        mpv.init_with_gl(Some(get_proc_address), ptr).expect("Error while initializing MPV");
-        let video_path = video_path.to_str().expect("Expected a string for Path, got None");
-        mpv.command(&["loadfile", video_path as &str])
-           .expect("Error loading file");
+    let ptr = &mut video_subsystem as *mut _ as *mut c_void;
+    let mut mpv = mpv::MpvHandler::create().expect("Error while creating MPV");
+    mpv.init_with_gl(Some(get_proc_address), ptr).expect("Error while initializing MPV");
+    let video_path = video_path.to_str().expect("Expected a string for Path, got None");
+    mpv.command(&["loadfile", video_path as &str])
+       .expect("Error loading file");
 
-        let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
-        'main: loop {
-            for event in event_pump.poll_iter() {
-                match event {
-                    SdlEvent::Quit {..} | SdlEvent::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                        break 'main
-                    },
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Space),repeat: false, .. } => {
-                        match mpv.get_property("pause").unwrap() {
-                            true => {mpv.set_property_async("pause",false,1).expect("Failed to pause player");},
-                            false => {mpv.set_property_async("pause",true,1).expect("Failed to unpause player");}
-                        }
-                    },
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } => {mpv.set_property_async("speed",0.9,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } => {mpv.set_property_async("speed",0.8,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } => {mpv.set_property_async("speed",0.7,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } => {mpv.set_property_async("speed",0.6,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } => {mpv.set_property_async("speed",0.5,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } => {mpv.set_property_async("speed",0.4,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } => {mpv.set_property_async("speed",0.3,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } => {mpv.set_property_async("speed",0.2,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } => {mpv.set_property_async("speed",0.1,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } => {mpv.set_property_async("speed",1.0,1).unwrap();},
-                    SdlEvent::KeyDown { keycode: Some(Keycode::F), repeat: false, .. } => {
-                        if (renderer.window().unwrap().window_flags() &
-                            (SDL_WindowFlags::SDL_WINDOW_FULLSCREEN as u32)) != 0 {
-                            renderer.window_mut().unwrap().set_fullscreen(FullscreenType::Off)
-                        } else {
-                            renderer.window_mut().unwrap().set_fullscreen(FullscreenType::Desktop)
-                        }
-                        .expect("Failed to change fullscreen parameter of toyunda-player");
+    let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
+    'main: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                SdlEvent::Quit {..} | SdlEvent::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    break 'main
+                },
+                SdlEvent::KeyDown { keycode: Some(Keycode::Space),repeat: false, .. } => {
+                    match mpv.get_property("pause").unwrap() {
+                        true => {mpv.set_property_async("pause",false,1).expect("Failed to pause player");},
+                        false => {mpv.set_property_async("pause",true,1).expect("Failed to unpause player");}
                     }
-                    _ => {}
+                },
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } => {mpv.set_property_async("speed",0.9,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } => {mpv.set_property_async("speed",0.8,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } => {mpv.set_property_async("speed",0.7,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } => {mpv.set_property_async("speed",0.6,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } => {mpv.set_property_async("speed",0.5,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } => {mpv.set_property_async("speed",0.4,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } => {mpv.set_property_async("speed",0.3,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } => {mpv.set_property_async("speed",0.2,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } => {mpv.set_property_async("speed",0.1,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } => {mpv.set_property_async("speed",1.0,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::F), repeat: false, .. } => {
+                    if (renderer.window().unwrap().window_flags() &
+                        (SDL_WindowFlags::SDL_WINDOW_FULLSCREEN as u32)) != 0 {
+                        renderer.window_mut().unwrap().set_fullscreen(FullscreenType::Off)
+                    } else {
+                        renderer.window_mut().unwrap().set_fullscreen(FullscreenType::Desktop)
+                    }
+                    .expect("Failed to change fullscreen parameter of toyunda-player");
                 }
+                _ => {}
             }
-            while let Some(event) = mpv.wait_event(0.0) {
-                match event {
-                    mpv::Event::Shutdown | mpv::Event::EndFile(_) => {
-                        break 'main;
-                    }
-                    _ => {}
-                };
-            }
-            let (width, height) = renderer.window().unwrap().size();
-            if mpv.is_update_available(){
-                mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw ");
-            }
-            renderer.window().unwrap().gl_swap_window();
         }
-    }else{
-        error!("OpenGL driver not found, aborting");
+        while let Some(event) = mpv.wait_event(0.0) {
+            match event {
+                mpv::Event::Shutdown | mpv::Event::EndFile(_) => {
+                    break 'main;
+                }
+                _ => {}
+            };
+        }
+        let (width, height) = renderer.window().unwrap().size();
+        if mpv.is_update_available(){
+            mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw ");
+        }
+        renderer.window().unwrap().gl_swap_window();
     }
 }
 
