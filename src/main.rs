@@ -10,8 +10,7 @@ mod displayer;
 // use mpv::mpv;
 use std::env;
 use std::path::Path;
-use std::os::raw::{c_void,c_char};
-use std::ffi::CStr;
+use std::os::raw::c_void;
 use sdl2_sys::video::SDL_WindowFlags;
 use sdl2::video::FullscreenType;
 use sdl2::event::Event as SdlEvent;
@@ -21,7 +20,7 @@ fn sdl_example(video_path: &Path) {
     // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
-    let mut renderer = init::init_sdl(&mut video_subsystem);
+    let renderer = init::init_sdl(&mut video_subsystem);
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     // INIT MPV
     let mut mpv = mpv::MpvHandler::create().expect("Error while creating MPV");
@@ -80,7 +79,7 @@ fn sdl_example(video_path: &Path) {
             mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw ");
         }
         displayer.display("hajimete kara mada wasurenai desho' YOUR DREAM");
-        displayer.sdl_renderer().window().unwrap().gl_swap_window();
+        displayer.render();
     }
 }
 

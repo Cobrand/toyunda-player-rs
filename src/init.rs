@@ -1,10 +1,6 @@
 extern crate sdl2;
-extern crate mpv;
 extern crate sdl2_sys;
-use mpv::MpvHandler;
 use sdl2::render::Renderer;
-use sdl2::video::Window;
-use sdl2::Sdl;
 use std::os::raw::{c_void,c_char};
 use std::ffi::CStr;
 
@@ -32,9 +28,6 @@ fn find_sdl_gl_driver() -> Option<u32>{
     opengl_driver
 }
 
-pub fn init_mpv()  {
-}
-
 pub fn init_sdl<'a>(video_subsystem:&mut sdl2::VideoSubsystem) -> Renderer<'a> {
     let opengl_driver_id = find_sdl_gl_driver().expect("Unable to find OpenGL video driver");
     let window = video_subsystem.window("Toyunda Player", 960, 540)
@@ -43,7 +36,7 @@ pub fn init_sdl<'a>(video_subsystem:&mut sdl2::VideoSubsystem) -> Renderer<'a> {
         .opengl()
         .build()
         .unwrap();
-    let mut renderer = window.renderer()
+    let renderer = window.renderer()
         .present_vsync()
         .index(opengl_driver_id)
         .build()

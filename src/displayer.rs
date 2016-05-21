@@ -141,6 +141,7 @@ impl FontList {
 pub struct Displayer<'a> {
     fonts: FontList,
     renderer: Renderer<'a>,
+    #[allow(dead_code)]
     ttf_context: sdl2_ttf::Sdl2TtfContext,
 }
 
@@ -179,7 +180,7 @@ impl<'a> Displayer<'a> {
                      Some(Rect::new(outline_width as i32,
                                     outline_width as i32,
                                     (width - outline_width),
-                                    (height - outline_width))));
+                                    (height - outline_width)))).expect("Failed to blit texture");
         let mut texture = self.renderer.create_texture_from_surface(&surface_outline).unwrap();
         texture.set_blend_mode(BlendMode::Blend);
         texture.set_alpha_mod(128);
