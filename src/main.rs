@@ -10,7 +10,8 @@ use std::env;
 use std::path::Path;
 use std::os::raw::{c_void,c_char};
 use std::ffi::CStr;
-
+use sdl2_sys::video::SDL_WindowFlags;
+use sdl2::video::FullscreenType;
 use sdl2::event::Event as SdlEvent;
 use sdl2::keyboard::Keycode;
 
@@ -45,7 +46,7 @@ fn sdl_example(video_path: &Path) {
             .opengl()
             .build()
             .unwrap();
-        let renderer = window.renderer()
+        let mut renderer = window.renderer()
             .present_vsync()
             .index(opengl_driver)
             .build()
@@ -74,9 +75,25 @@ fn sdl_example(video_path: &Path) {
                             false => {mpv.set_property_async("pause",true,1).expect("Failed to unpause player");}
                         }
                     },
-                    SdlEvent::KeyDown { keycode: Some(Keycode::F),repeat: false, .. } => {
-
-                    },
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } => {mpv.set_property_async("speed",0.9,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } => {mpv.set_property_async("speed",0.8,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } => {mpv.set_property_async("speed",0.7,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } => {mpv.set_property_async("speed",0.6,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } => {mpv.set_property_async("speed",0.5,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } => {mpv.set_property_async("speed",0.4,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } => {mpv.set_property_async("speed",0.3,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } => {mpv.set_property_async("speed",0.2,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } => {mpv.set_property_async("speed",0.1,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } => {mpv.set_property_async("speed",1.0,1).unwrap();},
+                    SdlEvent::KeyDown { keycode: Some(Keycode::F), repeat: false, .. } => {
+                        if (renderer.window().unwrap().window_flags() &
+                            (SDL_WindowFlags::SDL_WINDOW_FULLSCREEN as u32)) != 0 {
+                            renderer.window_mut().unwrap().set_fullscreen(FullscreenType::Off)
+                        } else {
+                            renderer.window_mut().unwrap().set_fullscreen(FullscreenType::Desktop)
+                        }
+                        .expect("Failed to change fullscreen parameter of toyunda-player");
+                    }
                     _ => {}
                 }
             }
