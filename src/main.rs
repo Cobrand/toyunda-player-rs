@@ -16,35 +16,15 @@ use sdl2::video::FullscreenType;
 use sdl2::event::Event as SdlEvent;
 use sdl2::keyboard::Keycode;
 
-unsafe extern "C" fn get_proc_address(arg: *mut c_void,
-                                      name: *const c_char) -> *mut c_void {
-    let arg: &sdl2::VideoSubsystem = &*(arg as *mut sdl2::VideoSubsystem);
-    let name = CStr::from_ptr(name).to_str().unwrap();
-    arg.gl_get_proc_address(name) as *mut c_void
-}
-
 fn sdl_example(video_path: &Path) {
     let opengl_driver = init::find_sdl_gl_driver().unwrap() as u32;
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
-    let window = video_subsystem.window("Toyunda Player", 960, 540)
-        .resizable()
-        .position_centered()
-        .opengl()
-        .build()
-        .unwrap();
-    let mut renderer = window.renderer()
-        .present_vsync()
-        .index(opengl_driver)
-        .build()
-        .expect("Failed to create renderer with given parameters");
-    renderer.window()
-            .expect("Failed to extract window from displayer")
-            .gl_set_context_to_current()
-            .unwrap();
-    let ptr = &mut video_subsystem as *mut _ as *mut c_void;
+    let mut renderer = init::init_sdl(&mut video_subsystem,opengl_driver);
+    let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     let mut mpv = mpv::MpvHandler::create().expect("Error while creating MPV");
-    mpv.init_with_gl(Some(get_proc_address), ptr).expect("Error while initializing MPV");
+    mpv.init_with_gl(Some(init::get_proc_address), video_subsystem_ptr).expect("Error while initializing MPV");
+
     let video_path = video_path.to_str().expect("Expected a string for Path, got None");
     mpv.command(&["loadfile", video_path as &str])
        .expect("Error loading file");
