@@ -17,10 +17,9 @@ use sdl2::event::Event as SdlEvent;
 use sdl2::keyboard::Keycode;
 
 fn sdl_example(video_path: &Path) {
-    let opengl_driver = init::find_sdl_gl_driver().unwrap() as u32;
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
-    let mut renderer = init::init_sdl(&mut video_subsystem,opengl_driver);
+    let mut renderer = init::init_sdl(&mut video_subsystem);
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     let mut mpv = mpv::MpvHandler::create().expect("Error while creating MPV");
     mpv.init_with_gl(Some(init::get_proc_address), video_subsystem_ptr).expect("Error while initializing MPV");

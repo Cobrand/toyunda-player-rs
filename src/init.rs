@@ -15,7 +15,7 @@ pub unsafe extern "C" fn get_proc_address(arg: *mut c_void,
     arg.gl_get_proc_address(name) as *mut c_void
 }
 
-pub fn find_sdl_gl_driver() -> Option<u32>{
+fn find_sdl_gl_driver() -> Option<u32>{
     let mut opengl_driver : Option<u32> = None ;
     info!("Detecting drivers ...");
     // SDL drivers are counted from 0
@@ -35,7 +35,8 @@ pub fn find_sdl_gl_driver() -> Option<u32>{
 pub fn init_mpv()  {
 }
 
-pub fn init_sdl<'a>(video_subsystem:&mut sdl2::VideoSubsystem,opengl_driver:u32) -> Renderer<'a> {
+pub fn init_sdl<'a>(video_subsystem:&mut sdl2::VideoSubsystem) -> Renderer<'a> {
+    let opengl_driver_id = find_sdl_gl_driver().expect("Unable to find OpenGL video driver");
     let window = video_subsystem.window("Toyunda Player", 960, 540)
         .resizable()
         .position_centered()
@@ -44,7 +45,7 @@ pub fn init_sdl<'a>(video_subsystem:&mut sdl2::VideoSubsystem,opengl_driver:u32)
         .unwrap();
     let mut renderer = window.renderer()
         .present_vsync()
-        .index(opengl_driver)
+        .index(opengl_driver_id)
         .build()
         .expect("Failed to create renderer with given parameters");
     renderer.window()
