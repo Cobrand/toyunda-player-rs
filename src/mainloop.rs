@@ -5,12 +5,20 @@ use sdl2::Sdl;
 use sdl2::event::Event as SdlEvent;
 use sdl2_sys::video::SDL_WindowFlags;
 use sdl2::video::FullscreenType;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::{Keycode,Scancode};
 use displayer::Displayer;
 
 pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler){
     let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
     'main: loop {
+        let (is_alt_pressed,is_ctrl_pressed,is_shift_pressed) = {
+            let keyboard_state = event_pump.keyboard_state();
+            (
+                keyboard_state.is_scancode_pressed(Scancode::RAlt) || keyboard_state.is_scancode_pressed(Scancode::LAlt),
+                keyboard_state.is_scancode_pressed(Scancode::RCtrl) || keyboard_state.is_scancode_pressed(Scancode::LCtrl),
+                keyboard_state.is_scancode_pressed(Scancode::RShift) || keyboard_state.is_scancode_pressed(Scancode::LShift)
+            )
+        };
         for event in event_pump.poll_iter() {
             match event {
                 SdlEvent::Quit {..} | SdlEvent::KeyDown { keycode: Some(Keycode::Escape), .. } => {
@@ -54,7 +62,7 @@ pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler
         }
         let (width, height) = displayer.sdl_renderer().window().unwrap().size();
         mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw");
-        displayer.display("hajimete kara mada wasurenai desho' YOUR DREAM");
+        displayer.display("0123456789ABCDEF0123456789abcdef0123456789");
         displayer.render();
     }
 }
