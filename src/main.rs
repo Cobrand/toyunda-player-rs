@@ -1,3 +1,4 @@
+#![allow(unused_parens)]
 extern crate mpv ;
 extern crate sdl2;
 extern crate sdl2_sys;
@@ -22,13 +23,18 @@ fn start_player(video_path: &Path) {
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     // INIT MPV
     let mut mpv = mpv::MpvHandler::create().expect("Error while creating MPV");
+    mpv.set_option("osc",true).unwrap();
+    mpv.set_option("sid","no").unwrap();
+    mpv.set_option("softvol","yes").unwrap();
+    mpv.set_option("softvol-max",200.0).unwrap();
     mpv.init_with_gl(Some(init::get_proc_address), video_subsystem_ptr).expect("Error while initializing MPV");
     // BIND MPV WITH SDL
-    let mut displayer = displayer::Displayer::new(renderer).expect("Failed to init displayer");
+    let displayer = displayer::Displayer::new(renderer).expect("Failed to init displayer");
 
     let video_path = video_path.to_str().expect("Expected a string for Path, got None");
     mpv.command(&["loadfile", video_path as &str])
        .expect("Error loading file");
+
     mainloop::main_loop(sdl_context,displayer,mpv);
 }
 

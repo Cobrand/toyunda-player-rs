@@ -7,6 +7,23 @@ use sdl2_sys::video::SDL_WindowFlags;
 use sdl2::video::FullscreenType;
 use sdl2::keyboard::{Keycode,Scancode};
 use displayer::Displayer;
+use std::cmp::{min,max};
+
+fn speed_btn(mpv:&mut mpv::MpvHandler,is_shift_pressed:bool,keynumber:u64){
+    let mut speed = (keynumber as f64) / 10.0 ;
+    if (is_shift_pressed) {
+        speed += 1.0;
+    }
+    mpv.set_property_async("speed",speed,1).expect("Failed to modify player speed");
+}
+
+fn add_volume(mpv:&mut mpv::MpvHandler,delta:i64){
+    let max_volume : i64 = mpv.get_property("volume-max").expect("Failed to get volume-max");
+    let current_volume : i64 = mpv.get_property("volume").expect("Failed to get volume");
+    let new_volume = min(max(current_volume + delta,0),max_volume);
+    mpv.set_property("volume",new_volume).unwrap();
+    println!("NEW VOLUME IS : {}",new_volume);
+}
 
 pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler){
     let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
@@ -30,16 +47,56 @@ pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler
                         false => {mpv.set_property_async("pause",true,1).expect("Failed to unpause player");}
                     }
                 },
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } => {mpv.set_property_async("speed",0.9,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } => {mpv.set_property_async("speed",0.8,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } => {mpv.set_property_async("speed",0.7,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } => {mpv.set_property_async("speed",0.6,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } => {mpv.set_property_async("speed",0.5,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } => {mpv.set_property_async("speed",0.4,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } => {mpv.set_property_async("speed",0.3,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } => {mpv.set_property_async("speed",0.2,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } => {mpv.set_property_async("speed",0.1,1).unwrap();},
-                SdlEvent::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } => {mpv.set_property_async("speed",1.0,1).unwrap();},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 9)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 8)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 7)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 6)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 5)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 4)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 3)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 2)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 1)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } => {speed_btn(&mut mpv, is_shift_pressed, 10)},
+                SdlEvent::KeyDown { keycode: Some(Keycode::KpPlus),  .. } => {add_volume(&mut mpv, 5 );},
+                SdlEvent::KeyDown { keycode: Some(Keycode::KpMinus), .. } => {add_volume(&mut mpv, -5);},
+                SdlEvent::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } => {
+                    if (is_ctrl_pressed){
+                        match mpv.command(&["frame-step"]) {
+                            Ok(_) => {},
+                            Err(err) => {error!("Failed to frame step with error {:?}",err);}
+                        };
+                    } else if (is_shift_pressed) {
+                        mpv.command(&["seek",15.to_string().as_str()]).unwrap();
+                    } else {
+                        mpv.command(&["seek",3.to_string().as_str()]).unwrap();
+                    }
+                }
+                SdlEvent::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } => {
+                    if (is_ctrl_pressed){
+                        match mpv.command(&["frame-back-step"]) {
+                            Ok(_) => {},
+                            Err(err) => {error!("Failed to frame back step with error {:?}",err);}
+                        };
+                    } else if (is_shift_pressed) {
+                        mpv.command(&["seek",(-15).to_string().as_str()]).unwrap();
+                    } else {
+                        mpv.command(&["seek",(-3).to_string().as_str()]).unwrap();
+                    }
+                }
+                SdlEvent::KeyDown { keycode: Some(Keycode::Up), .. } => {
+                    if is_ctrl_pressed {
+                        add_volume(&mut mpv, 5);
+                    }
+                }
+                SdlEvent::KeyDown { keycode: Some(Keycode::Down), .. } => {
+                    if is_ctrl_pressed {
+                        add_volume(&mut mpv, -5);
+                    }
+                }
+                SdlEvent::MouseWheel { y:delta_y, .. } => {
+                    let delta_y : i64 = (delta_y as i64) * if is_ctrl_pressed {1} else {10};
+                    add_volume(&mut mpv, delta_y);
+                }
                 SdlEvent::KeyDown { keycode: Some(Keycode::F), repeat: false, .. } => {
                     if (displayer.sdl_renderer().window().unwrap().window_flags() &
                         (SDL_WindowFlags::SDL_WINDOW_FULLSCREEN as u32)) != 0 {
