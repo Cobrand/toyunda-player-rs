@@ -58,9 +58,9 @@ pub struct FontList {
 impl FontList {
     pub fn new(font_path: &Path, ttf_context: &sdl2_ttf::Sdl2TtfContext) -> Result<FontList, ()> {
         let mut result = FontList { fonts: Vec::<FontSet>::new() };
-        let mut font_size = 4;
-        let font_size_max = 192;
-        let font_size_increment = 2;
+        let mut font_size = 3;
+        let font_size_max = 128;
+        let font_size_increment = 1;
         let mut error: bool = false;
         'fontlist: while (font_size < font_size_max) {
             let mut font_bold;
