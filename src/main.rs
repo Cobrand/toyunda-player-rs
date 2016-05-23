@@ -6,6 +6,8 @@ extern crate sdl2_sys;
 extern crate log;
 extern crate env_logger;
 
+mod font;
+mod display;
 mod displayer;
 mod init;
 mod mainloop;
