@@ -45,7 +45,6 @@ impl<'a> Displayer<'a> {
                                               .unwrap();
         let outline_width: u32 = 2;
         let (width, height) = surface_outline.size();
-
         surface.blit(None,
                      surface_outline.deref_mut(),
                      Some(Rect::new(outline_width as i32,
@@ -55,7 +54,7 @@ impl<'a> Displayer<'a> {
         let mut texture = self.renderer.create_texture_from_surface(&surface_outline).unwrap();
         texture.set_blend_mode(BlendMode::Blend);
         texture.set_alpha_mod(128);
-        let TextureQuery { width:texture_width, height:texture_height, .. } = texture.query();
+        let TextureQuery { width:texture_width, height:texture_height, format:texture_format,.. } = texture.query();
         self.renderer.copy(&mut texture,
                            None,
                            Some(Rect::new(3, 3, texture_width, texture_height)));
@@ -64,23 +63,22 @@ impl<'a> Displayer<'a> {
     pub fn example(&mut self) {
         let window_width = self.renderer.window().unwrap().size().0 ;
         let fit_width = window_width * 9 / 10 ;
-        let outline_config = display::Outline{width:2,color:Color::RGB(0,0,0)};
         let text_element_1 = display::TextElement {
             text:"SALUT ",
             color:Color::RGB(150,150,255),
-            outline:Some(outline_config),
+            outline:Some(Color::RGB(0,0,0)),
             shadow:None
         };
         let text_element_2 = display::TextElement {
             text:"MON ",
             color:Color::RGB(255,255,255),
-            outline:Some(outline_config),
+            outline:Some(Color::RGB(0,0,0)),
             shadow:None
         };
         let text_element_3 = display::TextElement {
             text:"POTE",
             color:Color::RGB(255,150,0),
-            outline:Some(outline_config),
+            outline:Some(Color::RGB(0,0,0)),
             shadow:None
         };
         let text_2d : display::Text2D = display::Text2D {

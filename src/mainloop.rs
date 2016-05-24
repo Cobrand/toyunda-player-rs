@@ -60,6 +60,7 @@ pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler
                 SdlEvent::KeyDown { keycode: Some(Keycode::KpPlus),  .. } => {add_volume(&mut mpv, 5 );},
                 SdlEvent::KeyDown { keycode: Some(Keycode::KpMinus), .. } => {add_volume(&mut mpv, -5);},
                 SdlEvent::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } => {
+                    println!("PIXELS FORMATS : {:?}",displayer.sdl_renderer().info());
                     if (is_ctrl_pressed){
                         match mpv.command(&["frame-step"]) {
                             Ok(_) => {},
