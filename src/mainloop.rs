@@ -120,6 +120,7 @@ pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler
         let (width, height) = displayer.sdl_renderer().window().unwrap().size();
         mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw");
         displayer.display("0123456789ABCDEF0123456789abcdef0123456789");
+        displayer.example();
         displayer.render();
     }
 }

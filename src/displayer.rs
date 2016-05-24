@@ -7,6 +7,7 @@ use std::vec::Vec;
 use std::path::Path;
 use font::*;
 use std::ops::DerefMut;
+use display::{self,Display};
 
 pub struct Displayer<'a> {
     fonts: FontList,
@@ -60,6 +61,36 @@ impl<'a> Displayer<'a> {
                            Some(Rect::new(3, 3, texture_width, texture_height)));
     }
 
+    pub fn example(&mut self) {
+        let window_width = self.renderer.window().unwrap().size().0 ;
+        let fit_width = window_width * 9 / 10 ;
+        let outline_config = display::Outline{width:2,color:Color::RGB(0,0,0)};
+        let text_element_1 = display::TextElement {
+            text:"SALUT ",
+            color:Color::RGB(150,150,255),
+            outline:Some(outline_config),
+            shadow:None
+        };
+        let text_element_2 = display::TextElement {
+            text:"MON ",
+            color:Color::RGB(255,255,255),
+            outline:Some(outline_config),
+            shadow:None
+        };
+        let text_element_3 = display::TextElement {
+            text:"POTE",
+            color:Color::RGB(255,150,0),
+            outline:Some(outline_config),
+            shadow:None
+        };
+        let text_2d : display::Text2D = display::Text2D {
+            text:vec![text_element_1,text_element_2,text_element_3],
+            size:display::Size::FitWidth{width:fit_width,max_font_size:None},
+            position:display::Position::TopLeftPosition{x:5,y:5}
+        };
+        text_2d.draw(self);
+    }
+
     pub fn render(&mut self) {
         self.sdl_renderer_mut().window().unwrap().gl_swap_window();
     }
@@ -70,5 +101,9 @@ impl<'a> Displayer<'a> {
 
     pub fn sdl_renderer(&self) -> &Renderer<'a> {
         &self.renderer
+    }
+
+    pub fn fonts(&self) -> &FontList {
+        &self.fonts
     }
 }
