@@ -32,8 +32,8 @@ impl<'a> Displayer<'a> {
 
     pub fn display(&mut self, text: &str) {
         let size: f32 = 0.039;
-        let window_width = self.renderer.window().unwrap().size().0 as f32;
-        let font_set = self.fonts.get_closest_font_set((size * window_width) as u16).unwrap();
+        let window_width = self.renderer.window().unwrap().size().0 ;
+        let font_set = self.fonts.get_fittest_font_set(text, window_width as u16,true).unwrap();
         let font = font_set.get_regular_font();
         let font_outline = font_set.get_outline_font();
         let surface = font.render(text)

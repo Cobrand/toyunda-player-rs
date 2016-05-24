@@ -5,8 +5,13 @@ use std::cmp::Ordering;
 use std::path::Path;
 
 pub struct FontSet {
+    /// size of the loaded font
     font_size: u16,
+    /// width of a single character withotu outline
+    char_dimensions: (u8,u8),
+    /// Font object without outline
     font_regular: sdl2_ttf::Font,
+    /// Font object with outline
     font_bold: sdl2_ttf::Font,
 }
 
@@ -64,6 +69,10 @@ impl FontList {
         let mut error: bool = false;
         'fontlist: while (font_size < font_size_max) {
             let mut font_bold;
+            let font_regular = ttf_context.load_font(font_path, font_size)
+                .expect("Unable to load font");
+            let char_dimensions = font_regular.size_of_char('A').expect("Failed to get size of char");
+            let char_dimensions = (char_dimensions.0 as u8,char_dimensions.0 as u8);
             match ttf_context.load_font(font_path, font_size) {
                 Ok(font_set) => {
                     font_bold = font_set;
@@ -76,7 +85,8 @@ impl FontList {
             font_bold.set_outline_width(2);
             result.fonts.push(FontSet {
                 font_size: font_size,
-                font_regular: ttf_context.load_font(font_path, font_size).unwrap(),
+                char_dimensions: char_dimensions,
+                font_regular: font_regular,
                 font_bold: font_bold,
             });
             font_size += font_size_increment;
@@ -104,6 +114,7 @@ impl FontList {
         }
     }
 
+    /// Given a font size, get the closest from the fontlist
     pub fn get_closest_font_set(&self, font_size: u16) -> Result<&FontSet, ()> {
         match self.fonts.len() {
             0 => Err(()),
@@ -126,6 +137,34 @@ impl FontList {
                             Ok(font_set_max)
                         }
                     }
+                }
+            }
+        }
+    }
+
+    /// Given a string and a maximum width, get the fittest font from the FontList
+    pub fn get_fittest_font_set(&self, string:&str,max_width:u16,outline:bool) -> Result<&FontSet, ()> {
+        match self.fonts.len() {
+            0 => Err(()),
+            1 => Ok(self.fonts.first().unwrap()),
+            _ => {
+                let search_result = self.fonts.binary_search_by(|fontset| {
+                    let ref font_bold = fontset.font_bold;
+                    let ref font_regular = fontset.font_regular;
+                    let string_size:u16 =
+                        if outline {font_bold} else {font_regular}
+                        .size_of(string)
+                        .expect("Failed to get size of some string")
+                        .0 as u16;
+                    string_size.cmp(&max_width)
+                });
+                match search_result {
+                    Ok(index) => Ok(&self.fonts[index]),
+                    Err(0) => Ok(&self.fonts[0]),
+                    Err(index) if index == self.fonts.len() => Ok(&self.fonts.last().unwrap()),
+                    Err(index) => Ok(&self.fonts[index - 1])
+                    // it should fit, meaning that if we can't find something exactly we should
+                    // take the first that fits
                 }
             }
         }

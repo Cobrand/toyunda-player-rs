@@ -1,10 +1,10 @@
 extern crate sdl2;
-use sdl2::render::Renderer;
+use displayer::Displayer;
 use sdl2::pixels::Color;
 use std::vec::Vec;
 
 pub trait Display {
-    fn draw(self,&mut Renderer) ;
+    fn draw(self,&mut Displayer) ;
 }
 
 struct Outline {
@@ -20,12 +20,25 @@ struct TextElement<'a> {
 }
 
 enum Position {
-    Centered,
+    //Centered,
     TopLeftPosition{x:f64,y:f64},
-    CenterPosition{x:f64,y:f64}
+    //CenterPosition{x:f64,y:f64}
+}
+
+enum Size{
+    //Percentage(f64),
+    Raw(u32),
+    //FitWidth{width:u32,max_font_size:Option<u32>},
 }
 
 pub struct Text2D<'a> {
     text:Vec<TextElement<'a>>,
-    size:f64,
+    size:Size,
+    position:Position
+}
+
+impl<'a> Display for Text2D<'a> {
+    fn draw(self,displayer:&mut Displayer) {
+        
+    }
 }
