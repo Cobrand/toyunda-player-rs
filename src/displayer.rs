@@ -64,27 +64,28 @@ impl<'a> Displayer<'a> {
         let window_width = self.renderer.window().unwrap().size().0 ;
         let fit_width = window_width * 9 / 10 ;
         let text_element_1 = display::TextElement {
-            text:"SALUT ",
-            color:Color::RGB(150,150,255),
-            outline:Some(Color::RGB(0,0,0)),
+            text:"S",
+            color:Color::RGBA(0,0,0,255),
+            outline:Some(Color::RGB(255,255,255)),
             shadow:None
         };
         let text_element_2 = display::TextElement {
-            text:"MON ",
-            color:Color::RGB(255,255,255),
+            text:"L",
+            color:Color::RGBA(255,255,255,150),
             outline:Some(Color::RGB(0,0,0)),
             shadow:None
         };
         let text_element_3 = display::TextElement {
-            text:"POTE",
-            color:Color::RGB(255,150,0),
-            outline:Some(Color::RGB(0,0,0)),
+            text:"T",
+            color:Color::RGBA(255,0,0,200),
+            outline:None,
             shadow:None
         };
         let text_2d : display::Text2D = display::Text2D {
             text:vec![text_element_1,text_element_2,text_element_3],
             size:display::Size::FitWidth{width:fit_width,max_font_size:None},
-            position:display::Position::TopLeftPosition{x:5,y:5}
+            pos:(display::PosX::Centered,display::PosY::FromTopPercent(0.50)),
+            anchor:(0.5,0.5)
         };
         text_2d.draw(self);
     }

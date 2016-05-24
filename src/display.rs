@@ -1,6 +1,7 @@
 extern crate sdl2;
 use std::ops::DerefMut;
 use displayer::Displayer;
+use font;
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
 use sdl2::rect::Rect;
@@ -20,10 +21,21 @@ pub struct TextElement<'a> {
 }
 
 #[derive(Copy,Debug,Clone)]
-pub enum Position {
-    //Centered,
-    TopLeftPosition{x:u32,y:u32},
-    //CenterPosition{x:f64,y:f64}
+pub enum PosX {
+    Centered,
+    FromLeft(u32),
+    FromRight(u32),
+    FromLeftPercent(f32),
+    FromRightPercent(f32),
+}
+
+#[derive(Copy,Debug,Clone)]
+pub enum PosY {
+    Centered,
+    FromTop(u32),
+    FromBottom(u32),
+    FromTopPercent(f32),
+    FromBottomPercent(f32),
 }
 
 #[derive(Copy,Debug,Clone)]
@@ -37,40 +49,79 @@ pub enum Size{
 pub struct Text2D<'a> {
     pub text:Vec<TextElement<'a>>,
     pub size:Size,
-    pub position:Position
+    pub pos:(PosX,PosY),
+    pub anchor:(f32,f32)
 }
+
+impl<'a> Text2D<'a> {
+    pub fn to_string(&self) -> String {
+        self.text.iter().fold(String::default(),|accu_text,text_element|{
+            accu_text + text_element.text
+        })
+    }
+}
+
 
 impl<'a> Display for Text2D<'a> {
     fn draw(self,displayer:&mut Displayer) {
-        let target_texture = {
+        let (window_width,window_height) = displayer.sdl_renderer().window().unwrap().size() ;
+        let mut target_texture = {
             let is_outline_enabled = self.text.iter().any(|text_element|{
                 text_element.outline.is_some()
             });
-            let window_width = displayer.sdl_renderer().window().unwrap().size().0 ;
-            let all_text = self.text.iter().fold(String::default(),|accu_text,text_element|{
-                accu_text + text_element.text
-            });
-            let font_set = displayer.fonts().get_fittest_font_set(all_text.as_str(), window_width as u16,is_outline_enabled).unwrap();
-            let (surface_width,surface_height) = if is_outline_enabled {
-                font_set.get_outline_font().size_of(all_text.as_str()).expect("Unable to get outline pixel size of str")
-            } else {
-                font_set.get_regular_font().size_of(all_text.as_str()).expect("Unable to get pixel size of str")
-            };
+            let fit_width = window_width * 9 / 10 ;
+            let all_text = self.to_string();
+            let font_set = displayer.fonts().get_fittest_font_set(all_text.as_str(), fit_width as u16,is_outline_enabled).unwrap();
+            let (target_surface_width,target_surface_height) =
+                font_set.get_outline_font().size_of(all_text.as_str()).expect("Unable to get outline pixel size of str");
             // ARGB8888 because it's the only one supported on my computer; i hope it's the same everywhere else ?
-            let mut target_surface = Surface::new(surface_width,surface_height,sdl2::pixels::PixelFormatEnum::ARGB8888)
+            let mut target_surface = Surface::new(target_surface_width,target_surface_height,sdl2::pixels::PixelFormatEnum::ARGB8888)
                 .expect("Failed to create Surface with ARGB8888 Format");
-
-            let mut width_offset : i32 = 0 ;
+            let mut width_offset : i32 = if is_outline_enabled {0} else {font::OUTLINE_WIDTH as i32} ;
             for text_element in self.text.iter() {
-                let surface = font_set.get_regular_font()
+                let (temp_target_surface_width,temp_target_surface_height) =
+                    font_set.get_outline_font().size_of(text_element.text).unwrap();
+                let mut temp_target_surface = Surface::new(temp_target_surface_width,temp_target_surface_height,sdl2::pixels::PixelFormatEnum::ARGB8888)
+                    .expect("Failed to create Surface with ARGB8888 Format");
+                if text_element.outline.is_some() {
+                    let mut outline_surface = font_set.get_outline_font()
+                                                      .render(text_element.text)
+                                                      .blended(text_element.outline.unwrap())
+                                                      .unwrap();
+                    let (surface_width,surface_height) = outline_surface.size();
+                    outline_surface.blit(None,
+                                         temp_target_surface.deref_mut(),
+                                         Some(Rect::new(0,
+                                                        0,
+                                                        surface_width,
+                                                        surface_height)));
+                }
+
+                {
+                    let mut regular_surface = font_set.get_regular_font()
                                       .render(text_element.text)
-                                      .blended(Color::RGB(180, 180, 180))
+                                      .blended(text_element.color)
                                       .unwrap();
-                let (surface_width,surface_height)=surface.size();
-                surface.blit(None,
-                             target_surface.deref_mut(),
-                             Some(Rect::new(width_offset,0,surface_width,surface_height)));
-                width_offset = width_offset + surface_width as i32;
+                    let (surface_width,surface_height) = regular_surface.size();
+                    regular_surface.blit(None,
+                                         temp_target_surface.deref_mut(),
+                                         Some(Rect::new(font::OUTLINE_WIDTH as i32,
+                                                        font::OUTLINE_WIDTH as i32,
+                                                        surface_width,
+                                                        surface_height)));
+                }
+
+                temp_target_surface.set_alpha_mod(match text_element.color{
+                    Color::RGB(_,_,_) => 255,
+                    Color::RGBA(_,_,_,a) => a
+                });
+                temp_target_surface.blit(None,
+                                         target_surface.deref_mut(),
+                                         Some(Rect::new(width_offset,
+                                                        0,
+                                                        temp_target_surface_width,
+                                                        temp_target_surface_height)));
+                width_offset = width_offset + temp_target_surface_width as i32 - (font::OUTLINE_WIDTH as i32* 2);
             }
             let target_texture = displayer
                 .sdl_renderer()
@@ -79,6 +130,45 @@ impl<'a> Display for Text2D<'a> {
             target_texture
         };
         let TextureQuery { width:texture_width, height:texture_height, .. } = target_texture.query();
-        displayer.sdl_renderer_mut().copy(&target_texture,None,Some(Rect::new(50, 50, texture_width, texture_height)));
+        // POSITION
+        let (pos_x,pos_y) = self.pos;
+        let mut target_rect : Rect = Rect::new(0, 0,texture_width,texture_height);
+        let delta_anchor_x = (self.anchor.0 * texture_width as f32) as i32 ;
+        let delta_anchor_y = (self.anchor.1 * texture_height as f32) as i32 ;
+        match pos_x {
+            PosX::Centered => {
+                target_rect.set_x((window_width/2) as i32 - delta_anchor_x )
+            },
+            PosX::FromLeft(value) => {
+                target_rect.set_x(value as i32 - delta_anchor_x)
+            },
+            PosX::FromLeftPercent(percent) => {
+                target_rect.set_x((percent * (window_width as f32)) as i32 - delta_anchor_x)
+            },
+            PosX::FromRight(value) => {
+                target_rect.set_x(window_width as i32 - value as i32 - delta_anchor_x)
+            },
+            PosX::FromRightPercent(percent) => {
+                target_rect.set_x(window_width as i32 - (percent * (window_width as f32)) as i32 - delta_anchor_x)
+            }
+        };
+        match pos_y {
+            PosY::Centered => {
+                target_rect.set_y((window_height/2) as i32 - delta_anchor_y )
+            },
+            PosY::FromTop(value) => {
+                target_rect.set_y(value as i32 - delta_anchor_y)
+            },
+            PosY::FromTopPercent(percent) => {
+                target_rect.set_y((percent * (window_height as f32)) as i32 - delta_anchor_y)
+            },
+            PosY::FromBottom(value) => {
+                target_rect.set_y(window_height as i32 - value as i32 - delta_anchor_y)
+            },
+            PosY::FromBottomPercent(percent) => {
+                target_rect.set_y(window_height as i32 - (percent * (window_height as f32)) as i32 - delta_anchor_y)
+            }
+        };
+        displayer.sdl_renderer_mut().copy(&target_texture,None,Some(target_rect));
     }
 }

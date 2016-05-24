@@ -4,6 +4,8 @@ use std::ops::Index;
 use std::cmp::Ordering;
 use std::path::Path;
 
+pub const OUTLINE_WIDTH : u16 = 2 ;
+
 pub struct FontSet {
     /// size of the loaded font
     font_size: u16,
@@ -82,7 +84,7 @@ impl FontList {
                     break 'fontlist;
                 }
             }
-            font_bold.set_outline_width(2);
+            font_bold.set_outline_width(OUTLINE_WIDTH);
             result.fonts.push(FontSet {
                 font_size: font_size,
                 char_dimensions: char_dimensions,
