@@ -20,6 +20,51 @@ pub struct TextElement<'a> {
     pub shadow:Option<Color>
 }
 
+impl<'a> TextElement<'a> {
+    fn as_surface(&self,font_set:&font::FontSet) -> Surface {
+        let (surface_width,surface_height) = font_set.get_outline_font().size_of(self.text).unwrap();
+        let mut target_surface : Surface = Surface::new(surface_width,surface_height,sdl2::pixels::PixelFormatEnum::ARGB8888)
+            .expect("Failed to create Surface with ARGB8888 Format");
+        match self.outline {
+            Some(outline_color) => {
+                // blit the surface containing the border
+                let mut outline_surface = font_set.get_outline_font()
+                                                  .render(self.text)
+                                                  .blended(outline_color)
+                                                  .unwrap();
+                let (outline_surface_width,outline_surface_height) = outline_surface.size();
+                outline_surface.blit(None,
+                                     target_surface.deref_mut(),
+                                     Some(Rect::new(0,
+                                                    0,
+                                                    outline_surface_width,
+                                                    outline_surface_height)));
+            },
+            None => {} // do nothing about the outline
+        }
+        {
+            // blit the surface containing the center font
+            let mut surface = font_set.get_regular_font()
+                                      .render(self.text)
+                                      .blended(self.color)
+                                      .unwrap();
+            let (surface_width,surface_height) = surface.size();
+            surface.blit(None,
+                         target_surface.deref_mut(),
+                         Some(Rect::new(font::OUTLINE_WIDTH as i32, // start from OUTLINE
+                                        font::OUTLINE_WIDTH as i32, // to center the text
+                                        surface_width,
+                                        surface_height)));
+        }
+
+        target_surface.set_alpha_mod(match self.color {
+            Color::RGB(_,_,_) => 255,
+            Color::RGBA(_,_,_,a) => a
+        });
+        target_surface
+    }
+}
+
 #[derive(Copy,Debug,Clone)]
 pub enum PosX {
     Centered,
@@ -79,49 +124,16 @@ impl<'a> Display for Text2D<'a> {
                 .expect("Failed to create Surface with ARGB8888 Format");
             let mut width_offset : i32 = if is_outline_enabled {0} else {font::OUTLINE_WIDTH as i32} ;
             for text_element in self.text.iter() {
-                let (temp_target_surface_width,temp_target_surface_height) =
-                    font_set.get_outline_font().size_of(text_element.text).unwrap();
-                let mut temp_target_surface = Surface::new(temp_target_surface_width,temp_target_surface_height,sdl2::pixels::PixelFormatEnum::ARGB8888)
-                    .expect("Failed to create Surface with ARGB8888 Format");
-                if text_element.outline.is_some() {
-                    let mut outline_surface = font_set.get_outline_font()
-                                                      .render(text_element.text)
-                                                      .blended(text_element.outline.unwrap())
-                                                      .unwrap();
-                    let (surface_width,surface_height) = outline_surface.size();
-                    outline_surface.blit(None,
-                                         temp_target_surface.deref_mut(),
-                                         Some(Rect::new(0,
-                                                        0,
-                                                        surface_width,
-                                                        surface_height)));
-                }
-
-                {
-                    let mut regular_surface = font_set.get_regular_font()
-                                      .render(text_element.text)
-                                      .blended(text_element.color)
-                                      .unwrap();
-                    let (surface_width,surface_height) = regular_surface.size();
-                    regular_surface.blit(None,
-                                         temp_target_surface.deref_mut(),
-                                         Some(Rect::new(font::OUTLINE_WIDTH as i32,
-                                                        font::OUTLINE_WIDTH as i32,
-                                                        surface_width,
-                                                        surface_height)));
-                }
-
-                temp_target_surface.set_alpha_mod(match text_element.color{
-                    Color::RGB(_,_,_) => 255,
-                    Color::RGBA(_,_,_,a) => a
-                });
-                temp_target_surface.blit(None,
-                                         target_surface.deref_mut(),
-                                         Some(Rect::new(width_offset,
-                                                        0,
-                                                        temp_target_surface_width,
-                                                        temp_target_surface_height)));
-                width_offset = width_offset + temp_target_surface_width as i32 - (font::OUTLINE_WIDTH as i32* 2);
+                let text_surface = text_element.as_surface(font_set);
+                let (text_surface_w,text_surface_h) =
+                    text_surface.size();
+                text_surface.blit(None,
+                                  target_surface.deref_mut(),
+                                  Some(Rect::new(width_offset,
+                                                 0,
+                                                 text_surface_w,
+                                                 text_surface_h)));
+                width_offset = width_offset + text_surface_w as i32 - (font::OUTLINE_WIDTH as i32* 2);
             }
             let target_texture = displayer
                 .sdl_renderer()
