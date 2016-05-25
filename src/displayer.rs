@@ -61,8 +61,6 @@ impl<'a> Displayer<'a> {
     }
 
     pub fn example(&mut self) {
-        let window_width = self.renderer.window().unwrap().size().0 ;
-        let fit_width = window_width * 9 / 10 ;
         let text_element_1 = display::TextElement {
             text:"S",
             color:Color::RGBA(0,0,0,255),

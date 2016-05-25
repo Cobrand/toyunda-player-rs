@@ -25,6 +25,38 @@ fn add_volume(mpv:&mut mpv::MpvHandler,delta:i64){
     println!("NEW VOLUME IS : {}",new_volume);
 }
 
+fn example(time_pos:Option<f64>,displayer:&mut Displayer){
+    use sdl2::pixels::Color;
+    use display::{self,Text2D,Display};
+    match time_pos {
+        Some(time_pos) => {
+            let mut alpha : u8 = 0 ;
+            if (time_pos > 1.5 && time_pos <= 2.0 ){
+                alpha = ((2.0 - time_pos) / (1.5 - 2.0) * 255.0 ) as u8 ;
+            } else if (time_pos > 2.0 && time_pos < 5.0 ){
+                alpha = 0xFF;
+            } else if (time_pos >= 5.0 && time_pos < 5.5 ) {
+                alpha = ((5.0 - time_pos) / (5.5 - 5.0) * 255.0 ) as u8 ;
+            }
+            let (r,g,b) : (u8,u8,u8) = (64,255,0);
+            display::Text2D {
+                text:vec![
+                    display::TextElement {
+                        text:"SALUUUUT",
+                        color:Color::RGBA(r,g,b,alpha),
+                        outline:Some(Color::RGB(0,0,0)),
+                        shadow:None
+                    }
+                ],
+                size:display::Size::FitPercent(Some(0.95),Some(0.1)),
+                pos:(display::PosX::Centered,display::PosY::FromTopPercent(0.01)),
+                anchor:(0.5,0.0)
+            }.draw(displayer);
+        },
+        None => {}
+    }
+}
+
 pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler){
     let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
     'main: loop {
@@ -119,8 +151,10 @@ pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler
         }
         let (width, height) = displayer.sdl_renderer().window().unwrap().size();
         mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw");
-        displayer.display("0123456789ABCDEF0123456789abcdef0123456789");
-        displayer.example();
+        //displayer.display("0123456789ABCDEF0123456789abcdef0123456789");
+        let time_pos : Option<f64> = mpv.get_property("time-pos").ok();
+        example(time_pos,&mut displayer);
+        //displayer.example();
         displayer.render();
     }
 }
