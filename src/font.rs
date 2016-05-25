@@ -145,28 +145,46 @@ impl FontList {
     }
 
     /// Given a string and a maximum width, get the fittest font from the FontList
-    pub fn get_fittest_font_set(&self, string:&str,max_width:u16,outline:bool) -> Result<&FontSet, ()> {
-        match self.fonts.len() {
-            0 => Err(()),
-            1 => Ok(self.fonts.first().unwrap()),
-            _ => {
-                let search_result = self.fonts.binary_search_by(|fontset| {
-                    let ref font_bold = fontset.font_bold;
-                    let ref font_regular = fontset.font_regular;
-                    let string_size:u16 =
-                        if outline {font_bold} else {font_regular}
-                        .size_of(string)
-                        .expect("Failed to get size of some string")
-                        .0 as u16;
-                    string_size.cmp(&max_width)
-                });
-                match search_result {
-                    Ok(index) => Ok(&self.fonts[index]),
-                    Err(0) => Ok(&self.fonts[0]),
-                    Err(index) if index == self.fonts.len() => Ok(&self.fonts.last().unwrap()),
-                    Err(index) => Ok(&self.fonts[index - 1])
-                    // it should fit, meaning that if we can't find something exactly we should
-                    // take the first that fits
+    pub fn get_fittest_font_set(&self, string:&str,max_dims:(Option<u32>,Option<u32>),outline:bool) -> Result<&FontSet, ()> {
+        if max_dims == (None,None) {
+            Err(()) // cant get the fittiest if both are None !
+        } else {
+            match self.fonts.len() {
+                0 => Err(()),
+                1 => Ok(self.fonts.first().unwrap()),
+                _ => {
+                    let search_result = self.fonts.binary_search_by(|fontset| {
+                        let ref font_bold = fontset.font_bold;
+                        let ref font_regular = fontset.font_regular;
+                        let string_dims =
+                            if outline {font_bold} else {font_regular}
+                            .size_of(string)
+                            .expect("Failed to get size of some string");
+                        match max_dims {
+                            (Some(width),Some(height)) => {
+                                match (string_dims.0.cmp(&width),string_dims.1.cmp(&height)) {
+                                    (Ordering::Greater,_) | (_,Ordering::Greater) => Ordering::Greater,
+                                    (Ordering::Equal,_) | (_,Ordering::Equal) => Ordering::Equal,
+                                    _ => Ordering::Less
+                                }
+                            },
+                            (Some(width),None) => {
+                                string_dims.0.cmp(&width)
+                            },
+                            (None,Some(height)) => {
+                                string_dims.1.cmp(&height)
+                            },
+                            (None,None) => unreachable!()
+                        }
+                    });
+                    match search_result {
+                        Ok(index) => Ok(&self.fonts[index]),
+                        Err(0) => Ok(&self.fonts[0]),
+                        Err(index) if index == self.fonts.len() => Ok(&self.fonts.last().unwrap()),
+                        Err(index) => Ok(&self.fonts[index - 1])
+                        // it should fit, meaning that if we can't find something exactly we should
+                        // take the first that fits
+                    }
                 }
             }
         }

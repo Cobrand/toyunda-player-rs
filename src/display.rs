@@ -86,8 +86,8 @@ pub enum PosY {
 #[derive(Copy,Debug,Clone)]
 pub enum Size{
     //Percentage(f64),
-    Raw(u32),
-    FitWidth{width:u32,max_font_size:Option<u32>},
+    FitPercent(Option<f32>,Option<f32>),
+    Fit(Option<u32>,Option<u32>),
 }
 
 #[derive(Debug)]
@@ -109,14 +109,18 @@ impl<'a> Text2D<'a> {
 
 impl<'a> Display for Text2D<'a> {
     fn draw(self,displayer:&mut Displayer) {
-        let (window_width,window_height) = displayer.sdl_renderer().window().unwrap().size() ;
+        let (window_width,window_height) = displayer.sdl_renderer().window().unwrap().size();
+        let (fit_width,fit_height) = match self.size {
+            Size::FitPercent(option_x,option_y) => displayer.sub_screen_dims(option_x,option_y),
+            Size::Fit(x,y) => (x,y)
+        };
+
         let mut target_texture = {
             let is_outline_enabled = self.text.iter().any(|text_element|{
                 text_element.outline.is_some()
             });
-            let fit_width = window_width * 9 / 10 ;
             let all_text = self.to_string();
-            let font_set = displayer.fonts().get_fittest_font_set(all_text.as_str(), fit_width as u16,is_outline_enabled).unwrap();
+            let font_set = displayer.fonts().get_fittest_font_set(all_text.as_str(), (fit_width,fit_height),is_outline_enabled).unwrap();
             let (target_surface_width,target_surface_height) =
                 font_set.get_outline_font().size_of(all_text.as_str()).expect("Unable to get outline pixel size of str");
             // ARGB8888 because it's the only one supported on my computer; i hope it's the same everywhere else ?
@@ -124,6 +128,7 @@ impl<'a> Display for Text2D<'a> {
                 .expect("Failed to create Surface with ARGB8888 Format");
             let mut width_offset : i32 = if is_outline_enabled {0} else {font::OUTLINE_WIDTH as i32} ;
             for text_element in self.text.iter() {
+                // for each text element, blit it over
                 let text_surface = text_element.as_surface(font_set);
                 let (text_surface_w,text_surface_h) =
                     text_surface.size();

@@ -34,7 +34,7 @@ impl<'a> Displayer<'a> {
     pub fn display(&mut self, text: &str) {
         let size: f32 = 0.039;
         let window_width = self.renderer.window().unwrap().size().0 ;
-        let font_set = self.fonts.get_fittest_font_set(text, window_width as u16,true).unwrap();
+        let font_set = self.fonts.get_fittest_font_set(text, (Some(window_width),None),true).unwrap();
         let font = font_set.get_regular_font();
         let font_outline = font_set.get_outline_font();
         let surface = font.render(text)
@@ -71,7 +71,7 @@ impl<'a> Displayer<'a> {
         };
         let text_element_2 = display::TextElement {
             text:"L",
-            color:Color::RGBA(255,255,255,150),
+            color:Color::RGBA(255,255,255,255),
             outline:Some(Color::RGB(0,0,0)),
             shadow:None
         };
@@ -83,11 +83,24 @@ impl<'a> Displayer<'a> {
         };
         let text_2d : display::Text2D = display::Text2D {
             text:vec![text_element_1,text_element_2,text_element_3],
-            size:display::Size::FitWidth{width:fit_width,max_font_size:None},
+            size:display::Size::FitPercent(Some(0.9),Some(0.1)),
             pos:(display::PosX::Centered,display::PosY::FromTopPercent(0.50)),
             anchor:(0.5,0.5)
         };
         text_2d.draw(self);
+    }
+
+    // width and height must be between 0 and 1
+    pub fn sub_screen_dims(&self,width:Option<f32>,height:Option<f32>) -> (Option<u32>,Option<u32>){
+        let dims : (u32,u32)= self.renderer.window().unwrap().size();
+        (
+            width.and_then(|width|{
+                Some((width *  (dims.0 as f32)) as u32)
+            }) ,
+            height.and_then(|height|{
+                Some((height *  (dims.1 as f32)) as u32)
+            })
+        )
     }
 
     pub fn render(&mut self) {
