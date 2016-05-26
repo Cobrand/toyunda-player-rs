@@ -6,6 +6,7 @@ extern crate sdl2_sys;
 extern crate log;
 extern crate env_logger;
 
+mod subtitles;
 mod font;
 mod display;
 mod displayer;
@@ -32,6 +33,15 @@ fn start_player(video_path: &Path) {
     mpv.init_with_gl(Some(init::get_proc_address), video_subsystem_ptr).expect("Error while initializing MPV");
     // BIND MPV WITH SDL
     let displayer = displayer::Displayer::new(renderer).expect("Failed to init displayer");
+
+
+    let lyr_path = video_path.with_extension("lyr");
+    let frm_path = video_path.with_extension("frm");
+    println!("SALUT");
+    if (lyr_path.is_file() && frm_path.is_file()){
+        println!("TEST REUSSI");
+        subtitles::load_subtitles(lyr_path.as_path(),frm_path.as_path());
+    }
 
     let video_path = video_path.to_str().expect("Expected a string for Path, got None");
     mpv.command(&["loadfile", video_path as &str])

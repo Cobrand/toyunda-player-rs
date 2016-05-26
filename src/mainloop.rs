@@ -22,7 +22,6 @@ fn add_volume(mpv:&mut mpv::MpvHandler,delta:i64){
     let current_volume : i64 = mpv.get_property("volume").expect("Failed to get volume");
     let new_volume = min(max(current_volume + delta,0),max_volume);
     mpv.set_property("volume",new_volume).unwrap();
-    println!("NEW VOLUME IS : {}",new_volume);
 }
 
 fn example(time_pos:Option<f64>,displayer:&mut Displayer){
