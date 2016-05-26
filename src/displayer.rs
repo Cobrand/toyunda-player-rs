@@ -3,6 +3,7 @@ extern crate sdl2_ttf;
 use sdl2::render::{Renderer, TextureQuery, BlendMode};
 use sdl2::rect::Rect;
 use sdl2::pixels::Color;
+use std::env;
 use std::vec::Vec;
 use std::path::Path;
 use font::*;
@@ -22,7 +23,10 @@ impl<'a> Displayer<'a> {
     pub fn new(mut renderer: Renderer<'a>,subtitles:Option<Subtitles>) -> Result<Displayer<'a>, ()> {
         renderer.set_blend_mode(BlendMode::Blend);
         let ttf_context = sdl2_ttf::init().unwrap();
-        let font_list = FontList::new(Path::new("./res/DejaVuSansMono-Bold.ttf"),
+        let mut font_path = env::current_exe().unwrap().parent().unwrap().to_path_buf();
+        font_path.push("res/DejaVuSansMono-Bold.ttf");
+        let font_path = font_path.as_path();
+        let font_list = FontList::new(font_path,
                                       &ttf_context)
                             .unwrap();
         let displayer = Displayer {
