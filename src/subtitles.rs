@@ -3,6 +3,21 @@ use std::fs::File;
 use std::io::{Read,BufReader,BufRead};
 use std::vec::Vec;
 
+pub struct Subtitles {
+    subtitles:Vec<Vec<(String,(u32,u32))>>
+}
+
+impl Subtitles {
+    pub fn new(subtitles:Vec<Vec<(String,(u32,u32))>>) -> Self {
+        Subtitles {
+            subtitles:subtitles
+        }
+    }
+    pub fn get_subtitles(&self) -> &Vec<Vec<(String,(u32,u32))>> {
+        &self.subtitles
+    }
+}
+
 fn load_frm(frm_path:&Path) -> Vec<(u32,u32)>{
     let frm_file = File::open(frm_path).unwrap();
     let mut frm_lines = Vec::new();
@@ -57,6 +72,5 @@ pub fn load_subtitles(lyr_path:&Path,frm_path:&Path) -> Vec<Vec<(String,(u32,u32
         lines.push(zipped_syllabus);
 
     }
-    println!("{:?}",lines);
     lines
 }

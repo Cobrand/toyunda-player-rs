@@ -41,7 +41,7 @@ fn example(time_pos:Option<f64>,displayer:&mut Displayer){
             display::Text2D {
                 text:vec![
                     display::TextElement {
-                        text:"SALUUUUT",
+                        text:"SALUUUUT".to_string(),
                         color:Color::RGBA(r,g,b,alpha),
                         outline:Some(Color::RGB(0,0,0)),
                         shadow:None
@@ -152,8 +152,13 @@ pub fn main_loop(sdl_context:Sdl,mut displayer:Displayer,mut mpv:mpv::MpvHandler
         mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw");
         //displayer.display("0123456789ABCDEF0123456789abcdef0123456789");
         let time_pos : Option<f64> = mpv.get_property("time-pos").ok();
-        example(time_pos,&mut displayer);
+        let frame_pos : Option<u32> = mpv.get_property::<i64>("estimated-frame-number").ok().map(|v| v as u32 );
+        //example(time_pos,&mut displayer);
         //displayer.example();
+        match frame_pos {
+            Some(frame_pos) => displayer.render_subtitles(frame_pos),
+            _ => {}
+        };
         displayer.render();
     }
 }

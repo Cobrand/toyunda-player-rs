@@ -8,16 +8,18 @@ use std::path::Path;
 use font::*;
 use std::ops::DerefMut;
 use display::{self,Display};
+use subtitles::{self,Subtitles};
 
 pub struct Displayer<'a> {
     fonts: FontList,
     renderer: Renderer<'a>,
     #[allow(dead_code)]
     ttf_context: sdl2_ttf::Sdl2TtfContext,
+    subtitles:Option<Subtitles>
 }
 
 impl<'a> Displayer<'a> {
-    pub fn new(mut renderer: Renderer<'a>) -> Result<Displayer<'a>, ()> {
+    pub fn new(mut renderer: Renderer<'a>,subtitles:Option<Subtitles>) -> Result<Displayer<'a>, ()> {
         renderer.set_blend_mode(BlendMode::Blend);
         let ttf_context = sdl2_ttf::init().unwrap();
         let font_list = FontList::new(Path::new("./res/DejaVuSansMono-Bold.ttf"),
@@ -27,8 +29,75 @@ impl<'a> Displayer<'a> {
             fonts: font_list,
             ttf_context: ttf_context,
             renderer: renderer,
+            subtitles: subtitles
         };
         Ok(displayer)
+    }
+
+    pub fn render_subtitles(&mut self,frame_number:u32){
+        let mut text2d_vec = vec![];
+        match self.subtitles {
+            Some(ref subtitles) => {
+                let subtitles = subtitles.get_subtitles();
+                let iter = subtitles.iter().enumerate().filter(|&(i,line)|{
+                    line.iter().any(|syllabus|{
+                        let &(ref syllabus,(frame_begin,frame_end)) = syllabus;
+                        (frame_begin <= frame_number) && (frame_number <= frame_end)
+                    })
+                });
+                for (i,line) in iter {
+                    let text_pos_y = match i%2 {
+                        0 => {display::PosY::FromTopPercent(0.02)},
+                        1 => {display::PosY::FromTopPercent(0.12)},
+                        _ => unreachable!()
+                    };
+                    let text_elts = line.iter().fold(vec![],|mut accu_vec,&(ref syllabus,(frame_begin,frame_end))|{
+                        if (frame_number < frame_begin){ // not yet
+                            if (accu_vec.is_empty()){
+                                let text_2d = display::TextElement {
+                                    text:syllabus.clone(),
+                                    color:Color::RGBA(128,255,0,255),
+                                    outline:Some(Color::RGB(0,0,0)),
+                                    shadow:None
+                                };
+                                accu_vec.push(text_2d);
+                            } else {
+                                let mut text_2d = accu_vec.last_mut().unwrap();
+                                text_2d.text.push_str(&syllabus) ;
+                            }
+                        } else if (frame_begin <= frame_number) && (frame_number <= frame_end) {
+                            let text_2d = display::TextElement {
+                                text:syllabus.clone(),
+                                color:Color::RGBA(255,0,0,255),
+                                outline:Some(Color::RGB(0,0,0)),
+                                shadow:None
+                            };
+                            accu_vec.push(text_2d);
+                        } else {
+                            let text_2d = display::TextElement {
+                                text:syllabus.clone(),
+                                color:Color::RGBA(128,128,255,255),
+                                outline:Some(Color::RGB(0,0,0)),
+                                shadow:None
+                            };
+                            accu_vec.push(text_2d);
+                        }
+                        accu_vec
+                    });
+                    let text_2d = display::Text2D {
+                        text:text_elts,
+                        size:display::Size::FitPercent(Some(0.95),Some(0.1)),
+                        pos:(display::PosX::Centered,text_pos_y),
+                        anchor:(0.5,0.0)
+                    };
+                    text2d_vec.push(text_2d);
+                }
+            },
+            None => {}
+        };
+        for text2D in text2d_vec.into_iter() {
+            text2D.draw(self);
+        }
     }
 
     pub fn display(&mut self, text: &str) {
@@ -62,19 +131,19 @@ impl<'a> Displayer<'a> {
 
     pub fn example(&mut self) {
         let text_element_1 = display::TextElement {
-            text:"S",
+            text:"S".to_string(),
             color:Color::RGBA(0,0,0,255),
             outline:Some(Color::RGB(255,255,255)),
             shadow:None
         };
         let text_element_2 = display::TextElement {
-            text:"L",
+            text:"L".to_string(),
             color:Color::RGBA(255,255,255,255),
             outline:Some(Color::RGB(0,0,0)),
             shadow:None
         };
         let text_element_3 = display::TextElement {
-            text:"T",
+            text:"T".to_string(),
             color:Color::RGBA(255,0,0,200),
             outline:None,
             shadow:None

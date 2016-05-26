@@ -13,23 +13,23 @@ pub trait Display {
 }
 
 #[derive(Debug)]
-pub struct TextElement<'a> {
-    pub text:&'a str,
+pub struct TextElement {
+    pub text:String,
     pub color:Color,
     pub outline:Option<Color>,
     pub shadow:Option<Color>
 }
 
-impl<'a> TextElement<'a> {
+impl TextElement {
     fn as_surface(&self,font_set:&font::FontSet) -> Surface {
-        let (surface_width,surface_height) = font_set.get_outline_font().size_of(self.text).unwrap();
+        let (surface_width,surface_height) = font_set.get_outline_font().size_of(self.text.as_str()).unwrap();
         let mut target_surface : Surface = Surface::new(surface_width,surface_height,sdl2::pixels::PixelFormatEnum::ARGB8888)
             .expect("Failed to create Surface with ARGB8888 Format");
         match self.outline {
             Some(outline_color) => {
                 // blit the surface containing the border
                 let mut outline_surface = font_set.get_outline_font()
-                                                  .render(self.text)
+                                                  .render(self.text.as_str())
                                                   .blended(outline_color)
                                                   .unwrap();
                 let (outline_surface_width,outline_surface_height) = outline_surface.size();
@@ -45,7 +45,7 @@ impl<'a> TextElement<'a> {
         {
             // blit the surface containing the center font
             let mut surface = font_set.get_regular_font()
-                                      .render(self.text)
+                                      .render(self.text.as_str())
                                       .blended(self.color)
                                       .unwrap();
             let (surface_width,surface_height) = surface.size();
@@ -91,23 +91,23 @@ pub enum Size{
 }
 
 #[derive(Debug)]
-pub struct Text2D<'a> {
-    pub text:Vec<TextElement<'a>>,
+pub struct Text2D {
+    pub text:Vec<TextElement>,
     pub size:Size,
     pub pos:(PosX,PosY),
     pub anchor:(f32,f32)
 }
 
-impl<'a> Text2D<'a> {
+impl Text2D {
     pub fn to_string(&self) -> String {
         self.text.iter().fold(String::default(),|accu_text,text_element|{
-            accu_text + text_element.text
+            accu_text + &text_element.text
         })
     }
 }
 
 
-impl<'a> Display for Text2D<'a> {
+impl Display for Text2D {
     fn draw(self,displayer:&mut Displayer) {
         let (window_width,window_height) = displayer.sdl_renderer().window().unwrap().size();
         let (fit_width,fit_height) = match self.size {

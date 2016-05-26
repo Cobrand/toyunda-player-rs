@@ -17,6 +17,7 @@ mod mainloop;
 use std::env;
 use std::path::Path;
 use std::os::raw::c_void;
+use subtitles::Subtitles;
 
 fn start_player(video_path: &Path) {
     // INIT SDL
@@ -32,16 +33,16 @@ fn start_player(video_path: &Path) {
     mpv.set_option("softvol-max",200.0).unwrap();
     mpv.init_with_gl(Some(init::get_proc_address), video_subsystem_ptr).expect("Error while initializing MPV");
     // BIND MPV WITH SDL
-    let displayer = displayer::Displayer::new(renderer).expect("Failed to init displayer");
-
 
     let lyr_path = video_path.with_extension("lyr");
     let frm_path = video_path.with_extension("frm");
-    println!("SALUT");
-    if (lyr_path.is_file() && frm_path.is_file()){
-        println!("TEST REUSSI");
-        subtitles::load_subtitles(lyr_path.as_path(),frm_path.as_path());
-    }
+    let subtitles = if (lyr_path.is_file() && frm_path.is_file()){
+        let subtitles = subtitles::load_subtitles(lyr_path.as_path(),frm_path.as_path());
+        Some(Subtitles::new(subtitles))
+    } else {
+        None
+    };
+    let displayer = displayer::Displayer::new(renderer,subtitles).expect("Failed to init displayer");
 
     let video_path = video_path.to_str().expect("Expected a string for Path, got None");
     mpv.command(&["loadfile", video_path as &str])
