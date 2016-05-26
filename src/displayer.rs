@@ -52,7 +52,9 @@ impl<'a> Displayer<'a> {
                         _ => unreachable!()
                     };
                     let text_elts = line.iter().fold(vec![],|mut accu_vec,&(ref syllabus,(frame_begin,frame_end))|{
+                        println!("begin:{},\tend:{},\tcurrent:{}",frame_begin,frame_end,frame_current);
                         if (frame_number < frame_begin){ // not yet
+                            println!("not yet");
                             if (accu_vec.is_empty()){
                                 let text_2d = display::TextElement {
                                     text:syllabus.clone(),
@@ -66,6 +68,7 @@ impl<'a> Displayer<'a> {
                                 text_2d.text.push_str(&syllabus) ;
                             }
                         } else if (frame_begin <= frame_number) && (frame_number <= frame_end) {
+                            println!("being played");
                             let text_2d = display::TextElement {
                                 text:syllabus.clone(),
                                 color:Color::RGBA(255,0,0,255),
@@ -74,6 +77,7 @@ impl<'a> Displayer<'a> {
                             };
                             accu_vec.push(text_2d);
                         } else {
+                            println!("after play");
                             let text_2d = display::TextElement {
                                 text:syllabus.clone(),
                                 color:Color::RGBA(128,128,255,255),
