@@ -64,12 +64,41 @@ impl<'a> Displayer<'a> {
                         1 => {display::PosY::FromTopPercent(0.12)},
                         _ => unreachable!()
                     };
+                    let alpha : f32 = match (line.first(),line.last())  {
+                        (Some(&(_,(frame_begin,_))),
+                         Some(&(_,(_,frame_end)))) => {
+                            let FINISHED_FADE_INTERVAL = TRANSITION_INTERVAL - FADE_INTERVAL ;
+                            let begin_first_fade_frame = frame_begin.saturating_sub(TRANSITION_INTERVAL);
+                            let end_first_fade_frame = frame_begin.saturating_sub(FINISHED_FADE_INTERVAL);
+                            let begin_second_fade_frame = frame_end.saturating_add(FINISHED_FADE_INTERVAL);
+                            let end_second_fade_frame = frame_end.saturating_add(TRANSITION_INTERVAL);
+                            assert!(end_second_fade_frame - begin_second_fade_frame == FADE_INTERVAL);
+                            if (end_first_fade_frame < frame_number &&
+                                begin_second_fade_frame > frame_number) {
+                                1.0
+                            } else if begin_first_fade_frame <= frame_number
+                                   && end_first_fade_frame >= frame_number
+                            {
+                                (frame_number - begin_first_fade_frame) as f32 /
+                                 (end_first_fade_frame - begin_first_fade_frame) as f32
+                            } else if begin_second_fade_frame <= frame_number
+                                   && end_second_fade_frame >= frame_number
+                            {
+                                1.0 -
+                                ((frame_number - begin_second_fade_frame) as f32 /
+                                (end_second_fade_frame - begin_second_fade_frame) as f32)
+                            } else {
+                                0.0
+                            }
+                        },
+                        _ => {0.0}
+                    };
                     let text_elts = line.iter().fold(vec![],|mut accu_vec,&(ref syllabus,(frame_begin,frame_end))|{
                         if (frame_number < frame_begin){ // not yet
 
                                 let text_2d = display::TextElement {
                                     text:syllabus.clone(),
-                                    color:sub_colors.2,
+                                    color:fade_color(sub_colors.2,alpha),
                                     outline:Some(Color::RGB(0,0,0)),
                                     shadow:None
                                 };
@@ -92,7 +121,7 @@ impl<'a> Displayer<'a> {
                             if (accu_vec.is_empty()){
                                 let text_2d = display::TextElement {
                                     text:syllabus.clone(),
-                                    color:sub_colors.0,
+                                    color:fade_color(sub_colors.0,alpha),
                                     outline:Some(Color::RGB(0,0,0)),
                                     shadow:None
                                 };
