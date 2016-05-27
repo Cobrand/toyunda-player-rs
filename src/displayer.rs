@@ -109,7 +109,7 @@ impl<'a> Displayer<'a> {
                             // lets ease the percent a lil bits
                             let percent = 1.0 - (1.0 - percent).sqrt();
                             //let percent = (percent * consts::PI / 2.0).sin();
-                            let transition_color = mix_colors(sub_colors.1, sub_colors.0, percent);
+                            let transition_color = mix_colors(sub_colors.1,sub_colors.0,percent);
                             let text_2d = display::TextElement {
                                 text:syllabus.clone(),
                                 color:transition_color,

@@ -46,7 +46,7 @@ fn load_lyr(lyr_path:&Path) -> Vec<Vec<String>>{
     let mut lyr_lines : Vec<Vec<String>> = Vec::new();
     for lyr_line in lyr_buf_reader.lines() {
         let lyr_line = lyr_line.expect("Error unwraping line");
-        if (!lyr_line.starts_with("%")){
+        if (!lyr_line.starts_with("%") && !lyr_line.is_empty()){
             //println!("{:?}",line.split('&').map(|s|{s.to_string()}).collect::<Vec<_>>());
             let mut lyr_line_vec : Vec<String> = lyr_line.split('&')
                                              .map(|s|{ s.to_string() })
