@@ -39,15 +39,23 @@ impl<'a> Displayer<'a> {
     }
 
     pub fn render_subtitles(&mut self,frame_number:u32){
+        const FADE_INTERVAL : u32 = 10;
+        const TRANSITION_INTERVAL : u32 = FADE_INTERVAL + 5 ;
+        let mut sub_colors = (Color::RGB(0,0xFF,0xFF),Color::RGB(0xFF,0,0),Color::RGB(0xFF,0xFF,0));
         let mut text2d_vec = vec![];
         match self.subtitles {
             Some(ref subtitles) => {
                 let subtitles = subtitles.get_subtitles();
                 let iter = subtitles.iter().enumerate().filter(|&(i,line)|{
-                    line.iter().any(|syllabus|{
-                        let &(ref syllabus,(frame_begin,frame_end)) = syllabus;
-                        (frame_begin <= frame_number) && (frame_number <= frame_end)
-                    })
+                    match (line.first(),line.last())  {
+                        (Some(&(_,(frame_begin,_))),
+                         Some(&(_,(_,frame_end)))) => {
+                            //true
+                            frame_begin.saturating_sub(TRANSITION_INTERVAL) < frame_number &&
+                            frame_end.saturating_add(TRANSITION_INTERVAL) > frame_number
+                         },
+                         _ => {false}
+                    }
                 });
                 for (i,line) in iter {
                     let text_pos_y = match i%2 {
@@ -60,16 +68,18 @@ impl<'a> Displayer<'a> {
 
                                 let text_2d = display::TextElement {
                                     text:syllabus.clone(),
-                                    color:Color::RGBA(128,255,0,255),
+                                    color:sub_colors.2,
                                     outline:Some(Color::RGB(0,0,0)),
                                     shadow:None
                                 };
                                 accu_vec.push(text_2d);
 
                         } else if (frame_begin <= frame_number) && (frame_number <= frame_end) {
+                            let percent = (frame_end - frame_begin) as f32 / (frame_number - frame_begin) as f32 ;
+                            // percent is between 0 and 1
                             let text_2d = display::TextElement {
                                 text:syllabus.clone(),
-                                color:Color::RGBA(255,0,0,255),
+                                color:sub_colors.1,
                                 outline:Some(Color::RGB(0,0,0)),
                                 shadow:None
                             };
@@ -78,7 +88,7 @@ impl<'a> Displayer<'a> {
                             if (accu_vec.is_empty()){
                                 let text_2d = display::TextElement {
                                     text:syllabus.clone(),
-                                    color:Color::RGBA(128,128,255,255),
+                                    color:sub_colors.0,
                                     outline:Some(Color::RGB(0,0,0)),
                                     shadow:None
                                 };
