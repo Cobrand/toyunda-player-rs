@@ -10,6 +10,8 @@ use font::*;
 use std::ops::DerefMut;
 use display::{self,Display};
 use subtitles::{self,Subtitles};
+use utils::*;
+use std::f32::consts;
 
 pub struct Displayer<'a> {
     fonts: FontList,
@@ -50,7 +52,6 @@ impl<'a> Displayer<'a> {
                     match (line.first(),line.last())  {
                         (Some(&(_,(frame_begin,_))),
                          Some(&(_,(_,frame_end)))) => {
-                            //true
                             frame_begin.saturating_sub(TRANSITION_INTERVAL) < frame_number &&
                             frame_end.saturating_add(TRANSITION_INTERVAL) > frame_number
                          },
@@ -75,11 +76,14 @@ impl<'a> Displayer<'a> {
                                 accu_vec.push(text_2d);
 
                         } else if (frame_begin <= frame_number) && (frame_number <= frame_end) {
-                            let percent = (frame_end - frame_begin) as f32 / (frame_number - frame_begin) as f32 ;
-                            // percent is between 0 and 1
+                            let percent = (frame_number - frame_begin) as f32 / (frame_end - frame_begin) as f32  ;
+                            // lets ease the percent a lil bits
+                            let percent = 1.0 - (1.0 - percent).sqrt();
+                            //let percent = (percent * consts::PI / 2.0).sin();
+                            let transition_color = mix_colors(sub_colors.1, sub_colors.0, percent);
                             let text_2d = display::TextElement {
                                 text:syllabus.clone(),
-                                color:sub_colors.1,
+                                color:transition_color,
                                 outline:Some(Color::RGB(0,0,0)),
                                 shadow:None
                             };

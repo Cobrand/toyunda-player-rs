@@ -6,6 +6,7 @@ extern crate sdl2_sys;
 extern crate log;
 extern crate env_logger;
 
+mod utils;
 mod subtitles;
 mod font;
 mod display;
