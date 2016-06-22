@@ -9,8 +9,6 @@ pub const OUTLINE_WIDTH : u16 = 2 ;
 pub struct FontSet {
     /// size of the loaded font
     font_size: u16,
-    /// width of a single character withotu outline
-    char_dimensions: (u8,u8),
     /// Font object without outline
     font_regular: sdl2_ttf::Font,
     /// Font object with outline
@@ -73,8 +71,6 @@ impl FontList {
             let mut font_bold;
             let font_regular = ttf_context.load_font(font_path, font_size)
                 .expect("Unable to load font");
-            let char_dimensions = font_regular.size_of_char('A').expect("Failed to get size of char");
-            let char_dimensions = (char_dimensions.0 as u8,char_dimensions.0 as u8);
             match ttf_context.load_font(font_path, font_size) {
                 Ok(font_set) => {
                     font_bold = font_set;
@@ -87,7 +83,6 @@ impl FontList {
             font_bold.set_outline_width(OUTLINE_WIDTH);
             result.fonts.push(FontSet {
                 font_size: font_size,
-                char_dimensions: char_dimensions,
                 font_regular: font_regular,
                 font_bold: font_bold,
             });
