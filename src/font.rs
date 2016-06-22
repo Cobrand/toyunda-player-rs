@@ -96,18 +96,6 @@ impl FontList {
         self.fonts.get(index)
     }
 
-    pub fn add_font_set(&mut self, font_set: FontSet) -> Result<(), &FontSet> {
-        let result = self.fonts
-                         .binary_search_by(|fontset| fontset.font_size.cmp(&font_set.font_size));
-        match result {
-            Ok(index) => Err(self.fonts.get(index).unwrap()),
-            Err(index) => {
-                self.fonts.insert(index, font_set);
-                Ok(())
-            }
-        }
-    }
-
     /// Given a string and a maximum width, get the fittest font from the FontList
     pub fn get_fittest_font_set(&self, string:&str,max_dims:(Option<u32>,Option<u32>),outline:bool) -> Result<&FontSet, ()> {
         if max_dims == (None,None) {
