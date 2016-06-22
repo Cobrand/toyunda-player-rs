@@ -5,7 +5,7 @@ use font;
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
 use sdl2::rect::Rect;
-use sdl2::render::{TextureQuery, BlendMode};
+use sdl2::render::TextureQuery;
 use std::vec::Vec;
 
 pub trait Display {
@@ -28,33 +28,33 @@ impl TextElement {
         match self.outline {
             Some(outline_color) => {
                 // blit the surface containing the border
-                let mut outline_surface = font_set.get_outline_font()
-                                                  .render(self.text.as_str())
-                                                  .blended(outline_color)
-                                                  .unwrap();
+                let outline_surface = font_set.get_outline_font()
+                                              .render(self.text.as_str())
+                                              .blended(outline_color)
+                                              .unwrap();
                 let (outline_surface_width,outline_surface_height) = outline_surface.size();
                 outline_surface.blit(None,
                                      target_surface.deref_mut(),
                                      Some(Rect::new(0,
                                                     0,
                                                     outline_surface_width,
-                                                    outline_surface_height)));
+                                                    outline_surface_height))).unwrap();
             },
             None => {} // do nothing about the outline
         }
         {
             // blit the surface containing the center font
-            let mut surface = font_set.get_regular_font()
-                                      .render(self.text.as_str())
-                                      .blended(self.color)
-                                      .unwrap();
+            let surface = font_set.get_regular_font()
+                                  .render(self.text.as_str())
+                                  .blended(self.color)
+                                  .unwrap();
             let (surface_width,surface_height) = surface.size();
             surface.blit(None,
                          target_surface.deref_mut(),
                          Some(Rect::new(font::OUTLINE_WIDTH as i32, // start from OUTLINE
                                         font::OUTLINE_WIDTH as i32, // to center the text
                                         surface_width,
-                                        surface_height)));
+                                        surface_height))).unwrap();
         }
 
         target_surface.set_alpha_mod(match self.color {
@@ -65,6 +65,7 @@ impl TextElement {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Copy,Debug,Clone)]
 pub enum PosX {
     Centered,
@@ -74,6 +75,7 @@ pub enum PosX {
     FromRightPercent(f32),
 }
 
+#[allow(dead_code)]
 #[derive(Copy,Debug,Clone)]
 pub enum PosY {
     Centered,
@@ -83,6 +85,7 @@ pub enum PosY {
     FromBottomPercent(f32),
 }
 
+#[allow(dead_code)]
 #[derive(Copy,Debug,Clone)]
 pub enum Size{
     //Percentage(f64),
@@ -115,7 +118,7 @@ impl Display for Text2D {
             Size::Fit(x,y) => (x,y)
         };
 
-        let mut target_texture = {
+        let target_texture = {
             let is_outline_enabled = self.text.iter().any(|text_element|{
                 text_element.outline.is_some()
             });
@@ -137,7 +140,7 @@ impl Display for Text2D {
                                   Some(Rect::new(width_offset,
                                                  0,
                                                  text_surface_w,
-                                                 text_surface_h)));
+                                                 text_surface_h))).unwrap();
                 width_offset = width_offset + text_surface_w as i32 - (font::OUTLINE_WIDTH as i32* 2);
             }
             let target_texture = displayer

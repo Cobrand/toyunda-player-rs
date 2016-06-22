@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::fs::File;
-use std::io::{Read,BufReader,BufRead};
+use std::io::{BufReader,BufRead};
 use std::vec::Vec;
 
 pub struct Subtitles {
@@ -65,7 +65,7 @@ pub fn load_subtitles(lyr_path:&Path,frm_path:&Path) -> Vec<Vec<(String,(u32,u32
     let lyr_lines = load_lyr(lyr_path);
     let mut lines : Vec<Vec<(String,(u32,u32))>> = Vec::new();
     let mut current_syllabus = 0 ;
-    for (line_number,lyr_line) in lyr_lines.into_iter().enumerate() {
+    for lyr_line in lyr_lines.into_iter() {
         let syllabus_left = frames.split_at(current_syllabus).1;
         current_syllabus += lyr_line.len();
         let zipped_syllabus = lyr_line.into_iter().zip(syllabus_left.iter().cloned()).collect::<Vec<(String,(u32,u32))>>();
