@@ -43,9 +43,6 @@ impl Index<usize> for FontList {
 }
 
 impl FontSet {
-    pub fn get_size(&self) -> u16 {
-        self.font_size
-    }
     pub fn get_regular_font(&self) -> &sdl2_ttf::Font {
         &self.font_regular
     }
