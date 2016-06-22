@@ -116,34 +116,6 @@ impl FontList {
         }
     }
 
-    /// Given a font size, get the closest from the fontlist
-    pub fn get_closest_font_set(&self, font_size: u16) -> Result<&FontSet, ()> {
-        match self.fonts.len() {
-            0 => Err(()),
-            1 => Ok(self.fonts.first().unwrap()),
-            _ => {
-                let search_result = self.fonts.binary_search_by(|fontset| {
-                    fontset.font_size.cmp(&font_size)
-                });
-                match search_result {
-                    Ok(index) => Ok(&self.fonts[index]),
-                    Err(0) => Ok(&self.fonts[0]),
-                    Err(index) if index == self.fonts.len() => Ok(&self.fonts.last().unwrap()),
-                    Err(index) => {
-                        let font_set_min = &self.fonts[index - 1];
-                        let font_set_max = &self.fonts[index];
-                        if (font_set_max.font_size - font_size >
-                            font_size - font_set_min.font_size) {
-                            Ok(font_set_min)
-                        } else {
-                            Ok(font_set_max)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /// Given a string and a maximum width, get the fittest font from the FontList
     pub fn get_fittest_font_set(&self, string:&str,max_dims:(Option<u32>,Option<u32>),outline:bool) -> Result<&FontSet, ()> {
         if max_dims == (None,None) {
