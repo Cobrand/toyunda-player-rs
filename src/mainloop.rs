@@ -24,7 +24,7 @@ fn add_volume(mpv: &mut mpv::MpvHandler, delta: i64) {
     mpv.set_property("volume", new_volume).unwrap();
 }
 
-pub fn main_loop(sdl_context: Sdl, mut displayer: Displayer, mut mpv: mpv::MpvHandler) {
+pub fn main_loop(sdl_context: Sdl, mut displayer: Displayer, mut mpv: Box<mpv::MpvHandlerWithGl>) {
     let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
     'main: loop {
         let (_is_alt_pressed, is_ctrl_pressed, is_shift_pressed) = {
