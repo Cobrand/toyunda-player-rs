@@ -51,6 +51,12 @@ pub fn main_loop(sdl_context: Sdl, mut displayer: Displayer, mut mpv: Box<mpv::M
                         }
                     }
                 }
+                SdlEvent::KeyDown { keycode: Some(Keycode::A), repeat: false, .. } => {
+                    println!("estimated_frame:\t{}\
+                            \tcurrent_time:\t{}",
+                            mpv.get_property::<i64>("estimated-frame-number").unwrap_or(0),
+                            mpv.get_property::<f64>("time-pos").unwrap_or(0.0));
+                }
                 SdlEvent::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } => {
                     speed_btn(&mut mpv, is_shift_pressed, 9)
                 }
