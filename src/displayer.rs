@@ -66,10 +66,7 @@ impl<'a> Displayer<'a> {
                -> Result<Displayer<'a>, ()> {
         renderer.set_blend_mode(BlendMode::Blend);
         let ttf_context = sdl2_ttf::init().unwrap();
-        let mut font_path = env::current_exe().unwrap().parent().unwrap().to_path_buf();
-        font_path.push("res/DejaVuSansMono-Bold.ttf");
-        let font_path = font_path.as_path();
-        let font_list = FontList::new(font_path, &ttf_context).unwrap();
+        let font_list = FontList::new(&ttf_context).unwrap();
         let displayer = Displayer {
             fonts: font_list,
             ttf_context: ttf_context,

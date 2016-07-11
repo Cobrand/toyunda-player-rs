@@ -3,10 +3,12 @@ extern crate sdl2_ttf;
 use std::ops::Index;
 use std::cmp::Ordering;
 use std::path::Path;
-
+use sdl2::rwops::RWops;
 pub const OUTLINE_WIDTH: u16 = 2;
 
 pub struct FontSet {
+    rwops_regular:RWops<'static>,
+    rwops_bold:RWops<'static>,
     /// size of the loaded font
     font_size: u16,
     /// Font object without outline
@@ -57,28 +59,27 @@ pub struct FontList {
     fonts: Vec<FontSet>,
 }
 
+const mono_font_bytes : &'static [u8] = include_bytes!("../res/DejaVuSansMono-Bold.ttf");
+
 impl FontList {
-    pub fn new(font_path: &Path, ttf_context: &sdl2_ttf::Sdl2TtfContext) -> Result<FontList, ()> {
+    pub fn new(ttf_context: &sdl2_ttf::Sdl2TtfContext) -> Result<FontList, ()> {
+        use sdl2::rwops::RWops;
         let mut result = FontList { fonts: Vec::<FontSet>::new() };
         let mut font_size = 3;
         let font_size_max = 128;
         let font_size_increment = 1;
         let mut error: bool = false;
         'fontlist: while (font_size < font_size_max) {
-            let mut font_bold;
-            let font_regular = ttf_context.load_font(font_path, font_size)
-                                          .expect("Unable to load font");
-            match ttf_context.load_font(font_path, font_size) {
-                Ok(font_set) => {
-                    font_bold = font_set;
-                }
-                Err(_) => {
-                    error = true;
-                    break 'fontlist;
-                }
-            }
+            let rwops_regular = RWops::from_bytes(mono_font_bytes).expect("Failed to load font bytes into rwops");
+            let rwops_bold = RWops::from_bytes(mono_font_bytes).expect("Failed to load font bytes into rwops");
+            let font_regular = ttf_context.load_font_from_rwops(&rwops_regular, font_size)
+                                          .expect("Unable to load font from rwops");
+            let mut font_bold = ttf_context.load_font_from_rwops(&rwops_bold, font_size)
+                                           .expect("Unable to load font from rwops");
             font_bold.set_outline_width(OUTLINE_WIDTH);
             result.fonts.push(FontSet {
+                rwops_regular:rwops_regular,
+                rwops_bold:rwops_bold,
                 font_size: font_size,
                 font_regular: font_regular,
                 font_bold: font_bold,
