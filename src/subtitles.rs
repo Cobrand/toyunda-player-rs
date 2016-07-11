@@ -14,6 +14,9 @@ impl Subtitles {
     pub fn get_subtitles(&self) -> &Vec<Vec<(String, (u32, u32))>> {
         &self.subtitles
     }
+    pub fn get_subtitles_mut(&mut self) -> &Vec<Vec<(String, (u32, u32))>> {
+        &mut self.subtitles
+    }
 }
 
 fn load_frm(frm_path: &Path) -> Vec<(u32, u32)> {
