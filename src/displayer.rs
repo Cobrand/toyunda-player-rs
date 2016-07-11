@@ -71,8 +71,8 @@ impl<'a> Displayer<'a> {
                                 frame_end.saturating_add(finished_fade_interval);
                             let end_second_fade_frame =
                                 frame_end.saturating_add(TRANSITION_INTERVAL);
-                            assert!(end_second_fade_frame - begin_second_fade_frame ==
-                                    FADE_INTERVAL);
+                            debug_assert_eq!(end_second_fade_frame - begin_second_fade_frame,
+                                             FADE_INTERVAL);
                             if (end_first_fade_frame < frame_number &&
                                 begin_second_fade_frame > frame_number) {
                                 1.0
