@@ -124,7 +124,23 @@ impl<'a> Displayer<'a> {
         }
     }
 
+    pub fn error_message(&self,title:&str,info:&str) {
+        ::sdl2::messagebox::show_simple_message_box(::sdl2::messagebox::MESSAGEBOX_ERROR,
+                                                    title,
+                                                    info,
+                                                    self.sdl_renderer().window());
+    }
+
     pub fn render_subtitles(&mut self, frame_number: u32) {
+        let (w,h) = self.renderer.output_size().expect("unable to get renderer size");
+        let mut target_texture = self.renderer.create_texture_target(sdl2::pixels::PixelFormatEnum::ARGB8888,
+                                                                 w,
+                                                                 h).expect("Unable to create texture");
+        target_texture.set_blend_mode(BlendMode::Blend);
+        let original_texture : Option<_> = self.renderer.render_target()
+                                                        .expect("Unsupported graphic card")
+                                                        .set(target_texture)
+                                                        .unwrap();
         let sub_colors = (Color::RGB(0, 0xFF, 0xFF),
                           Color::RGB(0xFF, 0, 0),
                           Color::RGB(0xFF, 0xFF, 0));
@@ -197,7 +213,10 @@ impl<'a> Displayer<'a> {
         };
         for text_2d in text2d_vec.into_iter() {
             text_2d.draw(self);
-        }
+        };
+        // TODO : restore first texture instead of asssuming it's window every time
+        let target_texture = self.renderer.render_target().unwrap().reset().unwrap().unwrap();
+        self.renderer.copy(&target_texture,None,None);
     }
 
     // width and height must be between 0 and 1
