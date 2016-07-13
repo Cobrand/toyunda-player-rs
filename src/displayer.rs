@@ -98,7 +98,7 @@ impl<'a> Displayer<'a> {
             let percent = (current_frame - frame_begin) as f32 /
                           (frame_end - frame_begin) as f32;
             // lets ease the percent a lil bits
-            let percent = 1.0 - (1.0 - percent).sqrt();
+            let percent = 1.0 - (1.0 - percent*percent).sqrt();
             // let percent = (percent * consts::PI / 2.0).sin();
             let transition_color = mix_colors(sub_options.sub_colors.1, sub_options.sub_colors.0, percent);
             let text_2d = display::TextElement {
