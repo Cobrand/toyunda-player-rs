@@ -4,18 +4,16 @@ use sdl2::render::{Renderer, BlendMode};
 use sdl2::pixels::Color;
 use std::env;
 use font::*;
-use display::{self, Display};
-use subtitles::Subtitles;
-use utils::*;
+// use display::{self, Display};
+// use utils::*;
 
 pub struct Displayer<'a> {
     fonts: FontList,
     renderer: Renderer<'a>,
     #[allow(dead_code)]
     ttf_context: sdl2_ttf::Sdl2TtfContext,
-    subtitles: Option<Subtitles>,
 }
-
+/*
 mod subtitles_display {
     use sdl2::pixels::Color;
     pub const DEFAULT_SUB_COLORS : (Color,Color,Color) = (Color::RGB(0, 0xFF, 0xFF),
@@ -59,10 +57,9 @@ mod subtitles_display {
         }
     }
 }
-
+*/
 impl<'a> Displayer<'a> {
-    pub fn new(mut renderer: Renderer<'a>,
-               subtitles: Option<Subtitles>)
+    pub fn new(mut renderer: Renderer<'a>)
                -> Result<Displayer<'a>, ()> {
         renderer.set_blend_mode(BlendMode::Blend);
         let ttf_context = sdl2_ttf::init().unwrap();
@@ -71,11 +68,10 @@ impl<'a> Displayer<'a> {
             fonts: font_list,
             ttf_context: ttf_context,
             renderer: renderer,
-            subtitles: subtitles,
         };
         Ok(displayer)
     }
-
+    /*
     fn add_syllabus(mut text_elts : &mut Vec<display::TextElement>,
                     syllabus:&str,
                     current_frame:u32,
@@ -123,14 +119,14 @@ impl<'a> Displayer<'a> {
             }
         }
     }
-
-    pub fn error_message(&self,title:&str,info:&str) {
+    */
+    pub fn fatal_error_message(&self,title:&str,info:&str) {
         ::sdl2::messagebox::show_simple_message_box(::sdl2::messagebox::MESSAGEBOX_ERROR,
                                                     title,
                                                     info,
                                                     self.sdl_renderer().window());
     }
-
+    /*
     pub fn render_subtitles(&mut self, frame_number: u32) {
         let (w,h) = self.renderer.output_size().expect("unable to get renderer size");
         let mut target_texture = self.renderer.create_texture_target(sdl2::pixels::PixelFormatEnum::ARGB8888,
@@ -218,7 +214,7 @@ impl<'a> Displayer<'a> {
         let target_texture = self.renderer.render_target().unwrap().reset().unwrap().unwrap();
         self.renderer.copy(&target_texture,None,None);
     }
-
+    */
     // width and height must be between 0 and 1
     pub fn sub_screen_dims(&self,
                            width: Option<f32>,

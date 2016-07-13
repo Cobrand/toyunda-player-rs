@@ -7,18 +7,16 @@ extern crate log;
 extern crate env_logger;
 
 mod utils;
-mod subtitles;
 mod font;
 mod display;
 mod displayer;
 mod init;
 mod mainloop;
-
+mod subtitles;
 // use mpv::mpv;
 use std::env;
 use std::path::Path;
 use std::os::raw::c_void;
-use subtitles::Subtitles;
 
 fn start_player(video_path: &Path) {
     // INIT SDL
@@ -36,15 +34,7 @@ fn start_player(video_path: &Path) {
        .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
 
-    let lyr_path = video_path.with_extension("lyr");
-    let frm_path = video_path.with_extension("frm");
-    let subtitles = if (lyr_path.is_file() && frm_path.is_file()) {
-        let subtitles = subtitles::load_subtitles(lyr_path.as_path(), frm_path.as_path());
-        Some(Subtitles::new(subtitles))
-    } else {
-        None
-    };
-    let displayer = displayer::Displayer::new(renderer, subtitles)
+    let displayer = displayer::Displayer::new(renderer)
                         .expect("Failed to init displayer");
 
     let video_path = video_path.to_str().expect("Expected a string for Path, got None");
@@ -57,7 +47,7 @@ fn start_player(video_path: &Path) {
 fn main() {
     let args: Vec<_> = env::args().collect();
     if args.len() < 2 {
-        println!("Usage: ./sdl [any mp4, avi, mkv, ... file]");
+        println!("Usage: ./toyunda-player [any mp4, avi, mkv, ... file]");
     } else {
         let path: &Path = Path::new(&args[1]);
         if path.is_file() {

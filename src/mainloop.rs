@@ -169,17 +169,10 @@ pub fn main_loop(sdl_context: Sdl, mut displayer: Displayer, mut mpv: Box<mpv::M
         }
         let (width, height) = displayer.sdl_renderer().window().unwrap().size();
         mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw");
-        // displayer.display("0123456789ABCDEF0123456789abcdef0123456789");
-        let _time_pos: Option<f64> = mpv.get_property("time-pos").ok();
-        let frame_pos: Option<u32> = mpv.get_property::<i64>("estimated-frame-number")
-                                        .ok()
-                                        .map(|v| v as u32);
-        // example(time_pos,&mut displayer);
-        // displayer.example();
-        match frame_pos {
-            Some(frame_pos) => displayer.render_subtitles(frame_pos),
-            _ => {}
-        };
+        // let _time_pos: Option<f64> = mpv.get_property("time-pos").ok();
+        // let frame_pos: Option<u32> = mpv.get_property::<i64>("estimated-frame-number")
+        //                                 .ok()
+        //                                 .map(|v| v as u32);
         displayer.render();
     }
 }

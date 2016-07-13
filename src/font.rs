@@ -7,7 +7,12 @@ use sdl2::rwops::RWops;
 pub const OUTLINE_WIDTH: u16 = 2;
 
 pub struct FontSet {
+    // rwops needs to live with the font itself
+    // it is not used for anything, but if it were to be placed somewhere else
+    // it would probably call Drop while the font is being used (which is bad)
+    #[allow(dead_code)]
     rwops_regular:RWops<'static>,
+    #[allow(dead_code)]
     rwops_bold:RWops<'static>,
     /// size of the loaded font
     font_size: u16,
