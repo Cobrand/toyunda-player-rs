@@ -9,9 +9,10 @@ extern crate env_logger;
 mod utils;
 mod display;
 mod init;
-mod mainloop;
 mod subtitles;
 mod toyunda_player;
+
+use toyunda_player::ToyundaPlayer;
 // use mpv::mpv;
 use std::env;
 use std::path::Path;
@@ -40,7 +41,8 @@ fn start_player(video_path: &Path) {
     mpv.command(&["loadfile", video_path as &str])
        .expect("Error loading file");
 
-    mainloop::main_loop(sdl_context, displayer, mpv);
+    let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
+    toyunda_player.main_loop(&sdl_context);
 }
 
 fn main() {
