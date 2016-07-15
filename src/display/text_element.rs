@@ -12,7 +12,7 @@ pub struct TextElement {
 }
 
 impl TextElement {
-    pub fn as_surface(&self, font_set: &::font::FontSet) -> Surface {
+    pub fn as_surface(&self, font_set: &::display::font::FontSet) -> Surface {
         let (surface_width, surface_height) = font_set.get_outline_font()
                                                       .size_of(self.text.as_str())
                                                       .unwrap();
@@ -48,8 +48,8 @@ impl TextElement {
             let (surface_width, surface_height) = surface.size();
             surface.blit(None,
                          target_surface.deref_mut(),
-                         Some(Rect::new(::font::OUTLINE_WIDTH as i32, // start from OUTLINE
-                                        ::font::OUTLINE_WIDTH as i32, // to center the text
+                         Some(Rect::new(::display::font::OUTLINE_WIDTH as i32, // start from OUTLINE
+                                        ::display::font::OUTLINE_WIDTH as i32, // to center the text
                                         surface_width,
                                         surface_height)))
                    .unwrap();

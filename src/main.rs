@@ -7,12 +7,11 @@ extern crate log;
 extern crate env_logger;
 
 mod utils;
-mod font;
 mod display;
-mod displayer;
 mod init;
 mod mainloop;
 mod subtitles;
+mod toyunda_player;
 // use mpv::mpv;
 use std::env;
 use std::path::Path;
@@ -34,7 +33,7 @@ fn start_player(video_path: &Path) {
        .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
 
-    let displayer = displayer::Displayer::new(renderer)
+    let displayer = display::Displayer::new(renderer)
                         .expect("Failed to init displayer");
 
     let video_path = video_path.to_str().expect("Expected a string for Path, got None");

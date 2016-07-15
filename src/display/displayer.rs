@@ -1,9 +1,7 @@
-extern crate sdl2;
 extern crate sdl2_ttf;
 use sdl2::render::{Renderer, BlendMode};
 use sdl2::pixels::Color;
-use std::env;
-use font::*;
+use ::display::font::*;
 // use display::{self, Display};
 // use utils::*;
 
@@ -72,8 +70,8 @@ impl<'a> Displayer<'a> {
         Ok(displayer)
     }
     /*
-    fn add_syllabus(mut text_elts : &mut Vec<display::TextElement>,
-                    syllabus:&str,
+    fn add_syllable(mut text_elts : &mut Vec<display::TextElement>,
+                    syllable:&str,
                     current_frame:u32,
                     frame_begin:u32,
                     frame_end:u32,
@@ -83,7 +81,7 @@ impl<'a> Displayer<'a> {
             // not yet
 
             let text_2d = display::TextElement {
-                text: String::from(syllabus),
+                text: String::from(syllable),
                 color: fade_color(sub_options.sub_colors.2, alpha),
                 outline: Some(Color::RGB(0, 0, 0)),
                 shadow: None,
@@ -98,7 +96,7 @@ impl<'a> Displayer<'a> {
             // let percent = (percent * consts::PI / 2.0).sin();
             let transition_color = mix_colors(sub_options.sub_colors.1, sub_options.sub_colors.0, percent);
             let text_2d = display::TextElement {
-                text: String::from(syllabus),
+                text: String::from(syllable),
                 color: transition_color,
                 outline: Some(Color::RGB(0, 0, 0)),
                 shadow: None,
@@ -107,7 +105,7 @@ impl<'a> Displayer<'a> {
         } else {
             if (text_elts.is_empty()) {
                 let text_2d = display::TextElement {
-                    text: String::from(syllabus),
+                    text: String::from(syllable),
                     color: fade_color(sub_options.sub_colors.0, alpha),
                     outline: Some(Color::RGB(0, 0, 0)),
                     shadow: None,
@@ -115,7 +113,7 @@ impl<'a> Displayer<'a> {
                 text_elts.push(text_2d);
             } else {
                 let mut text_2d = text_elts.last_mut().unwrap();
-                text_2d.text.push_str(&syllabus);
+                text_2d.text.push_str(&syllable);
             }
         }
     }
@@ -193,8 +191,8 @@ impl<'a> Displayer<'a> {
                         _ => 0.0,
                     };
                     let mut text_elts = Vec::new();
-                    for &(ref syllabus,(frame_begin,frame_end)) in line.iter() {
-                        Self::add_syllabus(&mut text_elts,syllabus,frame_number,frame_begin,frame_end,alpha,sub_options);
+                    for &(ref syllable,(frame_begin,frame_end)) in line.iter() {
+                        Self::add_syllable(&mut text_elts,syllable,frame_number,frame_begin,frame_end,alpha,sub_options);
                     }
                     let text_2d = display::Text2D {
                         text: text_elts,

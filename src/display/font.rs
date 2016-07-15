@@ -1,5 +1,4 @@
 extern crate sdl2_ttf;
-
 use std::ops::Index;
 use std::cmp::Ordering;
 use std::path::Path;
@@ -64,7 +63,7 @@ pub struct FontList {
     fonts: Vec<FontSet>,
 }
 
-const mono_font_bytes : &'static [u8] = include_bytes!("../res/DejaVuSansMono-Bold.ttf");
+const mono_font_bytes : &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold.ttf");
 
 impl FontList {
     pub fn new(ttf_context: &sdl2_ttf::Sdl2TtfContext) -> Result<FontList, ()> {

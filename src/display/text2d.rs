@@ -1,6 +1,5 @@
 use std::ops::DerefMut;
 use display::*;
-use displayer::Displayer;
 use sdl2::surface::Surface;
 use sdl2::rect::Rect;
 use sdl2::render::TextureQuery;
@@ -52,7 +51,7 @@ impl Display for Text2D {
             let mut width_offset: i32 = if is_outline_enabled {
                 0
             } else {
-                ::font::OUTLINE_WIDTH as i32
+                ::display::font::OUTLINE_WIDTH as i32
             };
             for text_element in self.text.iter() {
                 // for each text element, blit it over
@@ -63,7 +62,7 @@ impl Display for Text2D {
                                   Some(Rect::new(width_offset, 0, text_surface_w, text_surface_h)))
                             .unwrap();
                 width_offset = width_offset + text_surface_w as i32 -
-                               (::font::OUTLINE_WIDTH as i32 * 2);
+                               (::display::font::OUTLINE_WIDTH as i32 * 2);
             }
             let target_texture = displayer.sdl_renderer()
                                           .create_texture_from_surface(target_surface)

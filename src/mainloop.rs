@@ -6,7 +6,7 @@ use sdl2::event::Event as SdlEvent;
 use sdl2_sys::video::SDL_WindowFlags;
 use sdl2::video::FullscreenType;
 use sdl2::keyboard::{Keycode, Scancode};
-use displayer::Displayer;
+use display::Displayer;
 use std::cmp::{min, max};
 
 fn speed_btn(mpv: &mut mpv::MpvHandler, is_shift_pressed: bool, keynumber: u64) {
