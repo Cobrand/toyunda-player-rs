@@ -8,6 +8,9 @@ use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
 use std::cmp::{min,max};
 
+use ::toyunda_player::error::*;
+use ::toyunda_player::command::*;
+
 pub struct ToyundaPlayer<'a> {
     subtitles:Option<Subtitles>,
     mpv:Box<MpvHandlerWithGl>,
@@ -60,7 +63,14 @@ impl<'a> ToyundaPlayer<'a> {
         unimplemented!()
     }
 
-    pub fn main_loop(&mut self,sdl_context:&Sdl) {
+    pub fn render_frame(&mut self) -> Result<()> {
+        let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
+        self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
+        self.displayer.render();
+        Ok(())
+    }
+
+    pub fn main_loop(&mut self,sdl_context:&Sdl) -> Result<()> {
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
         'main: loop {
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
@@ -75,24 +85,18 @@ impl<'a> ToyundaPlayer<'a> {
             }
             while let Some(event) = self.mpv.wait_event(0.0) {
                 match event {
-                    MpvEvent::Shutdown | MpvEvent::EndFile(_) => {
+                    MpvEvent::Shutdown => {
                         break 'main;
-                    }
+                    },
                     _ => {}
                 };
             }
-            let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
-            self.mpv.draw(0, width as i32, -(height as i32)).expect("Failed to draw");
-            // displayer.display("0123456789ABCDEF0123456789abcdef0123456789");
-            let _time_pos: Option<f64> = self.mpv.get_property("time-pos").ok();
-            let frame_pos: Option<u32> = self.mpv.get_property::<i64>("estimated-frame-number")
-                                            .ok()
-                                            .map(|v| v as u32);
-            self.displayer.render();
-        }
+            try!(self.render_frame());
+        };
+        Ok(())
     }
 
-    pub fn handle_event(&mut self,event:Event,alt_keys_state:(bool,bool,bool)) -> Result<ToyundaAction,String> {
+    pub fn handle_event(&mut self,event:Event,alt_keys_state:(bool,bool,bool)) -> Result<ToyundaAction> {
         let (_is_alt_pressed,is_ctrl_pressed,is_shift_pressed) = alt_keys_state;
         match event {
             Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
