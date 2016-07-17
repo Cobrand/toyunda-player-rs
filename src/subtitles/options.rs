@@ -24,7 +24,6 @@ impl Default for SubtitlesOptions {
 pub struct SentenceOptions {
     /// Global SyllableOptions
     pub syllable_options:SyllableOptions,
-    pub position:Position,
     pub display_logo:bool
 }
 
@@ -32,7 +31,6 @@ impl Default for SentenceOptions {
     fn default() -> SentenceOptions {
         SentenceOptions {
             syllable_options : SyllableOptions::default(),
-            position : Position::default(),
             display_logo : true
         }
     }
@@ -56,18 +54,7 @@ impl Default for SyllableOptions {
         }
     }
 }
-#[derive(Copy,Clone,Debug)]
-pub enum Position {
-    Default,
-    ForceRow(u8),
-    ForcePos(f32,f32)
-}
 
-impl Default for Position {
-    fn default() -> Position {
-        Position::Default
-    }
-}
 #[derive(Copy,Clone,Debug)]
 pub struct Outline {
     pub color:Color,

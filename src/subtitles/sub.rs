@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::error::Error;
 
-use ::subtitles::sentence::Sentence;
+use ::subtitles::sentence::*;
 use ::subtitles::syllable::Syllable;
 use ::subtitles::metainfo::MetaInfo;
 use ::subtitles::options::*;
@@ -15,6 +15,13 @@ pub struct Subtitles {
     pub sentences:Vec<Sentence>,
     pub subtitles_options:SubtitlesOptions,
     pub meta_info:MetaInfo
+}
+
+/// subtitles : already stored Subtitles
+/// sentence : Sentence to add to the subtitles
+fn get_best_sentence_row(subtitles:&Subtitles,sentence:&mut Sentence) {
+    // TODO
+    unimplemented!()
 }
 
 impl Subtitles {
@@ -48,8 +55,10 @@ impl Subtitles {
                 if (lyr_line.starts_with("&")) {
                     syllables.remove(0);
                 };
+                let mut row : u8 = 0;
                 let sentence = Sentence {
                     syllables : syllables,
+                    position : Position::Row(row),
                     sentence_options : SentenceOptions::default()
                 };
                 subtitles.sentences.push(sentence);
