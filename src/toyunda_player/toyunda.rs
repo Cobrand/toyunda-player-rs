@@ -57,7 +57,7 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
-    pub fn get_subtitles<P:AsRef<Path>>(&mut self,folder:P) {
+    pub fn import_subtitles<P:AsRef<Path>>(&mut self,folder:P) {
         unimplemented!()
     }
 
@@ -65,14 +65,6 @@ impl<'a> ToyundaPlayer<'a> {
         use std::io::{self, Write};
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
-        {
-            let frame_pos = self.mpv.get_property::<i64>("estimated-frame-number").unwrap_or(0);
-            let time_pos =  self.mpv.get_property::<f64>("time-pos").unwrap_or(0.0);
-            let volume = self.mpv.get_property::<i64>("volume").unwrap_or(0);
-            print!("\rcurrent_frame : {:06} | current_time : {:4.4} | volume : {:03}",
-                    frame_pos,time_pos,volume);
-            io::stdout().flush().unwrap();
-        }
         self.displayer.render();
         Ok(())
     }
