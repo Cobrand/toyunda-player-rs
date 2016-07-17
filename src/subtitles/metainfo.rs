@@ -24,11 +24,48 @@ pub enum MediaType {
     Other(String)
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Default)]
 pub struct MetaInfo {
-    pub artist:String,
-    pub origin:String,// name of anime / movie / video game
-    pub music_type:MusicType,
-    pub media_type:MediaType,
-    pub language:Language
+    pub artist:Option<String>,
+    pub origin:Option<String>,// name of anime / movie / video game
+    pub song_name:Option<String>,
+    pub music_type:Option<MusicType>,
+    pub media_type:Option<MediaType>,
+    pub language:Option<Language>
+}
+
+impl MetaInfo {
+    pub fn new() -> MetaInfo {
+        MetaInfo::default()
+    }
+
+    pub fn with_artist(mut self,artist:String) -> MetaInfo {
+        self.artist = Some(artist);
+        self
+    }
+
+    pub fn with_origin(mut self,origin:String) -> MetaInfo {
+        self.origin = Some(origin);
+        self
+    }
+
+    pub fn with_song_name(mut self,song_name:String) -> MetaInfo {
+        self.song_name = Some(song_name);
+        self
+    }
+
+    pub fn with_music_type(mut self,music_type:MusicType) -> MetaInfo {
+        self.music_type = Some(music_type);
+        self
+    }
+
+    pub fn with_media_type(mut self,media_type:MediaType) -> MetaInfo {
+        self.media_type = Some(media_type);
+        self
+    }
+
+    pub fn with_language(mut self,language:Language) -> MetaInfo {
+        self.language = Some(language);
+        self
+    }
 }
