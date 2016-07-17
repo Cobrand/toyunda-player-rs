@@ -42,7 +42,13 @@ fn start_player(video_path: &Path) {
        .expect("Error loading file");
 
     let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
-    toyunda_player.main_loop(&sdl_context);
+    let res = toyunda_player.main_loop(&sdl_context);
+    match res {
+        Ok(_) => {},
+        Err(e) => {
+            error!("An error occured : {}",e);
+        }
+    };
 }
 
 fn main() {

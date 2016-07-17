@@ -7,7 +7,6 @@ use sdl2::event::Event;
 use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
 use std::cmp::{min,max};
-
 use ::toyunda_player::error::*;
 use ::toyunda_player::command::*;
 
@@ -23,7 +22,6 @@ fn speed_btn(mpv: &mut MpvHandler, is_shift_pressed: bool, keynumber: u64) {
     if (is_shift_pressed) {
         speed += 1.0;
     }
-    mpv.set_property_async("speed", speed, 1).expect("Failed to modify player speed");
 }
 
 fn add_volume(mpv: &mut MpvHandler, delta: i64) {
@@ -84,12 +82,20 @@ impl<'a> ToyundaPlayer<'a> {
                 };
             }
             while let Some(event) = self.mpv.wait_event(0.0) {
-                match event {
-                    MpvEvent::Shutdown => {
-                        break 'main;
+                let res = match event {
+                    MpvEvent::Shutdown => Ok(ToyundaAction::Terminate),
+                    MpvEvent::EndFile(_) => { // TODO remove EndFile and handle this better
+                        self.execute_command(Command::EndFile)
                     },
-                    _ => {}
+                    _ => Ok(ToyundaAction::Nothing)
                 };
+                match res {
+                    Ok(ToyundaAction::Nothing) => {},
+                    Ok(ToyundaAction::Terminate) => {break 'main},
+                    Err(e) => {
+                        error!("An error '{}' occured",e);
+                    }
+                }
             }
             try!(self.render_frame());
         };
@@ -102,17 +108,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
                 Ok(ToyundaAction::Terminate),
             Event::KeyDown { keycode: Some(Keycode::Space),repeat: false, .. } => {
-                match self.mpv.get_property("pause").unwrap() {
-                    true => {
-                        self.mpv.set_property_async("pause", false, 1)
-                           .expect("Failed to pause player");
-                    }
-                    false => {
-                        self.mpv.set_property_async("pause", true, 1)
-                           .expect("Failed to unpause player");
-                    }
-                };
-                Ok(ToyundaAction::Nothing)
+                self.execute_command(Command::TogglePause)
             }
             Event::KeyDown { keycode: Some(Keycode::A), repeat: false, .. } => {
                 println!("estimated_frame:\t{}\
@@ -121,125 +117,101 @@ impl<'a> ToyundaPlayer<'a> {
                         self.mpv.get_property::<f64>("time-pos").unwrap_or(0.0));
                 Ok(ToyundaAction::Nothing)
             }
-            Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 9);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 8);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 7);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 6);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 5);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 4);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 3);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 2);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 1);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } => {
-                speed_btn(&mut self.mpv, is_shift_pressed, 10);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::KpPlus),  .. } => {
-                add_volume(&mut self.mpv, 5);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::KpMinus), .. } => {
-                add_volume(&mut self.mpv, -5);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } => {
-                if (is_ctrl_pressed) {
-                    match self.mpv.command(&["frame-step"]) {
-                        Ok(_) => {}
-                        Err(err) => {
-                            error!("Failed to frame step with error {:?}", err);
-                        }
-                    };
-                } else if (is_shift_pressed) {
-                    self.mpv.command(&["seek", 15.to_string().as_str()]).unwrap();
-                } else {
-                    self.mpv.command(&["seek", 3.to_string().as_str()]).unwrap();
-                };
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } => {
-                if (is_ctrl_pressed) {
-                    match self.mpv.command(&["frame-back-step"]) {
-                        Ok(_) => {}
-                        Err(err) => {
-                            error!("Failed to frame back step with error {:?}", err);
-                        }
-                    };
-                } else if (is_shift_pressed) {
-                    self.mpv.command(&["seek", (-15).to_string().as_str()]).unwrap();
-                } else {
-                    self.mpv.command(&["seek", (-3).to_string().as_str()]).unwrap();
-                };
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
-                if is_ctrl_pressed {
-                    add_volume(&mut self.mpv, 5);
-                };
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
-                if is_ctrl_pressed {
-                    add_volume(&mut self.mpv, -5);
-                };
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::MouseWheel { y:delta_y, .. } => {
-                let delta_y: i64 = (delta_y as i64) *
-                                   if is_ctrl_pressed {
-                    1
-                } else {
-                    10
-                };
-                add_volume(&mut self.mpv, delta_y);
-                Ok(ToyundaAction::Nothing)
-            }
-            Event::KeyDown { keycode: Some(Keycode::F), repeat: false, .. } => {
-                use sdl2::video::FullscreenType;
-                let new_fullscreen_type =
-                    match self.displayer.sdl_renderer().window().unwrap().fullscreen_state() {
-                        FullscreenType::True | FullscreenType::Desktop => { // TODO warn if 'True'
-                            FullscreenType::Off
-                        },
-                        FullscreenType::Off => {
-                            FullscreenType::Desktop
-                        }
-                    };
-                self.displayer.sdl_renderer_mut()
-                              .window_mut()
-                              .unwrap()
-                              .set_fullscreen(new_fullscreen_type)
-                              .expect("Failed to change fullscreen parameter of toyunda-player");
-                Ok(ToyundaAction::Nothing)
-            }
+            Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.9)),
+            Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.9)),
+            Event::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.8)),
+            Event::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.8)),
+            Event::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.7)),
+            Event::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.7)),
+            Event::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.6)),
+            Event::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.6)),
+            Event::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.5)),
+            Event::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.5)),
+            Event::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.4)),
+            Event::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.4)),
+            Event::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.3)),
+            Event::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.3)),
+            Event::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.2)),
+            Event::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.2)),
+            Event::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(1.1)),
+            Event::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(0.1)),
+            Event::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } if is_shift_pressed
+                => self.execute_command(Command::SetSpeed(2.0)),
+            Event::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. }
+                => self.execute_command(Command::SetSpeed(1.0)),
+            Event::KeyDown { keycode: Some(Keycode::KpPlus),  .. }
+                => self.execute_command(Command::AddVolume(5)),
+            Event::KeyDown { keycode: Some(Keycode::KpMinus), .. }
+                => self.execute_command(Command::AddVolume(-5)),
+            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } if is_ctrl_pressed
+                => self.execute_command(Command::Framestep(1)),
+            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } if is_shift_pressed
+                => self.execute_command(Command::Seek(15.0)),
+            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. }
+                => self.execute_command(Command::Seek(3.0)),
+            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if is_ctrl_pressed
+                => self.execute_command(Command::Framestep(-1)),
+            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if is_shift_pressed
+                => self.execute_command(Command::Seek(-15.0)),
+            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. }
+                => self.execute_command(Command::Seek(-3.0)),
+            Event::MouseWheel { y:delta_y, .. } if is_ctrl_pressed
+                => self.execute_command(Command::AddVolume(delta_y as i64)),
+            Event::MouseWheel { y:delta_y, .. }
+                => self.execute_command(Command::AddVolume(10 * delta_y as i64)),
+            Event::KeyDown { keycode: Some(Keycode::F), repeat: false, .. } =>
+                self.execute_command(Command::ToggleFullscreen),
             _ => Ok(ToyundaAction::Nothing)
         }
+    }
+
+    pub fn subtitles(&self) -> Option<&Subtitles> {
+        self.subtitles.as_ref()
+    }
+
+    pub fn subtitles_mut(&mut self) -> Option<&mut Subtitles> {
+        self.subtitles.as_mut()
+    }
+
+    pub fn mpv(&self) -> &MpvHandlerWithGl {
+        self.mpv.as_ref()
+    }
+
+    pub fn mpv_mut(&mut self) -> &mut MpvHandlerWithGl {
+        self.mpv.as_mut()
+    }
+
+    pub fn displayer(&self) -> &Displayer<'a> {
+        &self.displayer
+    }
+
+    pub fn displayer_mut(&mut self) -> &mut Displayer<'a> {
+        &mut self.displayer
+    }
+
+    pub fn toyunda_options(&self) -> &ToyundaOptions {
+        &self.options
+    }
+
+    pub fn toyunda_options_mut(&mut self) -> &mut ToyundaOptions {
+        &mut self.options
     }
 }
