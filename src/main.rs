@@ -42,16 +42,25 @@ fn start_player(video_path: &Path) {
        .expect("Error loading file");
 
     let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
+    match toyunda_player.import_subtitles(video_path) {
+        Ok(_) => {
+        },
+        Err(e) => {
+            error!("Error was received when importing subtitles : {}",e);
+            warn!("Failed to import subtitles; File will play without subtitles")
+        }
+    };
     let res = toyunda_player.main_loop(&sdl_context);
     match res {
         Ok(_) => {},
         Err(e) => {
-            error!("An error occured : {}",e);
+            error!("An uncoverable error occured : {}",e);
         }
     };
 }
 
 fn main() {
+    env_logger::init().unwrap();
     let args: Vec<_> = env::args().collect();
     if args.len() < 2 {
         println!("Usage: ./toyunda-player [any mp4, avi, mkv, ... file]");

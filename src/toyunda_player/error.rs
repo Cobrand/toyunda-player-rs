@@ -5,6 +5,7 @@ pub type Result<T> = ::std::result::Result<T,Error>;
 #[derive(Clone,Debug)]
 pub enum Error {
     Text(String),
+    FileNotFound(String),
     MpvError(MpvError),
     UnknownError
 }
@@ -14,6 +15,7 @@ impl StdError for Error {
         match *self {
             Error::Text(ref string) => string.as_str(),
             Error::MpvError(ref mpv_error) => mpv_error.description(),
+            Error::FileNotFound(ref file) => "given file was not found",
             Error::UnknownError => "unknown error",
         }
     }
@@ -22,6 +24,7 @@ impl StdError for Error {
         match *self {
             Error::Text(ref string) => None,
             Error::MpvError(ref mpv_error) => Some(mpv_error),
+            Error::FileNotFound(ref file) => None,
             Error::UnknownError => None,
         }
     }

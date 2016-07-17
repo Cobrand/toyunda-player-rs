@@ -57,8 +57,47 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
-    pub fn import_subtitles<P:AsRef<Path>>(&mut self,folder:P) {
-        unimplemented!()
+    pub fn import_subtitles<P:AsRef<Path>>(&mut self,path:P) -> Result<()> {
+        let path : &Path = path.as_ref();
+        match (path.is_file(),path.is_dir()) {
+            (true,false) => {
+                // is a file
+                let lyr_path = path.with_extension("lyr");
+                let frm_path = path.with_extension("frm");
+                if (lyr_path.is_file() && frm_path.is_file()) {
+                    info!("Loading subtitles ...");
+                    Subtitles::load_from_lyr_frm(lyr_path,frm_path)
+                        .map(|subtitles| {
+                            self.subtitles = Some(subtitles);
+                            ()
+                        })
+                        .map_err(|s| Error::Text(s))
+                } else if lyr_path.is_file() {
+                    error!("Could not find .frm file");
+                    Err(Error::FileNotFound(frm_path.display().to_string()))
+                } else if frm_path.is_file() {
+                    error!("Could not find .lyr file");
+                    Err(Error::FileNotFound(frm_path.display().to_string()))
+                } else {
+                    error!("Could not find .lyr and .frm file");
+                    Err(Error::FileNotFound(lyr_path.display().to_string()))
+                }
+            },
+            (false,true) => {
+                // is a directory
+                error!("Directories are not yet implemented");
+                unimplemented!()
+            },
+            (false,false) => {
+                // not a file, nor a directory
+                error!("{} is not a file nor a directory, aborting parsing",path.display());
+                Err(Error::Text(format!("{} is not a file nor a directory, aborting",path.display())))
+            },
+            (true,true) => {
+                error!("File is both a file and a directory ... this should not happen");
+                unreachable!()
+            }
+        }
     }
 
     pub fn render_frame(&mut self) -> Result<()> {
