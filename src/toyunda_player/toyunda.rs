@@ -62,8 +62,17 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn render_frame(&mut self) -> Result<()> {
+        use std::io::{self, Write};
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
+        {
+            let frame_pos = self.mpv.get_property::<i64>("estimated-frame-number").unwrap_or(0);
+            let time_pos =  self.mpv.get_property::<f64>("time-pos").unwrap_or(0.0);
+            let volume = self.mpv.get_property::<i64>("volume").unwrap_or(0);
+            print!("\rcurrent_frame : {:06} | current_time : {:4.4} | volume : {:03}",
+                    frame_pos,time_pos,volume);
+            io::stdout().flush().unwrap();
+        }
         self.displayer.render();
         Ok(())
     }
@@ -107,16 +116,8 @@ impl<'a> ToyundaPlayer<'a> {
         match event {
             Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
                 Ok(ToyundaAction::Terminate),
-            Event::KeyDown { keycode: Some(Keycode::Space),repeat: false, .. } => {
-                self.execute_command(Command::TogglePause)
-            }
-            Event::KeyDown { keycode: Some(Keycode::A), repeat: false, .. } => {
-                println!("estimated_frame:\t{}\
-                        \tcurrent_time:\t{}",
-                        self.mpv.get_property::<i64>("estimated-frame-number").unwrap_or(0),
-                        self.mpv.get_property::<f64>("time-pos").unwrap_or(0.0));
-                Ok(ToyundaAction::Nothing)
-            }
+            Event::KeyDown { keycode: Some(Keycode::Space),repeat: false, .. }
+                => self.execute_command(Command::TogglePause),
             Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } if is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.9)),
             Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. }

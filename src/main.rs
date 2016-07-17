@@ -29,7 +29,7 @@ fn start_player(video_path: &Path) {
     mpv_builder.set_option("osc", true).unwrap();
     mpv_builder.set_option("sid", "no").unwrap();
     mpv_builder.set_option("softvol", "yes").unwrap();
-    mpv_builder.set_option("softvol-max", 200.0).unwrap();
+    mpv_builder.set_option("softvol-max", 250.0).unwrap();
     let mut mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
        .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
