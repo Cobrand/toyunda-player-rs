@@ -1,9 +1,9 @@
 use ::subtitles::options::SyllableOptions;
 
-#[derive(Debug)]
+#[derive(Debug,Default)]
 pub struct Syllable {
-    text:String,
-    begin:u32,
-    end:u32,
-    syllable_options:SyllableOptions
+    pub text:String,
+    pub begin:u32,
+    pub end:u32,
+    pub syllable_options:SyllableOptions
 }

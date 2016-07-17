@@ -70,8 +70,8 @@ impl Default for Position {
 }
 #[derive(Copy,Clone,Debug)]
 pub struct Outline {
-    color:Color,
-    ratio:f32
+    pub color:Color,
+    pub ratio:f32
 }
 
 impl Default for Outline {
