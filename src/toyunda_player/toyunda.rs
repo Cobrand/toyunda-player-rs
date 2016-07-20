@@ -87,9 +87,17 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn render_frame(&mut self) -> Result<()> {
+        use sdl2::rect::Rect;
         use std::io::{self, Write};
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
+        if let Some(ref subtitles) = self.subtitles {
+            let frame_number : i64 = self.mpv.get_property("estimated-frame-number").unwrap_or(0);
+            let subtitles_texture = subtitles.get_texture_at_frame(&mut self.displayer, frame_number as u32).unwrap();
+            let (w,h) = self.displayer.sdl_renderer().output_size().expect("Failed to get render size");
+            self.displayer.sdl_renderer_mut().set_blend_mode(::sdl2::render::BlendMode::Blend);
+            self.displayer.sdl_renderer_mut().copy(&subtitles_texture,Some(Rect::new(0,0,w,h)),Some(Rect::new(0,0,w,h)));
+        }
         self.displayer.render();
         Ok(())
     }

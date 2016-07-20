@@ -8,7 +8,8 @@ use ::subtitles::syllable::Syllable;
 use ::subtitles::metainfo::MetaInfo;
 use ::subtitles::options::*;
 
-use ::sdl2::render::{Renderer,Texture};
+use ::sdl2::render::Texture;
+use ::display::Displayer;
 
 #[derive(Debug,Default)]
 pub struct Subtitles {
@@ -116,7 +117,45 @@ impl Subtitles {
         Ok(subtitles)
     }
 
-    pub fn get_texture_at_frame(&self,renderer:Renderer,frame:u32) -> Texture {
-        unimplemented!()
+
+
+    pub fn get_texture_at_frame(&self,displayer:&mut Displayer,frame:u32) -> Result<Texture,String> {
+        use sdl2::pixels::Color;
+        use sdl2::pixels::PixelFormatEnum::ARGB8888;
+        use sdl2::render::TextureValueError;
+        fn ceil_power_of_2(v:f64) -> u32 {
+            2u32.pow(v.log2().ceil() as u32)
+        };
+        let (renderer_w,renderer_h) = try!(displayer.sdl_renderer().output_size());
+        let texture_width = ceil_power_of_2(renderer_w as f64);
+        let texture_height = ceil_power_of_2(renderer_h as f64);
+        let mut texture = displayer.sdl_renderer().create_texture_target(ARGB8888,texture_width,texture_height)
+            .expect("Failed to create texture");
+        texture.set_blend_mode(::sdl2::render::BlendMode::Blend);
+        if let Some(ref mut render_target) = displayer.sdl_renderer_mut().render_target() {
+            let old_texture = render_target.set(texture).expect("Failed to set texture as target");
+            debug_assert!(old_texture.is_none());
+        } else {
+            error!("Render target are not supported with this GC driver");
+            return Err("Render target are not supported with this GC driver".to_string());
+            unreachable!()
+        };
+        {
+            displayer.sdl_renderer_mut().set_draw_color(Color::RGBA(0,0,0,0));
+            displayer.sdl_renderer_mut().clear();
+            // make the texture transparent
+            // TODO draw subtitles
+        }
+        let new_texture = {
+            if let Some(ref mut render_target) = displayer.sdl_renderer_mut().render_target() {
+                render_target.reset()
+                    .expect("Failed to reset render_target")
+                    .expect("Failed to retrive texture from renderer")
+            } else {
+                error!("An unknown error happened; Failed to get render_target from renderer");
+                panic!("Failed to get render_target from renderer")
+            }
+        };
+        Ok(new_texture)
     }
 }
