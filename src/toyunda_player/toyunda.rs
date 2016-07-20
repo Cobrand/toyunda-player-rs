@@ -17,20 +17,6 @@ pub struct ToyundaPlayer<'a> {
     options:ToyundaOptions
 }
 
-fn speed_btn(mpv: &mut MpvHandler, is_shift_pressed: bool, keynumber: u64) {
-    let mut speed = (keynumber as f64) / 10.0;
-    if (is_shift_pressed) {
-        speed += 1.0;
-    }
-}
-
-fn add_volume(mpv: &mut MpvHandler, delta: i64) {
-    let max_volume: i64 = mpv.get_property("volume-max").expect("Failed to get volume-max");
-    let current_volume: i64 = mpv.get_property("volume").expect("Failed to get volume");
-    let new_volume = min(max(current_volume + delta, 0), max_volume);
-    mpv.set_property("volume", new_volume).unwrap();
-}
-
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
 #[inline]
 fn get_alt_keys(keyboard_state:KeyboardState) -> (bool,bool,bool) {
