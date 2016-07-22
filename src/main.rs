@@ -7,18 +7,16 @@ extern crate log;
 extern crate env_logger;
 
 mod utils;
-mod subtitles;
-mod font;
 mod display;
-mod displayer;
 mod init;
-mod mainloop;
+mod subtitles;
+mod toyunda_player;
 
+use toyunda_player::ToyundaPlayer;
 // use mpv::mpv;
 use std::env;
 use std::path::Path;
 use std::os::raw::c_void;
-use subtitles::Subtitles;
 
 fn start_player(video_path: &Path) {
     // INIT SDL
@@ -31,33 +29,42 @@ fn start_player(video_path: &Path) {
     mpv_builder.set_option("osc", true).unwrap();
     mpv_builder.set_option("sid", "no").unwrap();
     mpv_builder.set_option("softvol", "yes").unwrap();
-    mpv_builder.set_option("softvol-max", 200.0).unwrap();
+    mpv_builder.set_option("softvol-max", 250.0).unwrap();
+    mpv_builder.try_hardware_decoding().unwrap();
     let mut mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
        .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
 
-    let lyr_path = video_path.with_extension("lyr");
-    let frm_path = video_path.with_extension("frm");
-    let subtitles = if (lyr_path.is_file() && frm_path.is_file()) {
-        let subtitles = subtitles::load_subtitles(lyr_path.as_path(), frm_path.as_path());
-        Some(Subtitles::new(subtitles))
-    } else {
-        None
-    };
-    let displayer = displayer::Displayer::new(renderer, subtitles)
+    let displayer = display::Displayer::new(renderer)
                         .expect("Failed to init displayer");
 
     let video_path = video_path.to_str().expect("Expected a string for Path, got None");
     mpv.command(&["loadfile", video_path as &str])
        .expect("Error loading file");
 
-    mainloop::main_loop(sdl_context, displayer, mpv);
+    let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
+    match toyunda_player.import_subtitles(video_path) {
+        Ok(_) => {
+        },
+        Err(e) => {
+            error!("Error was received when importing subtitles : {}",e);
+            warn!("Failed to import subtitles; File will play without subtitles")
+        }
+    };
+    let res = toyunda_player.main_loop(&sdl_context);
+    match res {
+        Ok(_) => {},
+        Err(e) => {
+            error!("An uncoverable error occured : {}",e);
+        }
+    };
 }
 
 fn main() {
+    env_logger::init().unwrap();
     let args: Vec<_> = env::args().collect();
     if args.len() < 2 {
-        println!("Usage: ./sdl [any mp4, avi, mkv, ... file]");
+        println!("Usage: ./toyunda-player [any mp4, avi, mkv, ... file]");
     } else {
         let path: &Path = Path::new(&args[1]);
         if path.is_file() {
