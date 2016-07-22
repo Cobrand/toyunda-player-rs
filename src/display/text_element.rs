@@ -5,7 +5,7 @@ use sdl2::rect::Rect;
 
 #[derive(Debug)]
 pub struct TextElement {
-    pub text: String,
+    pub text: String, // TODO : replace with &str
     pub color: Color,
     pub outline: Option<Color>,
     pub shadow: Option<Color>,

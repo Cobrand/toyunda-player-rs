@@ -1,4 +1,5 @@
 use display::*;
+use utils::*;
 use ::subtitles::{Sentence,Subtitles,Syllable,Position as SentencePos};
 
 #[derive(Debug)]
@@ -73,6 +74,50 @@ fn compute_sentence_alpha(sentence:&Sentence,frame_number:u32) -> f32 {
     }
 }
 
+fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
+                syllable:&Syllable,
+                current_frame:u32,
+                alpha:f32) {
+    if (current_frame < syllable.begin) {
+        let text_2d = ::display::TextElement {
+            text: syllable.text.clone(),
+            color: fade_color(syllable.syllable_options.alive_color, alpha),
+            outline: syllable.syllable_options.outline.map(|outline| outline.color ),
+            shadow: None,
+        };
+        // TODO do the same optimization like dead_color
+        text_elts.push(text_2d);
+    } else if (syllable.begin <= current_frame) && (current_frame <= syllable.end) {
+        let percent = (current_frame - syllable.begin) as f32 /
+                      (syllable.end  - syllable.begin) as f32;
+        // lets ease the percent a lil bits
+        let percent = 1.0 - (1.0 - percent*percent).sqrt();
+        let transition_color = mix_colors(syllable.syllable_options.transition_color,
+                                          syllable.syllable_options.dead_color,
+                                          percent);
+        let text_2d = ::display::TextElement {
+            text:  syllable.text.clone(),
+            color: transition_color,
+            outline: syllable.syllable_options.outline.map(|outline| outline.color ),
+            shadow: None,
+        };
+        text_elts.push(text_2d);
+    } else {
+        if (text_elts.is_empty()) {
+            let text_2d = ::display::TextElement {
+                text: syllable.text.clone(),
+                color: fade_color(syllable.syllable_options.dead_color, alpha),
+                outline: syllable.syllable_options.outline.map(|outline| outline.color),
+                shadow: None,
+            };
+            text_elts.push(text_2d);
+        } else {
+            let mut text_2d = text_elts.last_mut().unwrap();
+            text_2d.text.push_str(&*syllable.text);
+        }
+    }
+}
+
 impl Frame {
     pub fn from_subtitles(subtitles:&Subtitles,frame_number:u32) -> Frame {
         let mut frame : Frame = Frame {
@@ -85,7 +130,7 @@ impl Frame {
                 (Some(ref first_syllable),Some(ref last_syllable)) => {
                     let first_frame = first_syllable.begin
                         .saturating_sub(sentence.sentence_options.transition_time as u32);
-                    let last_frame = last_syllable.begin
+                    let last_frame = last_syllable.end
                         .saturating_add(sentence.sentence_options.transition_time as u32);
                     if ( frame_number >= first_frame && frame_number <= last_frame ) {
                         true
@@ -96,10 +141,15 @@ impl Frame {
             }
         }); // get all the sentences displayed on screen
         for (sentence_number,ref sentence) in sentence_iter {
+            let sentence_alpha = compute_sentence_alpha(sentence,frame_number);
+            let mut text_elts = vec![] ;
+            for syllable in sentence.syllables.iter() {
+                add_syllable(&mut text_elts,syllable,frame_number,sentence_alpha);
+            }
             let text_pos = match sentence.position {
                 SentencePos::Row(l) => {
                     (::display::PosX::Centered,
-                     ::display::PosY::FromTopPercent(l as f32 / 10.0 + 0.025 ))
+                     ::display::PosY::FromTopPercent(l as f32 / 7.0 + 0.025 ))
                 }
                 SentencePos::ForcePos(x,y) => {
                     (::display::PosX::FromLeftPercent(x),
@@ -107,8 +157,7 @@ impl Frame {
                 },
             };
             let text_2d = ::display::Text2D {
-                //text: text_elts,
-                text:vec![],
+                text: text_elts,
                 size: ::display::Size::FitPercent(Some(0.95), Some(0.1)),
                 pos: text_pos,
                 anchor: (0.5, 0.0),
