@@ -21,9 +21,50 @@ pub struct Subtitles {
 
 /// subtitles : already stored Subtitles
 /// sentence : Sentence to add to the subtitles
-fn get_best_sentence_row(subtitles:&Subtitles,sentence:&mut Sentence) {
+fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence) {
     // TODO
-    unimplemented!()
+    let mut best_row = 0u8 ;
+    {
+        let mut sentences_candidate = sentences.iter().filter(|sentence_candidate|{
+            match (sentence.syllables.first(),sentence.syllables.last(),
+                   sentence_candidate.syllables.first(),sentence_candidate.syllables.last()) {
+                (None,_,_,_) | (_,None,_,_) | (_,_,None,_) | (_,_,_,None)  => false,
+                (Some(ref first_syllable),Some(ref last_syllable),
+                 Some(ref first_syllable_candidate),Some(ref last_syllable_candidate)) => {
+
+                    let first_frame = first_syllable.begin
+                        .saturating_sub(sentence.sentence_options.transition_time as u32);
+                    let last_frame = last_syllable.end
+                        .saturating_add(sentence.sentence_options.transition_time as u32);
+                    let first_frame_candidate = first_syllable_candidate.begin
+                        .saturating_sub(sentence_candidate.sentence_options.transition_time as u32);
+                    let last_frame_candidate = last_syllable_candidate.end
+                        .saturating_add(sentence_candidate.sentence_options.transition_time as u32);
+                    // println!("{} {}-{}-{}-{} ; {}-{}-{}-{}",
+                    //     sentence,
+                    //     first_frame,first_syllable.begin,last_syllable.end,last_frame,
+                    //     first_frame_candidate,first_syllable_candidate.begin,last_frame_candidate);
+                    if (last_frame_candidate >= first_frame  && last_frame_candidate <= last_frame ) ||
+                       (first_frame_candidate >= first_frame && first_frame_candidate <= last_frame) {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+        });
+        let mut taken = vec![];
+        for sentence in sentences_candidate {
+            match sentence.position {
+                Position::Row(i) => {taken.push(i);},
+                _ => {}
+            }
+        };
+        while taken.iter().any(|v| *v == best_row) {
+            best_row = best_row + 1 ;
+        }
+    }
+    sentence.position = Position::Row(best_row);
 }
 
 impl Subtitles {
@@ -57,10 +98,9 @@ impl Subtitles {
                 if (lyr_line.starts_with("&")) {
                     syllables.remove(0);
                 };
-                let mut row : u8 = 0;
-                let sentence = Sentence {
+                let mut sentence = Sentence {
                     syllables : syllables,
-                    position : Position::Row(row),
+                    position : Position::Row(0),
                     sentence_options : SentenceOptions::default()
                 };
                 subtitles.sentences.push(sentence);
@@ -114,6 +154,11 @@ impl Subtitles {
                     }
                 }
             }
+        };
+        for i in 0..subtitles.sentences.len() {
+            let (first_half,mut last_half) = subtitles.sentences.split_at_mut(i);
+            let sentence = last_half.first_mut().expect("Unexpected None for subtitles last_half");
+            set_best_sentence_row(first_half,sentence);
         }
         Ok(subtitles)
     }
