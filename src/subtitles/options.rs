@@ -4,18 +4,12 @@ use ::sdl2::pixels::Color;
 pub struct SubtitlesOptions {
     /// Global SentenceOptions
     pub sentence_options:SentenceOptions,
-    /// Total time where subtitles start appearing, before first syllable start playing
-    pub transition_time:u16,
-    /// Span where subtitles start appearing
-    pub fade_time:u16
 }
 
 impl Default for SubtitlesOptions {
     fn default() -> SubtitlesOptions {
         SubtitlesOptions {
             sentence_options : SentenceOptions::default(),
-            transition_time : 10,
-            fade_time : 5
         }
     }
 }
@@ -24,14 +18,20 @@ impl Default for SubtitlesOptions {
 pub struct SentenceOptions {
     /// Global SyllableOptions
     pub syllable_options:SyllableOptions,
-    pub display_logo:bool
+    pub display_logo:bool,
+    /// Total time where subtitles start appearing, before first syllable start playing
+    pub transition_time:u16,
+    /// Span where subtitles start appearing
+    pub fade_time:u16
 }
 
 impl Default for SentenceOptions {
     fn default() -> SentenceOptions {
         SentenceOptions {
             syllable_options : SyllableOptions::default(),
-            display_logo : true
+            display_logo : true,
+            transition_time : 10,
+            fade_time : 5
         }
     }
 }

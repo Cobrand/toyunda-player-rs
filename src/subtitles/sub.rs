@@ -7,9 +7,10 @@ use ::subtitles::sentence::*;
 use ::subtitles::syllable::Syllable;
 use ::subtitles::metainfo::MetaInfo;
 use ::subtitles::options::*;
+use ::display::*;
 
-use ::sdl2::render::Texture;
-use ::display::Displayer;
+use sdl2::render::Texture;
+use sdl2::rect::Rect;
 
 #[derive(Debug,Default)]
 pub struct Subtitles {
@@ -117,7 +118,14 @@ impl Subtitles {
         Ok(subtitles)
     }
 
-
+    /// Note that it will use the render_target used by the renderer,
+    /// meaning that it can be a texture or the window depending on what
+    /// is used with Displayer
+    fn print_subtitle_frame_at(&self,displayer:&mut Displayer,frame_number:u32) -> Result<(),String> {
+        let frame = ::display::frame::Frame::from_subtitles(self, frame_number);
+        frame.draw(displayer);
+        Ok(())
+    }
 
     pub fn get_texture_at_frame(&self,displayer:&mut Displayer,frame:u32) -> Result<Texture,String> {
         use sdl2::pixels::Color;
@@ -140,12 +148,15 @@ impl Subtitles {
             return Err("Render target are not supported with this GC driver".to_string());
             unreachable!()
         };
-        {
+        let res = {
+            displayer.sdl_renderer_mut().set_viewport(Some(Rect::new(0,0,renderer_w,renderer_h)));
             displayer.sdl_renderer_mut().set_draw_color(Color::RGBA(0,0,0,0));
-            displayer.sdl_renderer_mut().clear();
             // make the texture transparent
-            // TODO draw subtitles
-        }
+            displayer.sdl_renderer_mut().clear();
+            // draw subtitles on current render target
+            self.print_subtitle_frame_at(displayer,frame)
+        };
+        displayer.sdl_renderer_mut().set_viewport(None);
         let new_texture = {
             if let Some(ref mut render_target) = displayer.sdl_renderer_mut().render_target() {
                 render_target.reset()
@@ -156,6 +167,6 @@ impl Subtitles {
                 panic!("Failed to get render_target from renderer")
             }
         };
-        Ok(new_texture)
+        res.and(Ok(new_texture))
     }
 }
