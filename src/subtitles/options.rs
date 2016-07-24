@@ -30,8 +30,8 @@ impl Default for SentenceOptions {
         SentenceOptions {
             syllable_options : SyllableOptions::default(),
             display_logo : true,
-            transition_time : 10,
-            fade_time : 5
+            transition_time : 12,
+            fade_time : 8
         }
     }
 }

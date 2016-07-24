@@ -40,12 +40,10 @@ fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence) {
                         .saturating_sub(sentence_candidate.sentence_options.transition_time as u32);
                     let last_frame_candidate = last_syllable_candidate.end
                         .saturating_add(sentence_candidate.sentence_options.transition_time as u32);
-                    // println!("{} {}-{}-{}-{} ; {}-{}-{}-{}",
-                    //     sentence,
-                    //     first_frame,first_syllable.begin,last_syllable.end,last_frame,
-                    //     first_frame_candidate,first_syllable_candidate.begin,last_frame_candidate);
                     if (last_frame_candidate >= first_frame  && last_frame_candidate <= last_frame ) ||
-                       (first_frame_candidate >= first_frame && first_frame_candidate <= last_frame) {
+                       (first_frame_candidate >= first_frame && first_frame_candidate <= last_frame) ||
+                       (last_frame >= first_frame_candidate  && last_frame <= last_frame_candidate ) ||
+                       (first_frame >= first_frame_candidate && first_frame <= last_frame_candidate) {
                         true
                     } else {
                         false
