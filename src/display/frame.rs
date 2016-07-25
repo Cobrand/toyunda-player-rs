@@ -1,10 +1,12 @@
 use display::*;
 use utils::*;
 use ::subtitles::{Sentence,Subtitles,Syllable,Position as SentencePos};
+use sdl2::render::TextureQuery;
+use sdl2::rect::Rect;
 
 #[derive(Debug)]
 pub enum TextureType {
-    Logo,
+    LyricsLogo,
 }
 
 #[derive(Debug)]
@@ -17,7 +19,86 @@ pub struct Texture {
 
 impl Display for Texture {
     fn draw(self, displayer: &mut Displayer) {
-
+        if displayer.lyrics_logo.is_some() {
+            let (window_width, window_height) = displayer.sdl_renderer().window().unwrap().size();
+            let (fit_width, fit_height) = match self.size {
+                Size::FitPercent(option_x, option_y) => {
+                    (option_x.map(|v| (v * window_width as f32) as u32 ),
+                     option_y.map(|v| (v * window_height as f32) as u32 ))
+                },
+                Size::Fit(x, y) => (x, y),
+            };
+            // TODO refactor position with Text2D
+            let TextureQuery { width:original_texture_width, height:original_texture_height, .. } =
+                match self.texture_type {
+                    TextureType::LyricsLogo => displayer.lyrics_logo.as_ref().unwrap().query(),
+            };
+            let (final_width,final_height) = match (fit_width,fit_height) {
+                (None,None) => {
+                    (original_texture_width,original_texture_height)
+                },
+                (Some(w),None) => {
+                    let ratio : f32 = (w as f32 / original_texture_width as f32) ;
+                    (
+                        w,
+                        (ratio * original_texture_height as f32) as u32
+                    )
+                },
+                (None,Some(h)) => {
+                    let ratio : f32 = (h as f32 / original_texture_height as f32) ;
+                    (
+                        (ratio * original_texture_width as f32) as u32,
+                        h
+                    )
+                },
+                (Some(w),Some(h)) => {
+                    let ratio : f32 =
+                       (h as f32 / original_texture_height as f32).min(
+                        w as f32 / original_texture_width as f32);
+                    (
+                        (ratio * original_texture_width as f32) as u32,
+                        (ratio * original_texture_height as f32) as u32
+                    )
+                },
+            };
+            let (pos_x, pos_y) = self.pos;
+            let mut target_rect: Rect = Rect::new(0, 0, final_width, final_height);
+            let delta_anchor_x = (self.anchor.0 * final_width as f32) as i32;
+            let delta_anchor_y = (self.anchor.1 * final_height as f32) as i32;
+            match pos_x {
+                PosX::Centered => target_rect.set_x((window_width / 2) as i32 - delta_anchor_x),
+                PosX::FromLeft(value) => target_rect.set_x(value as i32 - delta_anchor_x),
+                PosX::FromLeftPercent(percent) => {
+                    target_rect.set_x((percent * (window_width as f32)) as i32 - delta_anchor_x)
+                }
+                PosX::FromRight(value) => {
+                    target_rect.set_x(window_width as i32 - value as i32 - delta_anchor_x)
+                }
+                PosX::FromRightPercent(percent) => {
+                    target_rect.set_x(window_width as i32 - (percent * (window_width as f32)) as i32 -
+                                      delta_anchor_x)
+                }
+            };
+            match pos_y {
+                PosY::Centered => target_rect.set_y((window_height / 2) as i32 - delta_anchor_y),
+                PosY::FromTop(value) => target_rect.set_y(value as i32 - delta_anchor_y),
+                PosY::FromTopPercent(percent) => {
+                    target_rect.set_y((percent * (window_height as f32)) as i32 - delta_anchor_y)
+                }
+                PosY::FromBottom(value) => {
+                    target_rect.set_y(window_height as i32 - value as i32 - delta_anchor_y)
+                }
+                PosY::FromBottomPercent(percent) => {
+                    target_rect.set_y(window_height as i32 - (percent * (window_height as f32)) as i32 -
+                                      delta_anchor_y)
+                }
+            };
+            match self.texture_type {
+                TextureType::LyricsLogo => {
+                    displayer.copy_lyrics_logo(target_rect);
+                }
+            }
+        }
     }
 }
 
@@ -84,6 +165,7 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
             color: fade_color(syllable.syllable_options.alive_color, alpha),
             outline: syllable.syllable_options.outline.map(|outline| outline.color ),
             shadow: None,
+            attach_logo:false
         };
         // TODO do the same optimization like dead_color
         text_elts.push(text_2d);
@@ -100,6 +182,7 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
             color: transition_color,
             outline: syllable.syllable_options.outline.map(|outline| outline.color ),
             shadow: None,
+            attach_logo:true
         };
         text_elts.push(text_2d);
     } else {
@@ -109,6 +192,7 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
                 color: fade_color(syllable.syllable_options.dead_color, alpha),
                 outline: syllable.syllable_options.outline.map(|outline| outline.color),
                 shadow: None,
+                attach_logo:false
             };
             text_elts.push(text_2d);
         } else {
@@ -143,13 +227,21 @@ impl Frame {
         for (sentence_number,ref sentence) in sentence_iter {
             let sentence_alpha = compute_sentence_alpha(sentence,frame_number);
             let mut text_elts = vec![] ;
+            let mut logo_position : Option<u16> = None;
             for syllable in sentence.syllables.iter() {
                 add_syllable(&mut text_elts,syllable,frame_number,sentence_alpha);
+            }
+            'syllables: for (n,syllable) in sentence.syllables.iter().enumerate() {
+                if frame_number > syllable.begin {
+                    logo_position = Some(n as u16);
+                } else {
+                    break 'syllables;
+                }
             }
             let text_pos = match sentence.position {
                 SentencePos::Row(l) => {
                     (::display::PosX::Centered,
-                     ::display::PosY::FromTopPercent(l as f32 / 7.0 + 0.025 ))
+                     ::display::PosY::FromTopPercent( l as f32 * 0.13 + 0.025 ))
                 }
                 SentencePos::ForcePos(x,y) => {
                     (::display::PosX::FromLeftPercent(x),
@@ -158,7 +250,7 @@ impl Frame {
             };
             let text_2d = ::display::Text2D {
                 text: text_elts,
-                size: ::display::Size::FitPercent(Some(0.95), Some(0.1)),
+                size: ::display::Size::FitPercent(Some(0.97), Some(0.09)),
                 pos: text_pos,
                 anchor: (0.5, 0.0),
             };

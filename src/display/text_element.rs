@@ -9,6 +9,7 @@ pub struct TextElement {
     pub color: Color,
     pub outline: Option<Color>,
     pub shadow: Option<Color>,
+    pub attach_logo: bool
 }
 
 impl TextElement {

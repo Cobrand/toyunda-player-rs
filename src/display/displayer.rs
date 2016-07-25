@@ -10,7 +10,7 @@ pub struct Displayer<'a> {
     renderer: Renderer<'a>,
     #[allow(dead_code)]
     ttf_context: Sdl2TtfContext,
-    lyrics_logo: Option<Texture>
+    pub lyrics_logo: Option<Texture>
 }
 
 impl<'a> Displayer<'a> {
@@ -22,7 +22,6 @@ impl<'a> Displayer<'a> {
         let _image_context = image_init(INIT_PNG | INIT_JPG).unwrap();
         // we dont care if imag econtext dies, we only load images once (for now)
         let lyrics_logo = renderer.load_texture(Path::new("logo_toyunda.png")).ok();
-        println!("LYRICS LOGO HAS BEEN LOADED ? {}",lyrics_logo.is_some());
         let displayer = Displayer {
             fonts: font_list,
             ttf_context: ttf_context,
@@ -30,6 +29,15 @@ impl<'a> Displayer<'a> {
             lyrics_logo:lyrics_logo
         };
         Ok(displayer)
+    }
+
+    pub fn copy_lyrics_logo(&mut self,rect: ::sdl2::rect::Rect) {
+        match self.lyrics_logo {
+            Some(ref texture) => {
+                self.renderer.copy(texture,None,Some(rect));
+            },
+            None => {}
+        };
     }
 
     pub fn fatal_error_message(&self,title:&str,info:&str) {
@@ -50,7 +58,7 @@ impl<'a> Displayer<'a> {
     }
 
     pub fn render(&mut self) {
-        self.sdl_renderer_mut().window().unwrap().gl_swap_window();
+        self.renderer.window().unwrap().gl_swap_window();
     }
 
     pub fn sdl_renderer_mut(&mut self) -> &mut Renderer<'a> {
