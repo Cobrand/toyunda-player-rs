@@ -72,10 +72,10 @@ impl FontList {
         let font_size_max = 128;
         let font_size_increment = 1;
         'fontlist: while (font_size < font_size_max) {
-            let rwops_regular = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
-            let rwops_bold = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
-            let font_regular = try!(ttf_context.load_font_from_rwops(&rwops_regular, font_size));
-            let mut font_bold = try!(ttf_context.load_font_from_rwops(&rwops_bold, font_size));
+            let mut rwops_regular = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let mut rwops_bold = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let font_regular = try!(ttf_context.load_font_from_rwops(&mut rwops_regular, font_size));
+            let mut font_bold = try!(ttf_context.load_font_from_rwops(&mut rwops_bold, font_size));
             font_bold.set_outline_width(OUTLINE_WIDTH);
             result.fonts.push(FontSet {
                 rwops_regular:rwops_regular,

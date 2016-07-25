@@ -5,9 +5,10 @@ dependencies = [
  "env_logger 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mpv 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2 0.20.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2-sys 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2_ttf 0.19.0 (git+https://github.com/andelf/rust-sdl2_ttf.git)",
+ "sdl2 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2_image 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2_ttf 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -185,7 +186,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "sdl2"
-version = "0.20.1"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -193,25 +194,35 @@ dependencies = [
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2-sys 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "sdl2-sys"
-version = "0.19.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "sdl2_ttf"
-version = "0.19.0"
-source = "git+https://github.com/andelf/rust-sdl2_ttf.git#c97b95cb28c2d245ea97b6c0eb0357eb162485b8"
+name = "sdl2_image"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2 0.20.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2-sys 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sdl2_ttf"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

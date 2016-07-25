@@ -1,5 +1,7 @@
-extern crate sdl2_ttf;
-use sdl2::render::{Renderer, BlendMode};
+use sdl2::render::{Renderer, BlendMode, Texture};
+use sdl2_image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
+use sdl2_ttf::{Sdl2TtfContext,init as ttf_init};
+use std::path::Path;
 use sdl2::pixels::Color;
 use ::display::font::*;
 
@@ -7,19 +9,25 @@ pub struct Displayer<'a> {
     fonts: FontList,
     renderer: Renderer<'a>,
     #[allow(dead_code)]
-    ttf_context: sdl2_ttf::Sdl2TtfContext,
+    ttf_context: Sdl2TtfContext,
+    lyrics_logo: Option<Texture>
 }
 
 impl<'a> Displayer<'a> {
     pub fn new(mut renderer: Renderer<'a>)
                -> Result<Displayer<'a>, ()> {
         renderer.set_blend_mode(BlendMode::Blend);
-        let ttf_context = sdl2_ttf::init().unwrap();
+        let ttf_context = ttf_init().unwrap();
         let font_list = FontList::new(&ttf_context).unwrap();
+        let _image_context = image_init(INIT_PNG | INIT_JPG).unwrap();
+        // we dont care if imag econtext dies, we only load images once (for now)
+        let lyrics_logo = renderer.load_texture(Path::new("logo_toyunda.png")).ok();
+        println!("LYRICS LOGO HAS BEEN LOADED ? {}",lyrics_logo.is_some());
         let displayer = Displayer {
             fonts: font_list,
             ttf_context: ttf_context,
             renderer: renderer,
+            lyrics_logo:lyrics_logo
         };
         Ok(displayer)
     }
