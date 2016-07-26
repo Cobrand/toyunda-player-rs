@@ -3,7 +3,6 @@ use display::*;
 use sdl2::surface::Surface;
 use sdl2::rect::Rect;
 use sdl2::render::TextureQuery;
-
 #[derive(Debug)]
 pub struct Text2D {
     pub text: Vec<TextElement>,
@@ -57,6 +56,7 @@ impl Display for Text2D {
                 // for each text element, blit it over
                 let text_surface = text_element.as_surface(font_set);
                 let (text_surface_w, text_surface_h) = text_surface.size();
+
                 text_surface.blit(None,
                                   target_surface.deref_mut(),
                                   Some(Rect::new(width_offset, 0, text_surface_w, text_surface_h)))
@@ -74,37 +74,8 @@ impl Display for Text2D {
             target_texture.query();
         // POSITION
         let (pos_x, pos_y) = self.pos;
-        let mut target_rect: Rect = Rect::new(0, 0, texture_width, texture_height);
-        let delta_anchor_x = (self.anchor.0 * texture_width as f32) as i32;
-        let delta_anchor_y = (self.anchor.1 * texture_height as f32) as i32;
-        match pos_x {
-            PosX::Centered => target_rect.set_x((window_width / 2) as i32 - delta_anchor_x),
-            PosX::FromLeft(value) => target_rect.set_x(value as i32 - delta_anchor_x),
-            PosX::FromLeftPercent(percent) => {
-                target_rect.set_x((percent * (window_width as f32)) as i32 - delta_anchor_x)
-            }
-            PosX::FromRight(value) => {
-                target_rect.set_x(window_width as i32 - value as i32 - delta_anchor_x)
-            }
-            PosX::FromRightPercent(percent) => {
-                target_rect.set_x(window_width as i32 - (percent * (window_width as f32)) as i32 -
-                                  delta_anchor_x)
-            }
-        };
-        match pos_y {
-            PosY::Centered => target_rect.set_y((window_height / 2) as i32 - delta_anchor_y),
-            PosY::FromTop(value) => target_rect.set_y(value as i32 - delta_anchor_y),
-            PosY::FromTopPercent(percent) => {
-                target_rect.set_y((percent * (window_height as f32)) as i32 - delta_anchor_y)
-            }
-            PosY::FromBottom(value) => {
-                target_rect.set_y(window_height as i32 - value as i32 - delta_anchor_y)
-            }
-            PosY::FromBottomPercent(percent) => {
-                target_rect.set_y(window_height as i32 - (percent * (window_height as f32)) as i32 -
-                                  delta_anchor_y)
-            }
-        };
+        let target_pos = real_position((window_width,window_height),self.pos,self.anchor,(texture_width,texture_height));
+        let target_rect: Rect = Rect::new(target_pos.0,target_pos.1, texture_width, texture_height);
         displayer.sdl_renderer_mut().copy(&target_texture, None, Some(target_rect));
     }
 }

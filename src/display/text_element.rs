@@ -1,6 +1,7 @@
 use std::ops::DerefMut;
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
+use sdl2::render::{Texture,Renderer};
 use sdl2::rect::Rect;
 
 #[derive(Debug)]
@@ -13,6 +14,16 @@ pub struct TextElement {
 }
 
 impl TextElement {
+    pub fn blit(&self,
+                font_set: &::display::font::FontSet,
+                renderer: &mut Renderer,
+                origin: (u32,u32)) {
+        use sdl2::pixels::PixelFormatEnum::ARGB8888 ;
+        let renderer_size = renderer.output_size().expect("Failed to get renderer size");
+        let temp_texture = renderer.create_texture_static(ARGB8888,renderer_size.0,renderer_size.1);
+        
+    }
+
     pub fn as_surface(&self, font_set: &::display::font::FontSet) -> Surface {
         let (surface_width, surface_height) = font_set.get_outline_font()
                                                       .size_of(self.text.as_str())

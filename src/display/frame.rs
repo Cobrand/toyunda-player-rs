@@ -62,37 +62,8 @@ impl Display for Texture {
                 },
             };
             let (pos_x, pos_y) = self.pos;
-            let mut target_rect: Rect = Rect::new(0, 0, final_width, final_height);
-            let delta_anchor_x = (self.anchor.0 * final_width as f32) as i32;
-            let delta_anchor_y = (self.anchor.1 * final_height as f32) as i32;
-            match pos_x {
-                PosX::Centered => target_rect.set_x((window_width / 2) as i32 - delta_anchor_x),
-                PosX::FromLeft(value) => target_rect.set_x(value as i32 - delta_anchor_x),
-                PosX::FromLeftPercent(percent) => {
-                    target_rect.set_x((percent * (window_width as f32)) as i32 - delta_anchor_x)
-                }
-                PosX::FromRight(value) => {
-                    target_rect.set_x(window_width as i32 - value as i32 - delta_anchor_x)
-                }
-                PosX::FromRightPercent(percent) => {
-                    target_rect.set_x(window_width as i32 - (percent * (window_width as f32)) as i32 -
-                                      delta_anchor_x)
-                }
-            };
-            match pos_y {
-                PosY::Centered => target_rect.set_y((window_height / 2) as i32 - delta_anchor_y),
-                PosY::FromTop(value) => target_rect.set_y(value as i32 - delta_anchor_y),
-                PosY::FromTopPercent(percent) => {
-                    target_rect.set_y((percent * (window_height as f32)) as i32 - delta_anchor_y)
-                }
-                PosY::FromBottom(value) => {
-                    target_rect.set_y(window_height as i32 - value as i32 - delta_anchor_y)
-                }
-                PosY::FromBottomPercent(percent) => {
-                    target_rect.set_y(window_height as i32 - (percent * (window_height as f32)) as i32 -
-                                      delta_anchor_y)
-                }
-            };
+            let (target_pos_x,target_pos_y) = real_position((window_width,window_height),self.pos,self.anchor,(final_width,final_height));
+            let target_rect: Rect = Rect::new(target_pos_x, target_pos_y, final_width, final_height);
             match self.texture_type {
                 TextureType::LyricsLogo => {
                     displayer.copy_lyrics_logo(target_rect);
@@ -205,7 +176,7 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
 impl Frame {
     pub fn from_subtitles(subtitles:&Subtitles,frame_number:u32) -> Frame {
         let mut frame : Frame = Frame {
-            textures:  Vec::with_capacity(4),
+            textures:  Vec::with_capacity(0),
             vec_text2d:Vec::with_capacity(4),
         };
         let mut sentence_iter = subtitles.sentences.iter().enumerate().filter(|&(_,ref sentence)| {
