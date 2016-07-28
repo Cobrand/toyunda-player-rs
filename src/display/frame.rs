@@ -212,7 +212,7 @@ impl Frame {
             let text_pos = match sentence.position {
                 SentencePos::Row(l) => {
                     (::display::PosX::Centered,
-                     ::display::PosY::FromTopPercent( l as f32 * 0.13 + 0.025 ))
+                     ::display::PosY::FromTopPercent( l as f32 * 0.15 + 0.015 ))
                 }
                 SentencePos::ForcePos(x,y) => {
                     (::display::PosX::FromLeftPercent(x),
@@ -221,7 +221,7 @@ impl Frame {
             };
             let text_2d = ::display::Text2D {
                 text: text_elts,
-                size: ::display::Size::FitPercent(Some(0.97), Some(0.09)),
+                size: ::display::Size::FitPercent(Some(0.95), Some(0.09)),
                 pos: text_pos,
                 anchor: (0.5, 0.0),
             };

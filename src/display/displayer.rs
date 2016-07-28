@@ -6,8 +6,8 @@ use sdl2::pixels::Color;
 use ::display::font::*;
 
 pub struct Displayer<'a> {
-    fonts: FontList,
-    renderer: Renderer<'a>,
+    pub fonts: FontList,
+    pub renderer: Renderer<'a>,
     #[allow(dead_code)]
     ttf_context: Sdl2TtfContext,
     pub lyrics_logo: Option<Texture>
@@ -61,10 +61,12 @@ impl<'a> Displayer<'a> {
         self.renderer.window().unwrap().gl_swap_window();
     }
 
+    #[inline]
     pub fn sdl_renderer_mut(&mut self) -> &mut Renderer<'a> {
         &mut self.renderer
     }
 
+    #[inline]
     pub fn sdl_renderer(&self) -> &Renderer<'a> {
         &self.renderer
     }

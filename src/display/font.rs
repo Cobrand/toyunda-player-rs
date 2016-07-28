@@ -48,9 +48,12 @@ impl Index<usize> for FontList {
 }
 
 impl FontSet {
+    #[inline]
     pub fn get_regular_font(&self) -> &sdl2_ttf::Font {
         &self.font_regular
     }
+
+    #[inline]
     pub fn get_outline_font(&self) -> &sdl2_ttf::Font {
         &self.font_bold
     }

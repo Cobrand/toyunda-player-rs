@@ -18,7 +18,6 @@ impl Text2D {
     }
 }
 
-
 impl Display for Text2D {
     fn draw(self, displayer: &mut Displayer) {
         let (window_width, window_height) = displayer.sdl_renderer().window().unwrap().size();
@@ -27,55 +26,46 @@ impl Display for Text2D {
             Size::Fit(x, y) => (x, y),
         };
 
-        let target_texture = {
-            let is_outline_enabled = self.text
-                                         .iter()
-                                         .any(|text_element| text_element.outline.is_some());
-            let all_text = self.to_string();
-            let font_set = displayer.fonts()
-                                    .get_fittest_font_set(all_text.as_str(),
-                                                          (fit_width, fit_height),
-                                                          is_outline_enabled)
-                                    .unwrap();
-            let (target_surface_width, target_surface_height) = font_set.get_outline_font()
-                                                                        .size_of(all_text.as_str())
-                                                                        .expect("Unable to get \
-                                                                                 outline pixel \
-                                                                                 size of str");
-            // ARGB8888 because it's the only one supported on my computer; i hope it's the same everywhere else ?
-            let mut target_surface = Surface::new(target_surface_width,
-                                                  target_surface_height,
-                                                  ::sdl2::pixels::PixelFormatEnum::ARGB8888)
-                                         .expect("Failed to create Surface with ARGB8888 Format");
-            let mut width_offset: i32 = if is_outline_enabled {
-                0
-            } else {
-                ::display::font::OUTLINE_WIDTH as i32
-            };
-            for text_element in self.text.iter() {
-                // for each text element, blit it over
-                let text_surface = text_element.as_surface(font_set);
-                let (text_surface_w, text_surface_h) = text_surface.size();
-
-                text_surface.blit(None,
-                                  target_surface.deref_mut(),
-                                  Some(Rect::new(width_offset, 0, text_surface_w, text_surface_h)))
-                            .unwrap();
-                width_offset = width_offset + text_surface_w as i32 -
-                               (::display::font::OUTLINE_WIDTH as i32 * 2);
+        let is_outline_enabled = self.text
+                                     .iter()
+                                     .any(|text_element| text_element.outline.is_some());
+        let all_text = self.to_string();
+        let font_set = displayer.fonts
+                                .get_fittest_font_set(all_text.as_str(),
+                                                      (fit_width, fit_height),
+                                                      is_outline_enabled)
+                                .unwrap();
+        let (text_width,text_height) = font_set.get_outline_font()
+                                                .size_of(all_text.as_str())
+                                                .expect("Unable to get outline pixel size of str");
+        let (text_pos_x,text_pos_y) = real_position((window_width,window_height),self.pos,self.anchor,(text_width,text_height));
+        let mut width_offset : u32 = 0 ;
+        for text_element in self.text.iter() {
+            // for each text element, blit it over
+            let syllable_rect =
+                text_element.blit(font_set,
+                                  &mut displayer.renderer,
+                                  (text_pos_x + width_offset as i32,text_pos_y));
+            if text_element.attach_logo {
+                let (syllable_center_x,_) = syllable_rect.center().into();
+                let syllable_bottom = syllable_rect.bottom();
+                let syllable_height = syllable_rect.height();
+                let logo_height = syllable_height * 70 / 100 ;
+                match displayer.lyrics_logo {
+                    Some(ref texture) => {
+                        displayer.renderer.copy(&texture,
+                                                None,
+                                                Some(Rect::new(syllable_center_x - (logo_height/2) as i32,
+                                                               syllable_bottom,
+                                                               logo_height,
+                                                               logo_height)));
+                    },
+                    None => {}
+                }
+                ;
             }
-            let target_texture = displayer.sdl_renderer()
-                                          .create_texture_from_surface(target_surface)
-                                          .expect("Unable to create empty texture with pixel \
-                                                   format ARGB8888");
-            target_texture
-        };
-        let TextureQuery { width:texture_width, height:texture_height, .. } =
-            target_texture.query();
-        // POSITION
-        let (pos_x, pos_y) = self.pos;
-        let target_pos = real_position((window_width,window_height),self.pos,self.anchor,(texture_width,texture_height));
-        let target_rect: Rect = Rect::new(target_pos.0,target_pos.1, texture_width, texture_height);
-        displayer.sdl_renderer_mut().copy(&target_texture, None, Some(target_rect));
+            let (w,h):(u32,u32) = font_set.get_regular_font().size_of(text_element.text.as_str()).unwrap();
+            width_offset = width_offset + w ;
+        }
     }
 }
