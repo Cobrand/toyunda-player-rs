@@ -90,11 +90,13 @@ impl<'a> ToyundaPlayer<'a> {
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
         if let Some(ref subtitles) = self.subtitles {
-            let frame_number : i64 = self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-            let subtitles_texture = subtitles.get_texture_at_frame(&mut self.displayer, frame_number as u32).unwrap();
-            let (w,h) = self.displayer.sdl_renderer().output_size().expect("Failed to get render size");
-            self.displayer.sdl_renderer_mut().set_blend_mode(::sdl2::render::BlendMode::Blend);
-            self.displayer.sdl_renderer_mut().copy(&subtitles_texture,Some(Rect::new(0,0,w,h)),Some(Rect::new(0,0,w,h)));
+            if self.options.display_subtitles {
+                let frame_number : i64 = self.mpv.get_property("estimated-frame-number").unwrap_or(0);
+                let subtitles_texture = subtitles.get_texture_at_frame(&mut self.displayer, frame_number as u32).unwrap();
+                let (w,h) = self.displayer.sdl_renderer().output_size().expect("Failed to get render size");
+                self.displayer.sdl_renderer_mut().set_blend_mode(::sdl2::render::BlendMode::Blend);
+                self.displayer.sdl_renderer_mut().copy(&subtitles_texture,Some(Rect::new(0,0,w,h)),Some(Rect::new(0,0,w,h)));
+            }
         }
         self.displayer.render();
         Ok(())
@@ -197,6 +199,8 @@ impl<'a> ToyundaPlayer<'a> {
                 => self.execute_command(Command::Seek(-15.0)),
             Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. }
                 => self.execute_command(Command::Seek(-3.0)),
+            Event::KeyDown { keycode: Some(Keycode::V), repeat: false,.. }
+                => self.execute_command(Command::ToggleDisplaySubtitles),
             Event::MouseWheel { y:delta_y, .. } if is_ctrl_pressed
                 => self.execute_command(Command::AddVolume(delta_y as i64)),
             Event::MouseWheel { y:delta_y, .. }
@@ -221,5 +225,13 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn displayer_mut(&mut self) -> &mut Displayer<'a> {
         &mut self.displayer
+    }
+
+    pub fn options(&self) -> &ToyundaOptions {
+        &self.options
+    }
+
+    pub fn options_mut(&mut self) -> &mut ToyundaOptions {
+        &mut self.options
     }
 }

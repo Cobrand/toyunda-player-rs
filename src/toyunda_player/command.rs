@@ -10,6 +10,7 @@ pub enum Command {
     Seek(f64),
     TogglePause,
     ToggleFullscreen,
+    ToggleDisplaySubtitles,
     EndFile,
 }
 
@@ -85,6 +86,11 @@ impl<'a> ToyundaPlayer<'a> {
                     .map_err(|e| Error::MpvError(e))
                     .map(|_| ToyundaAction::Nothing)
             },
+            Command::ToggleDisplaySubtitles => {
+                let current_value = self.options().display_subtitles;
+                self.options_mut().display_subtitles = !current_value ;
+                Ok(ToyundaAction::Nothing)
+            }
             Command::EndFile => {
                 Ok(ToyundaAction::Terminate)
             }

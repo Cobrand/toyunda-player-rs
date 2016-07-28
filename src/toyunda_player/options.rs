@@ -1,13 +1,22 @@
+pub enum ToyundaMode {
+    /// most shortcuts are available
+    NormalMode,
+    /// shortcuts are different, allow modifying the subtitles idrectly in the player
+    EditMode,
+    /// almost no shortcuts are available
+    KaraokeMode
+}
+
 pub struct ToyundaOptions {
-    edit_mode:bool,
-    display:bool
+    pub mode:ToyundaMode,
+    pub display_subtitles:bool
 }
 
 impl Default for ToyundaOptions {
     fn default() -> ToyundaOptions {
         ToyundaOptions {
-            edit_mode:false,
-            display:true
+            mode:ToyundaMode::NormalMode,
+            display_subtitles:true
         }
     }
 }
