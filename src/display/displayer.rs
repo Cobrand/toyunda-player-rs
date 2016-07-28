@@ -2,7 +2,6 @@ use sdl2::render::{Renderer, BlendMode, Texture};
 use sdl2_image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
 use sdl2_ttf::{Sdl2TtfContext,init as ttf_init};
 use std::path::Path;
-use sdl2::pixels::Color;
 use ::display::font::*;
 
 pub struct Displayer<'a> {
@@ -40,11 +39,21 @@ impl<'a> Displayer<'a> {
         };
     }
 
+    // TODO use this somewhere ?
+    #[allow(dead_code)]
     pub fn fatal_error_message(&self,title:&str,info:&str) {
-        ::sdl2::messagebox::show_simple_message_box(::sdl2::messagebox::MESSAGEBOX_ERROR,
-                                                    title,
-                                                    info,
-                                                    self.sdl_renderer().window());
+        use ::sdl2::messagebox::ShowMessageError ;
+        let res = ::sdl2::messagebox::show_simple_message_box(::sdl2::messagebox::MESSAGEBOX_ERROR,
+                                                              title,
+                                                              info,
+                                                              self.sdl_renderer().window());
+        match res {
+            Ok(_) => {},
+            Err(ShowMessageError::SdlError(string)) => {
+                error!("Unexpected SDL_ERROR {} when creating MessageBox",string);
+            }
+            Err(_) => {error!("Unexpected Error when creating MessageBox")}
+        }
     }
 
     // width and height must be between 0 and 1

@@ -3,6 +3,7 @@ use mpv::Error as MpvError;
 pub type Result<T> = ::std::result::Result<T,Error>;
 
 #[derive(Clone,Debug)]
+#[allow(dead_code)]
 pub enum Error {
     Text(String),
     FileNotFound(String),
@@ -15,16 +16,16 @@ impl StdError for Error {
         match *self {
             Error::Text(ref string) => string.as_str(),
             Error::MpvError(ref mpv_error) => mpv_error.description(),
-            Error::FileNotFound(ref file) => "given file was not found",
+            Error::FileNotFound(_) => "given file was not found",
             Error::UnknownError => "unknown error",
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
         match *self {
-            Error::Text(ref string) => None,
+            Error::Text(_) => None,
             Error::MpvError(ref mpv_error) => Some(mpv_error),
-            Error::FileNotFound(ref file) => None,
+            Error::FileNotFound(_) => None,
             Error::UnknownError => None,
         }
     }

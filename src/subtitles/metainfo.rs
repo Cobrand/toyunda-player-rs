@@ -1,4 +1,5 @@
 #[derive(Debug,Clone)]
+#[allow(dead_code)]
 pub enum Language {
     Fr,
     En,
@@ -8,6 +9,7 @@ pub enum Language {
     Other(String)
 }
 
+#[allow(dead_code)]
 #[derive(Debug,Clone)]
 pub enum MusicType {
     Opening(i32),
@@ -16,6 +18,7 @@ pub enum MusicType {
     Other(String)
 }
 
+#[allow(dead_code)]
 #[derive(Debug,Clone)]
 pub enum MediaType {
     Anime,

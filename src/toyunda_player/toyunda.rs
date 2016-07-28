@@ -88,7 +88,6 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn render_frame(&mut self) -> Result<()> {
         use sdl2::rect::Rect;
-        use std::io::{self, Write};
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
         if let Some(ref subtitles) = self.subtitles {

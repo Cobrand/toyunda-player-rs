@@ -109,7 +109,6 @@ impl FontList {
                 0 => Err(String::from("can't get the fittest font if there is none available")),
                 1 => Ok(self.fonts.first().unwrap()),
                 _ => {
-                    use std::error::Error;
                     let search_result = self.fonts.binary_search_by(|fontset| {
                         let search_font =
                             if outline { &fontset.font_bold } else { &fontset.font_regular };
