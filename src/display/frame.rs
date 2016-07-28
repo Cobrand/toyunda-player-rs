@@ -138,7 +138,6 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
             shadow: None,
             attach_logo:false
         };
-        // TODO do the same optimization like dead_color
         text_elts.push(text_2d);
     } else if (syllable.begin <= current_frame) && (current_frame <= syllable.end) {
         let percent = (current_frame - syllable.begin) as f32 /
@@ -153,23 +152,18 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
             color: transition_color,
             outline: syllable.syllable_options.outline.map(|outline| outline.color ),
             shadow: None,
-            attach_logo:true
+            attach_logo:false
         };
         text_elts.push(text_2d);
     } else {
-        if (text_elts.is_empty()) {
-            let text_2d = ::display::TextElement {
-                text: syllable.text.clone(),
-                color: fade_color(syllable.syllable_options.dead_color, alpha),
-                outline: syllable.syllable_options.outline.map(|outline| outline.color),
-                shadow: None,
-                attach_logo:false
-            };
-            text_elts.push(text_2d);
-        } else {
-            let mut text_2d = text_elts.last_mut().unwrap();
-            text_2d.text.push_str(&*syllable.text);
-        }
+        let text_2d = ::display::TextElement {
+            text: syllable.text.clone(),
+            color: fade_color(syllable.syllable_options.dead_color, alpha),
+            outline: syllable.syllable_options.outline.map(|outline| outline.color),
+            shadow: None,
+            attach_logo:false
+        };
+        text_elts.push(text_2d);
     }
 }
 
@@ -203,16 +197,37 @@ impl Frame {
                 add_syllable(&mut text_elts,syllable,frame_number,sentence_alpha);
             }
             'syllables: for (n,syllable) in sentence.syllables.iter().enumerate() {
-                if frame_number > syllable.begin {
+                if frame_number >= syllable.begin {
                     logo_position = Some(n as u16);
                 } else {
                     break 'syllables;
                 }
             }
+            match sentence.syllables.last() {
+                Some(ref syllable) => {
+                    if (frame_number > syllable.end) {
+                        logo_position = None;
+                    }
+                },
+                None => {}
+            }
+            match logo_position {
+                Some(logo_position) => {
+                    match text_elts.get_mut(logo_position as usize) {
+                        Some(ref mut text_elt) => {
+                            text_elt.attach_logo = true ;
+                        },
+                        None => {
+                            error!("Unexpected None in getting from logo_position !")
+                        }
+                    }
+                },
+                None => {}
+            }
             let text_pos = match sentence.position {
                 SentencePos::Row(l) => {
                     (::display::PosX::Centered,
-                     ::display::PosY::FromTopPercent( l as f32 * 0.15 + 0.015 ))
+                     ::display::PosY::FromTopPercent( l as f32 * 0.15 + 0.01 ))
                 }
                 SentencePos::ForcePos(x,y) => {
                     (::display::PosX::FromLeftPercent(x),
