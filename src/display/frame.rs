@@ -5,6 +5,7 @@ use sdl2::render::TextureQuery;
 use sdl2::rect::Rect;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum TextureType {
     LyricsLogo,
 }
@@ -61,7 +62,6 @@ impl Display for Texture {
                     )
                 },
             };
-            let (pos_x, pos_y) = self.pos;
             let (target_pos_x,target_pos_y) = real_position((window_width,window_height),self.pos,self.anchor,(final_width,final_height));
             let target_rect: Rect = Rect::new(target_pos_x, target_pos_y, final_width, final_height);
             match self.texture_type {
@@ -173,7 +173,7 @@ impl Frame {
             textures:  Vec::with_capacity(0),
             vec_text2d:Vec::with_capacity(4),
         };
-        let mut sentence_iter = subtitles.sentences.iter().enumerate().filter(|&(_,ref sentence)| {
+        let sentence_iter = subtitles.sentences.iter().enumerate().filter(|&(_,ref sentence)| {
             match (sentence.syllables.first(),sentence.syllables.last()) {
                 (None,_) | (_,None) => false,
                 (Some(ref first_syllable),Some(ref last_syllable)) => {
@@ -189,7 +189,7 @@ impl Frame {
                 }
             }
         }); // get all the sentences displayed on screen
-        for (sentence_number,ref sentence) in sentence_iter {
+        for (_sentence_number,ref sentence) in sentence_iter {
             let sentence_alpha = compute_sentence_alpha(sentence,frame_number);
             let mut text_elts = vec![] ;
             let mut logo_position : Option<u16> = None;

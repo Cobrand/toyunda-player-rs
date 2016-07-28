@@ -69,7 +69,7 @@ impl<'a> ToyundaPlayer<'a> {
                     .map(|_| ToyundaAction::Nothing)
             }
             Command::Framestep(step) => {
-                let (frame_step_type,step) = if step >= 0 {
+                let (frame_step_type,_step) = if step >= 0 {
                     ("frame-step",step)
                 }  else {
                     ("frame-back-step",-step)

@@ -60,7 +60,7 @@ fn start_player(video_path: &Path) {
             error!("An uncoverable error occured : {}",e);
         }
     };
-}
+} 
 
 fn main() {
     env_logger::init().unwrap();

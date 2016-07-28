@@ -1,7 +1,7 @@
 use std::ops::DerefMut;
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
-use sdl2::render::{Texture,TextureQuery,Renderer,BlendMode};
+use sdl2::render::{Renderer,BlendMode};
 use sdl2::rect::Rect;
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ impl TextElement {
                                               .unwrap();
                 outline_surface.blit(None,
                                      surface.deref_mut(),
-                                     None);
+                                     None).expect("Failed to blit Surfaces");
             },
             None => {}
         };
@@ -46,7 +46,7 @@ impl TextElement {
                              Some(Rect::new(outline_width as i32,
                                             outline_width as i32,
                                             regular_w,
-                                            regular_h)));
+                                            regular_h))).expect("Failed to blit Surfaces");
         let mut texture = renderer.create_texture_from_surface(surface).expect("Failed to create Texture from Surface   ");
         texture.set_blend_mode(BlendMode::Blend);
         texture.set_alpha_mod(match self.color {

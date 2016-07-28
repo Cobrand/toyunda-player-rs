@@ -79,8 +79,4 @@ impl<'a> Displayer<'a> {
     pub fn sdl_renderer(&self) -> &Renderer<'a> {
         &self.renderer
     }
-
-    pub fn fonts(&self) -> &FontList {
-        &self.fonts
-    }
 }

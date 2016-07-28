@@ -12,6 +12,7 @@ pub struct Sentence {
 #[derive(Copy,Clone,Debug)]
 pub enum Position {
     Row(u8),
+    #[allow(dead_code)]
     ForcePos(f32,f32)
 }
 

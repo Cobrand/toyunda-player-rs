@@ -25,7 +25,7 @@ fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence) {
     // TODO
     let mut best_row = 0u8 ;
     {
-        let mut sentences_candidate = sentences.iter().filter(|sentence_candidate|{
+        let sentences_candidate = sentences.iter().filter(|sentence_candidate|{
             match (sentence.syllables.first(),sentence.syllables.last(),
                    sentence_candidate.syllables.first(),sentence_candidate.syllables.last()) {
                 (None,_,_,_) | (_,None,_,_) | (_,_,None,_) | (_,_,_,None)  => false,
@@ -96,7 +96,7 @@ impl Subtitles {
                 if (lyr_line.starts_with("&")) {
                     syllables.remove(0);
                 };
-                let mut sentence = Sentence {
+                let sentence = Sentence {
                     syllables : syllables,
                     position : Position::Row(0),
                     sentence_options : SentenceOptions::default()
@@ -173,7 +173,6 @@ impl Subtitles {
     pub fn get_texture_at_frame(&self,displayer:&mut Displayer,frame:u32) -> Result<Texture,String> {
         use sdl2::pixels::Color;
         use sdl2::pixels::PixelFormatEnum::ARGB8888;
-        use sdl2::render::TextureValueError;
         fn ceil_power_of_2(v:f64) -> u32 {
             2u32.pow(v.log2().ceil() as u32)
         };
@@ -189,7 +188,6 @@ impl Subtitles {
         } else {
             error!("Render target are not supported with this GC driver");
             return Err("Render target are not supported with this GC driver".to_string());
-            unreachable!()
         };
         let res = {
             displayer.sdl_renderer_mut().set_viewport(Some(Rect::new(0,0,renderer_w,renderer_h)));

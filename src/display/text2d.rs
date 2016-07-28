@@ -1,8 +1,5 @@
-use std::ops::DerefMut;
 use display::*;
-use sdl2::surface::Surface;
 use sdl2::rect::Rect;
-use sdl2::render::TextureQuery;
 #[derive(Debug)]
 pub struct Text2D {
     pub text: Vec<TextElement>,
@@ -64,7 +61,7 @@ impl Display for Text2D {
                 }
                 ;
             }
-            let (w,h):(u32,u32) = font_set.get_regular_font().size_of(text_element.text.as_str()).unwrap();
+            let (w,_):(u32,u32) = font_set.get_regular_font().size_of(text_element.text.as_str()).unwrap();
             width_offset = width_offset + w ;
         }
     }

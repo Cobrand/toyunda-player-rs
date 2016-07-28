@@ -1,12 +1,11 @@
 use ::toyunda_player::ToyundaOptions;
-use mpv::{MpvHandlerWithGl,MpvHandler,Event as MpvEvent};
+use mpv::{MpvHandlerWithGl,Event as MpvEvent};
 use std::path::Path;
 use ::subtitles::Subtitles;
 use ::display::Displayer;
 use sdl2::event::Event;
 use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
-use std::cmp::{min,max};
 use ::toyunda_player::error::*;
 use ::toyunda_player::command::*;
 
@@ -208,14 +207,6 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
-    pub fn subtitles(&self) -> Option<&Subtitles> {
-        self.subtitles.as_ref()
-    }
-
-    pub fn subtitles_mut(&mut self) -> Option<&mut Subtitles> {
-        self.subtitles.as_mut()
-    }
-
     pub fn mpv(&self) -> &MpvHandlerWithGl {
         self.mpv.as_ref()
     }
@@ -230,13 +221,5 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn displayer_mut(&mut self) -> &mut Displayer<'a> {
         &mut self.displayer
-    }
-
-    pub fn toyunda_options(&self) -> &ToyundaOptions {
-        &self.options
-    }
-
-    pub fn toyunda_options_mut(&mut self) -> &mut ToyundaOptions {
-        &mut self.options
     }
 }
