@@ -1,6 +1,7 @@
 use display::*;
 use utils::*;
 use ::subtitles::{Sentence,Subtitles,Syllable,Position as SentencePos};
+use ::subtitles::options::*;
 use sdl2::render::TextureQuery;
 use sdl2::rect::Rect;
 
@@ -90,22 +91,27 @@ impl Display for Frame {
     }
 }
 
-fn compute_sentence_alpha(sentence:&Sentence,frame_number:u32) -> f32 {
+fn compute_sentence_alpha(sentence:&Sentence,
+                          default_sentence_options:SentenceOptions,
+                          frame_number:u32) -> f32 {
+    let sentence_options : SentenceOptions =
+        sentence.sentence_options.unwrap_or(SentenceOptions::default()).or(default_sentence_options);
+    let sentence_parameters = SentenceParameters::from(sentence_options);
     match (sentence.syllables.first(), sentence.syllables.last()) {
         (Some( &Syllable {begin:frame_begin, ..} ),
          Some( &Syllable {end  :frame_end  , ..} )) => {
-            let end_fade_frame : u32 = (sentence.sentence_options.transition_time
-                                     -  sentence.sentence_options.fade_time) as u32 ;
+            let end_fade_frame : u32 = (sentence_parameters.transition_time
+                                     -  sentence_parameters.fade_time) as u32 ;
             let begin_first_fade_frame =
-                frame_begin.saturating_sub(sentence.sentence_options.transition_time as u32);
+                frame_begin.saturating_sub(sentence_parameters.transition_time as u32);
             let end_first_fade_frame =
                 frame_begin.saturating_sub(end_fade_frame);
             let begin_second_fade_frame =
                 frame_end.saturating_add(end_fade_frame);
             let end_second_fade_frame =
-                frame_end.saturating_add(sentence.sentence_options.transition_time as u32);
+                frame_end.saturating_add(sentence_parameters.transition_time as u32);
             debug_assert_eq!(end_second_fade_frame - begin_second_fade_frame,
-                             sentence.sentence_options.fade_time as u32);
+                             sentence_parameters.fade_time as u32);
             if (end_first_fade_frame < frame_number &&
                 begin_second_fade_frame > frame_number) {
                 1.0
@@ -128,13 +134,17 @@ fn compute_sentence_alpha(sentence:&Sentence,frame_number:u32) -> f32 {
 
 fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
                 syllable:&Syllable,
+                default_syllable_options:SyllableOptions,
                 current_frame:u32,
                 alpha:f32) {
+    let syllable_options = syllable.syllable_options.unwrap_or(SyllableOptions::default())
+                            .or(default_syllable_options);
+    let syllable_parameters = SyllableParameters::from(syllable_options);
     if (current_frame < syllable.begin) {
         let text_2d = ::display::TextElement {
             text: syllable.text.clone(),
-            color: fade_color(syllable.syllable_options.alive_color, alpha),
-            outline: syllable.syllable_options.outline.map(|outline| outline.color ),
+            color: fade_color(syllable_parameters.alive_color, alpha),
+            outline: syllable_parameters.outline,
             shadow: None,
             attach_logo:false
         };
@@ -144,13 +154,13 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
                       (syllable.end  - syllable.begin) as f32;
         // lets ease the percent a lil bits
         let percent = 1.0 - (1.0 - percent*percent).sqrt();
-        let transition_color = mix_colors(syllable.syllable_options.transition_color,
-                                          syllable.syllable_options.dead_color,
+        let transition_color = mix_colors(syllable_parameters.transition_color,
+                                          syllable_parameters.dead_color,
                                           percent);
         let text_2d = ::display::TextElement {
             text:  syllable.text.clone(),
             color: transition_color,
-            outline: syllable.syllable_options.outline.map(|outline| outline.color ),
+            outline: syllable_parameters.outline,
             shadow: None,
             attach_logo:false
         };
@@ -158,8 +168,8 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
     } else {
         let text_2d = ::display::TextElement {
             text: syllable.text.clone(),
-            color: fade_color(syllable.syllable_options.dead_color, alpha),
-            outline: syllable.syllable_options.outline.map(|outline| outline.color),
+            color: fade_color(syllable_parameters.dead_color, alpha),
+            outline: syllable_parameters.outline,
             shadow: None,
             attach_logo:false
         };
@@ -173,14 +183,20 @@ impl Frame {
             textures:  Vec::with_capacity(0),
             vec_text2d:Vec::with_capacity(4),
         };
+        let default_sentence_options : SentenceOptions =
+            subtitles.subtitles_options.as_ref().map(
+                |ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default())
+            ).unwrap_or(SentenceOptions::default());
         let sentence_iter = subtitles.sentences.iter().enumerate().filter(|&(_,ref sentence)| {
+            let sentence_options : SentenceOptions = sentence.sentence_options.unwrap_or(SentenceOptions::default()).or(default_sentence_options);
+            let sentence_parameters = SentenceParameters::from(sentence_options);
             match (sentence.syllables.first(),sentence.syllables.last()) {
                 (None,_) | (_,None) => false,
                 (Some(ref first_syllable),Some(ref last_syllable)) => {
                     let first_frame = first_syllable.begin
-                        .saturating_sub(sentence.sentence_options.transition_time as u32);
+                        .saturating_sub(sentence_parameters.transition_time as u32);
                     let last_frame = last_syllable.end
-                        .saturating_add(sentence.sentence_options.transition_time as u32);
+                        .saturating_add(sentence_parameters.transition_time as u32);
                     if ( frame_number >= first_frame && frame_number <= last_frame ) {
                         true
                     } else {
@@ -190,11 +206,19 @@ impl Frame {
             }
         }); // get all the sentences displayed on screen
         for (_sentence_number,ref sentence) in sentence_iter {
-            let sentence_alpha = compute_sentence_alpha(sentence,frame_number);
+            let sentence_alpha = compute_sentence_alpha(sentence,default_sentence_options,frame_number);
             let mut text_elts = vec![] ;
             let mut logo_position : Option<u16> = None;
+            let tmp : SyllableOptions =
+            sentence.sentence_options.map(
+                |o| o.syllable_options.unwrap_or(SyllableOptions::default())
+            ).unwrap_or(SyllableOptions::default());
+            let default_syllable_options : SyllableOptions =
+                tmp
+                .or(default_sentence_options.syllable_options.unwrap_or(SyllableOptions::default()))
+                .or(SyllableOptions::default());
             for syllable in sentence.syllables.iter() {
-                add_syllable(&mut text_elts,syllable,frame_number,sentence_alpha);
+                add_syllable(&mut text_elts,syllable,default_syllable_options,frame_number,sentence_alpha);
             }
             'syllables: for (n,syllable) in sentence.syllables.iter().enumerate() {
                 if frame_number >= syllable.begin {

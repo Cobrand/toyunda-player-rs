@@ -15,13 +15,16 @@ use sdl2::rect::Rect;
 #[derive(Debug,Default)]
 pub struct Subtitles {
     pub sentences:Vec<Sentence>,
-    pub subtitles_options:SubtitlesOptions,
+    pub subtitles_options:Option<SubtitlesOptions>,
     pub meta_info:MetaInfo
 }
 
 /// subtitles : already stored Subtitles
 /// sentence : Sentence to add to the subtitles
-fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence) {
+fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence,default_sentence_options:SentenceOptions) {
+    let sentence_options : SentenceOptions =
+        sentence.sentence_options.unwrap_or(SentenceOptions::default()).or(default_sentence_options);
+    let sentence_parameters = SentenceParameters::from(sentence_options);
     // TODO
     let mut best_row = 0u8 ;
     {
@@ -31,15 +34,17 @@ fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence) {
                 (None,_,_,_) | (_,None,_,_) | (_,_,None,_) | (_,_,_,None)  => false,
                 (Some(ref first_syllable),Some(ref last_syllable),
                  Some(ref first_syllable_candidate),Some(ref last_syllable_candidate)) => {
-
+                    let sentence_candidate_options : SentenceOptions =
+                        sentence_candidate.sentence_options.unwrap_or(SentenceOptions::default()).or(default_sentence_options);
+                    let sentence_candidate_parameters = SentenceParameters::from(sentence_candidate_options);
                     let first_frame = first_syllable.begin
-                        .saturating_sub(sentence.sentence_options.transition_time as u32);
+                        .saturating_sub(sentence_parameters.transition_time as u32);
                     let last_frame = last_syllable.end
-                        .saturating_add(sentence.sentence_options.transition_time as u32);
+                        .saturating_add(sentence_parameters.transition_time as u32);
                     let first_frame_candidate = first_syllable_candidate.begin
-                        .saturating_sub(sentence_candidate.sentence_options.transition_time as u32);
+                        .saturating_sub(sentence_candidate_parameters.transition_time as u32);
                     let last_frame_candidate = last_syllable_candidate.end
-                        .saturating_add(sentence_candidate.sentence_options.transition_time as u32);
+                        .saturating_add(sentence_candidate_parameters.transition_time as u32);
                     if (last_frame_candidate >= first_frame  && last_frame_candidate <= last_frame ) ||
                        (first_frame_candidate >= first_frame && first_frame_candidate <= last_frame) ||
                        (last_frame >= first_frame_candidate  && last_frame <= last_frame_candidate ) ||
@@ -90,7 +95,7 @@ impl Subtitles {
                                                          text:s.to_string(),
                                                          begin:0,
                                                          end:0,
-                                                         syllable_options:SyllableOptions::default()
+                                                         syllable_options:None
                                                      })
                                                      .collect::<Vec<_>>();
                 if (lyr_line.starts_with("&")) {
@@ -99,7 +104,7 @@ impl Subtitles {
                 let sentence = Sentence {
                     syllables : syllables,
                     position : Position::Row(0),
-                    sentence_options : SentenceOptions::default()
+                    sentence_options : None
                 };
                 subtitles.sentences.push(sentence);
             };
@@ -153,10 +158,14 @@ impl Subtitles {
                 }
             }
         };
+        let default_sentence_options : SentenceOptions =
+            subtitles.subtitles_options.as_ref().map(
+                |ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default())
+            ).unwrap_or(SentenceOptions::default());
         for i in 0..subtitles.sentences.len() {
             let (first_half,mut last_half) = subtitles.sentences.split_at_mut(i);
             let sentence = last_half.first_mut().expect("Unexpected None for subtitles last_half");
-            set_best_sentence_row(first_half,sentence);
+            set_best_sentence_row(first_half,sentence,default_sentence_options);
         }
         Ok(subtitles)
     }

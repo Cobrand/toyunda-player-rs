@@ -6,7 +6,7 @@ use std::fmt;
 pub struct Sentence {
     pub syllables:Vec<Syllable>,
     pub position: Position,
-    pub sentence_options:SentenceOptions
+    pub sentence_options:Option<SentenceOptions>
 }
 
 #[derive(Copy,Clone,Debug)]

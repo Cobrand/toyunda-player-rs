@@ -5,5 +5,5 @@ pub struct Syllable {
     pub text:String,
     pub begin:u32,
     pub end:u32,
-    pub syllable_options:SyllableOptions
+    pub syllable_options:Option<SyllableOptions>
 }
