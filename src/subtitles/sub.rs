@@ -79,6 +79,7 @@ impl Subtitles {
         let frm_file = try!(File::open(frm).map_err(|e| e.description().to_string() ));
         let lyr_file = BufReader::new(&lyr_file);
         let frm_file = BufReader::new(&frm_file);
+        let mut current_sentence_options : SentenceOptions = SentenceOptions::default();
         for (line_number,lyr_line) in lyr_file.lines().enumerate() {
             let lyr_line = try!(
                 lyr_line.map_err(|e|
@@ -88,7 +89,6 @@ impl Subtitles {
                             e.description())
                 )
             );
-            let mut current_sentence_options = SentenceOptions::default();
             if (!lyr_line.starts_with("%") && !lyr_line.is_empty()) {
                 let mut syllables : Vec<_> = lyr_line.split('&')
                                                      .map(|s|
@@ -96,7 +96,7 @@ impl Subtitles {
                                                          text:s.to_string(),
                                                          begin:0,
                                                          end:0,
-                                                         syllable_options:current_sentence_options.syllable_options,
+                                                         syllable_options:None,
                                                      })
                                                      .collect::<Vec<_>>();
                 if (lyr_line.starts_with("&")) {
@@ -105,13 +105,29 @@ impl Subtitles {
                 let sentence = Sentence {
                     syllables : syllables,
                     position : Position::Row(0),
-                    sentence_options : None
+                    sentence_options : Some(current_sentence_options)
                 };
                 subtitles.sentences.push(sentence);
             } else if lyr_line.starts_with("%color") {
+                use utils::parse_bgr;
                 let colors : Vec<_> = lyr_line.split_whitespace().collect();
                 if colors.len() == 4 {
-                    
+                    let alive_color = parse_bgr(colors[1]);
+                    let transition_color = parse_bgr(colors[2]);
+                    let dead_color = parse_bgr(colors[3]);
+                    match (alive_color,transition_color,dead_color) {
+                        (Ok(alive_color),Ok(transition_color),Ok(dead_color)) => {
+                            if current_sentence_options.syllable_options.is_none() {
+                                current_sentence_options.syllable_options = Some(SyllableOptions::default());
+                            }
+                            current_sentence_options.syllable_options.as_mut().unwrap().alive_color = Some(alive_color);
+                            current_sentence_options.syllable_options.as_mut().unwrap().transition_color = Some(transition_color);
+                            current_sentence_options.syllable_options.as_mut().unwrap().dead_color = Some(dead_color);
+                        },
+                        _ => {
+                            error!("Invalid %color syntax when reading {} at line {} : '{}'",lyr.display(),line_number,lyr_line);
+                        }
+                    }
                 } else {
                     error!("Invalid %color syntax when reading {} at line {} : '{}'",lyr.display(),line_number,lyr_line);
                 }
