@@ -25,3 +25,43 @@ pub fn fade_color(color1: Color, fade_ratio: f32) -> Color {
     };
     Color::RGBA(r, g, b, (a as f32 * fade_ratio) as u8)
 }
+
+pub fn parse_hex(hex:&str) -> Result<u32,String> {
+    let mut parsed : u32 = 0 ;
+    for character in hex.chars() {
+        let char_value : u32 =
+            try!(
+                character.to_digit(16).ok_or(
+                    String::from("failed to parse hexadecimal character")
+                )
+            );
+        parsed = parsed * 0x10 + char_value;
+    };
+    Ok(parsed)
+}
+
+pub fn parse_bgr(bgr : &str) -> Result<Color,String> {
+    let bgr = bgr.trim();
+    if bgr.len() != 6 {
+        Err(String::from("Invalid BGR format"))
+    } else {
+        let (blue,greenred) = bgr.split_at(2);
+        let (green,red) = greenred.split_at(2);
+        let blue = try!(parse_hex(blue)) as u8 ;
+        let green = try!(parse_hex(green)) as u8 ;
+        let red = try!(parse_hex(red)) as u8 ;
+        Ok(Color::RGB(red,green,blue))
+    }
+}
+
+#[test]
+fn test_bgr(){
+    let sample_bgr = "FF0000";
+    assert_eq!(parse_bgr(sample_bgr).unwrap(),Color::RGB(0,0,255));
+}
+
+#[test]
+fn test_parse_hex(){
+    let sample_hex = "201";
+    assert_eq!(parse_hex(sample_hex).unwrap(),513);
+}

@@ -88,6 +88,7 @@ impl Subtitles {
                             e.description())
                 )
             );
+            let mut current_sentence_options = SentenceOptions::default();
             if (!lyr_line.starts_with("%") && !lyr_line.is_empty()) {
                 let mut syllables : Vec<_> = lyr_line.split('&')
                                                      .map(|s|
@@ -95,7 +96,7 @@ impl Subtitles {
                                                          text:s.to_string(),
                                                          begin:0,
                                                          end:0,
-                                                         syllable_options:None
+                                                         syllable_options:current_sentence_options.syllable_options,
                                                      })
                                                      .collect::<Vec<_>>();
                 if (lyr_line.starts_with("&")) {
@@ -107,6 +108,13 @@ impl Subtitles {
                     sentence_options : None
                 };
                 subtitles.sentences.push(sentence);
+            } else if lyr_line.starts_with("%color") {
+                let colors : Vec<_> = lyr_line.split_whitespace().collect();
+                if colors.len() == 4 {
+                    
+                } else {
+                    error!("Invalid %color syntax when reading {} at line {} : '{}'",lyr.display(),line_number,lyr_line);
+                }
             };
         }
         let mut frames : Vec<(u32,u32)> = vec!();
