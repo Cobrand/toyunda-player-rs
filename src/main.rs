@@ -7,6 +7,8 @@ extern crate sdl2_sys;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+extern crate clap;
+use clap::{Arg, App};
 
 mod utils;
 mod display;
@@ -20,7 +22,27 @@ use std::env;
 use std::path::Path;
 use std::os::raw::c_void;
 
-fn start_player(video_path: &Path) {
+fn main() {
+    env_logger::init().unwrap();
+
+    let matches = App::new("Toyunda Player RS")
+                          .version("0.2")
+                          .author("Cobrand")
+                          .about("Flexible karaoke player")
+                          .arg(Arg::with_name("VIDEO_FILE")
+                            .help("Sets the video file(s) to play")
+                            .multiple(true)
+                            .required(true))
+                          .get_matches();
+    let mut video_path = String::new();
+    if let Some(video_files) = matches.values_of("VIDEO_FILE") {
+        for value in video_files {
+            video_path = String::from(value);
+            break;
+        }
+    } else {
+        unreachable!()
+    }
     // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
@@ -40,8 +62,7 @@ fn start_player(video_path: &Path) {
     let displayer = display::Displayer::new(renderer)
                         .expect("Failed to init displayer");
 
-    let video_path = video_path.to_str().expect("Expected a string for Path, got None");
-    mpv.command(&["loadfile", video_path as &str])
+    mpv.command(&["loadfile", &*video_path])
        .expect("Error loading file");
 
     let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
@@ -60,20 +81,4 @@ fn start_player(video_path: &Path) {
             error!("An uncoverable error occured : {}",e);
         }
     };
-} 
-
-fn main() {
-    env_logger::init().unwrap();
-    let args: Vec<_> = env::args().collect();
-    if args.len() < 2 {
-        println!("Usage: ./toyunda-player [any mp4, avi, mkv, ... file]");
-    } else {
-        let path: &Path = Path::new(&args[1]);
-        if path.is_file() {
-            start_player(path);
-        } else {
-            println!("A file is required; {} is not a valid file",
-                     path.to_str().unwrap());
-        }
-    }
 }
