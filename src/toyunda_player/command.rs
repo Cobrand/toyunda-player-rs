@@ -140,6 +140,7 @@ impl<'a> ToyundaPlayer<'a> {
                 unimplemented!()
             }
             Command::EndFile => {
+                self.clear_subtitles();
                 Ok(ToyundaAction::Nothing)
             }
         }

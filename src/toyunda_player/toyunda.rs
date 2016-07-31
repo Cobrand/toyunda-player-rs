@@ -267,4 +267,8 @@ impl<'a> ToyundaPlayer<'a> {
     pub fn options_mut(&mut self) -> &mut ToyundaOptions {
         &mut self.options
     }
+
+    pub fn clear_subtitles(&mut self) {
+        self.subtitles = None;
+    }
 }
