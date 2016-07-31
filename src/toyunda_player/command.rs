@@ -2,7 +2,6 @@ use ::toyunda_player::*;
 use ::toyunda_player::error::{Result,Error};
 use std::cmp::{min,max};
 use std::path::PathBuf;
-use std::collections::VecDeque;
 
 #[derive(Debug)]
 pub enum Command {

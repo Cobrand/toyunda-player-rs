@@ -17,9 +17,6 @@ mod subtitles;
 mod toyunda_player;
 
 use toyunda_player::ToyundaPlayer;
-// use mpv::mpv;
-use std::env;
-use std::path::Path;
 use std::os::raw::c_void;
 
 fn main() {
@@ -47,7 +44,7 @@ fn main() {
     mpv_builder.set_option("softvol", "yes").unwrap(); // enables softvol so it can go higher than 100%
     mpv_builder.set_option("softvol-max", 250.0).unwrap(); // makes the max volume at 250%
     mpv_builder.try_hardware_decoding().unwrap(); // try hardware decoding instead of software decoding
-    let mut mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
+    let mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
        .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
 
@@ -56,7 +53,15 @@ fn main() {
     // Create a new displayer for the toyunda_player
 
     let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
-    toyunda_player.start(matches);
+    match toyunda_player.start(matches) {
+        Err(e) => {
+            error!("Failed to start player with given arguments, expect default parameters !\n\
+                    '{}' ({:?})",e,e);
+        }
+        Ok(_) => {
+            info!("Parsed arguments successfully");
+        }
+    };
     let res = toyunda_player.main_loop(&sdl_context);
     match res {
         Ok(_) => {

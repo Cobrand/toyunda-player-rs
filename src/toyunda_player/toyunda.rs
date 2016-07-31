@@ -127,7 +127,12 @@ impl<'a> ToyundaPlayer<'a> {
                     Ok(ToyundaAction::Nothing) => {},
                     Ok(ToyundaAction::Terminate) => {break 'main},
                     Ok(ToyundaAction::PlayNext) => {
-                        self.execute_command(Command::PlayNext);
+                        match self.execute_command(Command::PlayNext) {
+                            Err(e) => {
+                                error!("An error '{}' occured when trying to play next file",e)
+                            },
+                            _ => {}
+                        }
                     }
                     Err(e) => {
                         error!("An error '{}' occured",e);
@@ -149,10 +154,15 @@ impl<'a> ToyundaPlayer<'a> {
                     Ok(ToyundaAction::Nothing) => {},
                     Ok(ToyundaAction::Terminate) => {break 'main},
                     Ok(ToyundaAction::PlayNext) => {
-                        self.execute_command(Command::PlayNext);
+                        match self.execute_command(Command::PlayNext) {
+                            Err(e) => {
+                                error!("An error '{}' occured when trying to play next file",e)
+                            },
+                            _ => {}
+                        }
                     }
                     Err(e) => {
-                        error!("An error '{}' occured",e);
+                        error!("An error '{}' occured ({:?})",e,e);
                     }
                 }
             }
@@ -250,10 +260,6 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn displayer_mut(&mut self) -> &mut Displayer<'a> {
         &mut self.displayer
-    }
-
-    pub fn queue(&self) -> &VecDeque<PathBuf> {
-        &self.waiting_queue
     }
 
     pub fn queue_mut(&mut self) -> &mut VecDeque<PathBuf> {
