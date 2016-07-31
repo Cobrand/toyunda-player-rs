@@ -97,7 +97,10 @@ impl<'a> ToyundaPlayer<'a> {
             },
             Command::PlayNext => {
                 let video_path = self.queue_mut().pop_front();
-                self.mpv_mut().command(&["stop"]);
+                match self.mpv_mut().command(&["stop"]) {
+                    Err(e) => {error!("Unexpected error {} ({:?}) happened when stopping player",e,e)},
+                    _ => {}
+                };
                 match video_path {
                     None => {
                         Ok(ToyundaAction::Nothing) // TODO Terminate if options say so
@@ -133,10 +136,12 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             },
             Command::ClearQueue => {
-                unimplemented!()
+                self.queue_mut().clear();
+                Ok(ToyundaAction::Nothing)
             },
             Command::AddToQueue(path) => {
-                unimplemented!()
+                self.queue_mut().push_back(path);
+                Ok(ToyundaAction::Nothing)
             }
             Command::EndFile => {
                 self.clear_subtitles();
