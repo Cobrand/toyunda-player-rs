@@ -23,6 +23,7 @@ use std::path::Path;
 use std::os::raw::c_void;
 
 fn main() {
+    // init the logger
     env_logger::init().unwrap();
 
     let matches = App::new("Toyunda Player RS")
@@ -34,15 +35,7 @@ fn main() {
                             .multiple(true)
                             .required(true))
                           .get_matches();
-    let mut video_path = String::new();
-    if let Some(video_files) = matches.values_of("VIDEO_FILE") {
-        for value in video_files {
-            video_path = String::from(value);
-            break;
-        }
-    } else {
-        unreachable!()
-    }
+
     // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
@@ -50,33 +43,25 @@ fn main() {
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     // INIT MPV
     let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
-    mpv_builder.set_option("osc", true).unwrap();
-    mpv_builder.set_option("sid", "no").unwrap();
-    mpv_builder.set_option("softvol", "yes").unwrap();
-    mpv_builder.set_option("softvol-max", 250.0).unwrap();
-    mpv_builder.try_hardware_decoding().unwrap();
+    mpv_builder.set_option("sid", "no").unwrap(); // disables subtitles if any
+    mpv_builder.set_option("softvol", "yes").unwrap(); // enables softvol so it can go higher than 100%
+    mpv_builder.set_option("softvol-max", 250.0).unwrap(); // makes the max volume at 250%
+    mpv_builder.try_hardware_decoding().unwrap(); // try hardware decoding instead of software decoding
     let mut mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
        .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
 
     let displayer = display::Displayer::new(renderer)
                         .expect("Failed to init displayer");
-
-    mpv.command(&["loadfile", &*video_path])
-       .expect("Error loading file");
+    // Create a new displayer for the toyunda_player
 
     let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
-    match toyunda_player.import_subtitles(video_path) {
-        Ok(_) => {
-        },
-        Err(e) => {
-            error!("Error was received when importing subtitles : {}",e);
-            warn!("Failed to import subtitles; File will play without subtitles")
-        }
-    };
+    toyunda_player.start(matches);
     let res = toyunda_player.main_loop(&sdl_context);
     match res {
-        Ok(_) => {},
+        Ok(_) => {
+            info!("Toyunda Player finished gracefully");
+        },
         Err(e) => {
             error!("An uncoverable error occured : {}",e);
         }

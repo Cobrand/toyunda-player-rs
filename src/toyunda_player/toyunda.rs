@@ -8,12 +8,16 @@ use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
 use ::toyunda_player::error::*;
 use ::toyunda_player::command::*;
+use clap::ArgMatches ;
+use std::path::PathBuf;
+use std::collections::VecDeque;
 
 pub struct ToyundaPlayer<'a> {
     subtitles:Option<Subtitles>,
     mpv:Box<MpvHandlerWithGl>,
     displayer:Displayer<'a>,
-    options:ToyundaOptions
+    options:ToyundaOptions,
+    waiting_queue:VecDeque<PathBuf>
 }
 
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
@@ -29,6 +33,7 @@ fn get_alt_keys(keyboard_state:KeyboardState) -> (bool,bool,bool) {
 
 pub enum ToyundaAction {
     Nothing,
+    PlayNext,
     Terminate
 }
 
@@ -38,8 +43,19 @@ impl<'a> ToyundaPlayer<'a> {
             subtitles:None,
             mpv:mpv_box,
             displayer:displayer,
-            options:ToyundaOptions::default()
+            options:ToyundaOptions::default(),
+            waiting_queue: VecDeque::new()
         }
+    }
+
+    pub fn start(&mut self,arg_matches:ArgMatches) -> Result<()> {
+
+        if let Some(video_files) = arg_matches.values_of("VIDEO_FILE") {
+            for value in video_files {
+                self.waiting_queue.push_back(PathBuf::from(value));
+            }
+        }
+        Ok(())
     }
 
     pub fn import_subtitles<P:AsRef<Path>>(&mut self,path:P) -> Result<()> {
@@ -110,6 +126,9 @@ impl<'a> ToyundaPlayer<'a> {
                 match self.handle_event(event,alt_keys) {
                     Ok(ToyundaAction::Nothing) => {},
                     Ok(ToyundaAction::Terminate) => {break 'main},
+                    Ok(ToyundaAction::PlayNext) => {
+                        self.execute_command(Command::PlayNext);
+                    }
                     Err(e) => {
                         error!("An error '{}' occured",e);
                     }
@@ -117,6 +136,9 @@ impl<'a> ToyundaPlayer<'a> {
             }
             while let Some(event) = self.mpv.wait_event(0.0) {
                 let res = match event {
+                    MpvEvent::Idle => {
+                        self.execute_command(Command::PlayNext)
+                    },
                     MpvEvent::Shutdown => Ok(ToyundaAction::Terminate),
                     MpvEvent::EndFile(_) => { // TODO remove EndFile and handle this better
                         self.execute_command(Command::EndFile)
@@ -126,6 +148,9 @@ impl<'a> ToyundaPlayer<'a> {
                 match res {
                     Ok(ToyundaAction::Nothing) => {},
                     Ok(ToyundaAction::Terminate) => {break 'main},
+                    Ok(ToyundaAction::PlayNext) => {
+                        self.execute_command(Command::PlayNext);
+                    }
                     Err(e) => {
                         error!("An error '{}' occured",e);
                     }
@@ -225,6 +250,14 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn displayer_mut(&mut self) -> &mut Displayer<'a> {
         &mut self.displayer
+    }
+
+    pub fn queue(&self) -> &VecDeque<PathBuf> {
+        &self.waiting_queue
+    }
+
+    pub fn queue_mut(&mut self) -> &mut VecDeque<PathBuf> {
+        &mut self.waiting_queue
     }
 
     pub fn options(&self) -> &ToyundaOptions {

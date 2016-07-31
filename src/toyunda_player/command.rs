@@ -1,8 +1,10 @@
 use ::toyunda_player::*;
 use ::toyunda_player::error::{Result,Error};
 use std::cmp::{min,max};
+use std::path::PathBuf;
+use std::collections::VecDeque;
 
-#[derive(Copy,Clone,Debug)]
+#[derive(Debug)]
 pub enum Command {
     AddVolume(i64),
     SetSpeed(f64),
@@ -11,6 +13,9 @@ pub enum Command {
     TogglePause,
     ToggleFullscreen,
     ToggleDisplaySubtitles,
+    AddToQueue(PathBuf),
+    PlayNext,
+    ClearQueue,
     EndFile,
 }
 
@@ -90,9 +95,52 @@ impl<'a> ToyundaPlayer<'a> {
                 let current_value = self.options().display_subtitles;
                 self.options_mut().display_subtitles = !current_value ;
                 Ok(ToyundaAction::Nothing)
+            },
+            Command::PlayNext => {
+                let video_path = self.queue_mut().pop_front();
+                self.mpv_mut().command(&["stop"]);
+                match video_path {
+                    None => {
+                        Ok(ToyundaAction::Nothing) // TODO Terminate if options say so
+                    },
+                    Some(video_path) => {
+                        match video_path.to_str() {
+                            None => {
+                                error!("Invalid UTF-8 Path for {} , skipping file",video_path.display());
+                                Ok(ToyundaAction::PlayNext)
+                            },
+                            Some(video_path) => {
+                                match self.mpv_mut().command(&["loadfile",video_path]) {
+                                    Ok(_) => {
+                                        match self.import_subtitles(video_path) {
+                                            Ok(_) => {
+                                                info!("Now playing : '{}'",video_path);
+                                                Ok(ToyundaAction::Nothing)
+                                            },
+                                            Err(e) => {
+                                                error!("Error was received when importing subtitles : {} , file {} will be skipped",e,video_path);
+                                                Ok(ToyundaAction::PlayNext)
+                                            }
+                                        }
+                                    },
+                                    Err(e) => {
+                                        error!("Trying to play file {} but error {} occured. Skiping file ...",video_path,e);
+                                        Ok(ToyundaAction::PlayNext)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            Command::ClearQueue => {
+                unimplemented!()
+            },
+            Command::AddToQueue(path) => {
+                unimplemented!()
             }
             Command::EndFile => {
-                Ok(ToyundaAction::Terminate)
+                Ok(ToyundaAction::Nothing)
             }
         }
     }
