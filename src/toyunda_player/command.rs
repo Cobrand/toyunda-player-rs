@@ -103,7 +103,23 @@ impl<'a> ToyundaPlayer<'a> {
                 };
                 match video_path {
                     None => {
-                        Ok(ToyundaAction::Nothing) // TODO Terminate if options say so
+                        match self.options().quit_when_finished {
+                            None => {
+                                match self.options().mode {
+                                    ToyundaMode::KaraokeMode | ToyundaMode::EditMode =>
+                                        Ok(ToyundaAction::Nothing),
+                                    ToyundaMode::NormalMode =>
+                                        Ok(ToyundaAction::Terminate)
+                                }
+                            },
+                            Some(b) => {
+                                if b { // "quit_when_finished" override
+                                    Ok(ToyundaAction::Terminate)
+                                } else { // "dont_quit_when_finished" override
+                                    Ok(ToyundaAction::Nothing)
+                                }
+                            }
+                        }
                     },
                     Some(video_path) => {
                         match video_path.to_str() {

@@ -55,6 +55,12 @@ impl<'a> ToyundaPlayer<'a> {
                 self.waiting_queue.push_back(PathBuf::from(value));
             }
         }
+
+        if arg_matches.is_present("quit") {
+            self.options.quit_when_finished = Some(true);
+        } else if arg_matches.is_present("no-quit") {
+            self.options.quit_when_finished = Some(false);
+        }
         Ok(())
     }
 

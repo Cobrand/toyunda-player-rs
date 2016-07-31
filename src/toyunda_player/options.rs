@@ -9,14 +9,16 @@ pub enum ToyundaMode {
 
 pub struct ToyundaOptions {
     pub mode:ToyundaMode,
-    pub display_subtitles:bool
+    pub display_subtitles:bool,
+    pub quit_when_finished:Option<bool>
 }
 
 impl Default for ToyundaOptions {
     fn default() -> ToyundaOptions {
         ToyundaOptions {
             mode:ToyundaMode::NormalMode,
-            display_subtitles:true
+            display_subtitles:true,
+            quit_when_finished:None
         }
     }
 }

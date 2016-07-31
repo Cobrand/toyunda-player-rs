@@ -32,7 +32,7 @@ pub fn init_sdl<'a>(video_subsystem: &mut sdl2::VideoSubsystem,arg_matches:&ArgM
     let opengl_driver_id = find_sdl_gl_driver().expect("Unable to find OpenGL video driver");
 
     let mut window_builder = if arg_matches.is_present("fullscreen") {
-        let mut builder = video_subsystem.window("Toyunda Player", 1, 1);
+        let mut builder = video_subsystem.window("Toyunda Player", 960, 540);
         builder.fullscreen_desktop();
         builder
     } else {
