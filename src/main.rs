@@ -7,6 +7,7 @@ extern crate sdl2_sys;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+#[macro_use]
 extern crate clap;
 use clap::{Arg, App};
 
@@ -24,9 +25,13 @@ fn main() {
     env_logger::init().unwrap();
 
     let matches = App::new("Toyunda Player RS")
-                          .version("0.2")
+                          .version(crate_version!())
                           .author("Cobrand")
                           .about("Flexible karaoke player")
+                          .arg(Arg::with_name("fullscreen")
+                            .short("f")
+                            .long("fullscreen")
+                            .help("Enables fullscreen"))
                           .arg(Arg::with_name("VIDEO_FILE")
                             .help("Sets the video file(s) to play")
                             .multiple(true)
@@ -36,7 +41,7 @@ fn main() {
     // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
-    let renderer = init::init_sdl(&mut video_subsystem);
+    let renderer = init::init_sdl(&mut video_subsystem,&matches);
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     // INIT MPV
     let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
