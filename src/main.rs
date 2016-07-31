@@ -78,6 +78,13 @@ fn main() {
 
     let displayer = display::Displayer::new(renderer)
                         .expect("Failed to init displayer");
+
+    if let Some(mode) = matches.value_of("mode") {
+        if mode.to_lowercase() == "karaoke" {
+            let mut mouse_utils = sdl_context.mouse();
+            mouse_utils.show_cursor(false);
+        }
+    }
     // Create a new displayer for the toyunda_player
 
     let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
