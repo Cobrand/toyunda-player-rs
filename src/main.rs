@@ -24,10 +24,16 @@ fn main() {
     // init the logger
     env_logger::init().unwrap();
 
-    let matches = App::new("Toyunda Player RS")
+    let matches = App::new("Toyunda Player")
                           .version(crate_version!())
+                          .after_help("PLAYER SHORTCUTS :\n    \
+                            * V : Hides / Shows subtitles\n    \
+                            * F : Toggles fullscreen\n    \
+                            * + / - : Raises / Lowers the volume\n    \
+                            * Left / Right arrow : Seek backwards / frontwards\n    \
+                            ")
                           .author("Cobrand")
-                          .about("Flexible karaoke player")
+                          .about("A flexible karaoke player for the epitanime association")
                           .arg(Arg::with_name("mode")
                             .value_name("MODE")
                             .long("mode")
