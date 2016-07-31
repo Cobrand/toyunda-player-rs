@@ -1,3 +1,4 @@
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum ToyundaMode {
     /// most shortcuts are available
     NormalMode,

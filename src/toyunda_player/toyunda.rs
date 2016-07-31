@@ -1,4 +1,4 @@
-use ::toyunda_player::ToyundaOptions;
+use ::toyunda_player::*;
 use mpv::{MpvHandlerWithGl,Event as MpvEvent};
 use std::path::Path;
 use ::subtitles::Subtitles;
@@ -60,6 +60,43 @@ impl<'a> ToyundaPlayer<'a> {
             self.options.quit_when_finished = Some(true);
         } else if arg_matches.is_present("no-quit") {
             self.options.quit_when_finished = Some(false);
+        }
+
+        if let Some(mode) = arg_matches.value_of("mode") {
+            let mode = mode.to_lowercase() ;
+            if mode == "normal" {
+                self.options.mode = ToyundaMode::NormalMode;
+            } else if mode == "karaoke" {
+                info!("Enabling karaoke mode");
+                self.options.mode = ToyundaMode::KaraokeMode;
+            } else if mode == "edit" {
+                info!("Enabling edit mode");
+                self.options.mode = ToyundaMode::EditMode;
+            } else {
+                error!("Incorrect use of --mode , expected 'normal','edit' or 'karaoke'; got {}",mode);
+                self.options.mode = ToyundaMode::NormalMode;
+            }
+        } else {
+            // default is normal mode
+            self.options.mode = ToyundaMode::NormalMode;
+        }
+
+        if let Some(volume) = arg_matches.value_of("volume") {
+            match volume.parse::<f64>() {
+                Ok(volume) => {
+                    match self.mpv.set_property("volume",volume) {
+                        Ok(_) => {
+                            info!("Successfully override initial volume");
+                        },
+                        Err(e) => {
+                            error!("Could not change initial volume of mpv, error '{}' ({:?})",e,e);
+                        }
+                    };
+                },
+                Err(e) => {
+                    error!("Error when parsing volume, expected some float, got '{}'; (error {:?})",volume,e);
+                }
+            }
         }
         Ok(())
     }
@@ -178,67 +215,69 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn handle_event(&mut self,event:Event,alt_keys_state:(bool,bool,bool)) -> Result<ToyundaAction> {
+        use ::toyunda_player::ToyundaMode::*;
         let (_is_alt_pressed,is_ctrl_pressed,is_shift_pressed) = alt_keys_state;
+        let mode = self.options.mode ; // shortcut
         match event {
             Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
                 Ok(ToyundaAction::Terminate),
             Event::KeyDown { keycode: Some(Keycode::Space),repeat: false, .. }
                 => self.execute_command(Command::TogglePause),
-            Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.9)),
-            Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.9)),
-            Event::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.8)),
-            Event::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp8), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.8)),
-            Event::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.7)),
-            Event::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp7), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.7)),
-            Event::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.6)),
-            Event::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp6), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.6)),
-            Event::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.5)),
-            Event::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp5), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.5)),
-            Event::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.4)),
-            Event::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp4), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.4)),
-            Event::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.3)),
-            Event::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp3), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.3)),
-            Event::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.2)),
-            Event::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp2), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.2)),
-            Event::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(1.1)),
-            Event::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp1), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(0.1)),
-            Event::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } if mode != KaraokeMode &&  is_shift_pressed
                 => self.execute_command(Command::SetSpeed(2.0)),
-            Event::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. }
+            Event::KeyDown { keycode: Some(Keycode::Kp0), repeat: false, .. } if mode != KaraokeMode
                 => self.execute_command(Command::SetSpeed(1.0)),
             Event::KeyDown { keycode: Some(Keycode::KpPlus),  .. }
                 => self.execute_command(Command::AddVolume(5)),
             Event::KeyDown { keycode: Some(Keycode::KpMinus), .. }
                 => self.execute_command(Command::AddVolume(-5)),
-            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } if is_ctrl_pressed
+            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } if mode != KaraokeMode && is_ctrl_pressed
                 => self.execute_command(Command::Framestep(1)),
-            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } if mode != KaraokeMode && is_shift_pressed
                 => self.execute_command(Command::Seek(15.0)),
-            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. }
+            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false,.. } if mode != KaraokeMode
                 => self.execute_command(Command::Seek(3.0)),
-            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if is_ctrl_pressed
+            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if mode != KaraokeMode && is_ctrl_pressed
                 => self.execute_command(Command::Framestep(-1)),
-            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if is_shift_pressed
+            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if mode != KaraokeMode && is_shift_pressed
                 => self.execute_command(Command::Seek(-15.0)),
-            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. }
+            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if mode != KaraokeMode
                 => self.execute_command(Command::Seek(-3.0)),
             Event::KeyDown { keycode: Some(Keycode::V), repeat: false,.. }
                 => self.execute_command(Command::ToggleDisplaySubtitles),
