@@ -1,7 +1,7 @@
 use sdl2::render::{Renderer, BlendMode, Texture};
 use sdl2_image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
 use sdl2_ttf::{Sdl2TtfContext,init as ttf_init};
-use std::path::Path;
+use std::path::{Path,PathBuf};
 use ::display::font::*;
 
 pub struct Displayer<'a> {
@@ -20,7 +20,21 @@ impl<'a> Displayer<'a> {
         let font_list = FontList::new(&ttf_context).unwrap();
         let _image_context = image_init(INIT_PNG | INIT_JPG).unwrap();
         // we dont care if imag econtext dies, we only load images once (for now)
-        let lyrics_logo = renderer.load_texture(Path::new("logo_toyunda.png")).ok();
+        let lyrics_logo : Option<Texture> = match ::std::env::current_exe() {
+            Ok(current_exe_path) => {
+                match renderer.load_texture(&*current_exe_path.with_file_name("logo_toyunda.png")) {
+                    Ok(texture) => Some(texture),
+                    Err(e) => {
+                        error!("Failed to load logo_toyunda.png : error '{}' ({:?})",e,e);
+                        None
+                    }
+                }
+            },
+            _ => {
+                error!("Failed to open logo_toyunda.png : failed to find current executable");
+                None
+            }
+        };
         let displayer = Displayer {
             fonts: font_list,
             ttf_context: ttf_context,
