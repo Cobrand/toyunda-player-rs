@@ -136,8 +136,13 @@ impl<'a> ToyundaPlayer<'a> {
                                                 Ok(ToyundaAction::Nothing)
                                             },
                                             Err(e) => {
-                                                error!("Error was received when importing subtitles : {} , file {} will be skipped",e,video_path);
-                                                Ok(ToyundaAction::PlayNext)
+                                                if self.options().mode == ToyundaMode::KaraokeMode {
+                                                    error!("Error was received when importing subtitles : {} , file {} will be skipped",e,video_path);
+                                                    Ok(ToyundaAction::PlayNext)
+                                                } else {
+                                                    error!("Error was received when importing subtitles : {}",e);
+                                                    Ok(ToyundaAction::Nothing)
+                                                }
                                             }
                                         }
                                     },
