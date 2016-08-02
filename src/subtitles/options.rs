@@ -56,7 +56,7 @@ impl From<SentenceOptions> for SentenceParameters {
     fn from(sentence_options:SentenceOptions) -> Self {
         SentenceParameters {
             display_logo: sentence_options.display_logo.unwrap_or(true),
-            transition_time: sentence_options.transition_time.unwrap_or(12),
+            transition_time: sentence_options.transition_time.unwrap_or(18),
             fade_time: sentence_options.fade_time.unwrap_or(8),
         }
     }
