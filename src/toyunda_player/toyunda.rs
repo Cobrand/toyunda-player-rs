@@ -62,22 +62,13 @@ impl<'a> ToyundaPlayer<'a> {
             self.options.quit_when_finished = Some(false);
         }
 
-        if let Some(mode) = arg_matches.value_of("mode") {
-            let mode = mode.to_lowercase() ;
-            if mode == "normal" {
-                self.options.mode = ToyundaMode::NormalMode;
-            } else if mode == "karaoke" {
-                info!("Enabling karaoke mode");
-                self.options.mode = ToyundaMode::KaraokeMode;
-            } else if mode == "edit" {
-                info!("Enabling edit mode");
-                self.options.mode = ToyundaMode::EditMode;
-            } else {
-                error!("Incorrect use of --mode , expected 'normal','edit' or 'karaoke'; got {}",mode);
-                self.options.mode = ToyundaMode::NormalMode;
-            }
+        if arg_matches.is_present("karaoke_mode") {
+            self.options.mode = ToyundaMode::KaraokeMode;
+            info!("Enabling karaoke mode");
+        } else if arg_matches.is_present("edit_mode") {
+            self.options.mode = ToyundaMode::EditMode;
+            info!("Enabling edit mode");
         } else {
-            // default is normal mode
             self.options.mode = ToyundaMode::NormalMode;
         }
 

@@ -34,10 +34,15 @@ fn main() {
                             ")
                           .author("Cobrand")
                           .about("A flexible karaoke player for the epitanime association")
-                          .arg(Arg::with_name("mode")
-                            .value_name("MODE")
-                            .long("mode")
-                            .help("Default is 'normal', can be 'karaoke','edit or 'normal'"))
+                          .arg(Arg::with_name("karaoke_mode")
+                            .short("k")
+                            .long("karaoke")
+                            .help("Sets mode to karaoke mode"))
+                          .arg(Arg::with_name("edit_mode")
+                            .short("e")
+                            .long("edit")
+                            .help("Sets mode to edit mode")
+                            .conflicts_with("karaoke_mode"))
                           .arg(Arg::with_name("fullscreen")
                             .short("f")
                             .long("fullscreen")
@@ -79,11 +84,10 @@ fn main() {
     let displayer = display::Displayer::new(renderer)
                         .expect("Failed to init displayer");
 
-    if let Some(mode) = matches.value_of("mode") {
-        if mode.to_lowercase() == "karaoke" {
-            let mut mouse_utils = sdl_context.mouse();
-            mouse_utils.show_cursor(false);
-        }
+    if matches.is_present("karaoke_mode") {
+        let mut mouse_utils = sdl_context.mouse();
+        mouse_utils.show_cursor(false);
+        // dont show cursor on top of player in karaoke mode
     }
     // Create a new displayer for the toyunda_player
 
