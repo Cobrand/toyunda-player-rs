@@ -48,16 +48,20 @@ impl SentenceOptions {
 #[derive(Debug,Clone)]
 pub struct SentenceParameters {
     pub display_logo:bool,
-    pub transition_time:u16,
-    pub fade_time:u16
+    pub transition_time_before:u16,
+    pub fade_time_before:u16,
+    pub transition_time_after:u16,
+    pub fade_time_after:u16,
 }
 
 impl From<SentenceOptions> for SentenceParameters {
     fn from(sentence_options:SentenceOptions) -> Self {
         SentenceParameters {
             display_logo: sentence_options.display_logo.unwrap_or(true),
-            transition_time: sentence_options.transition_time.unwrap_or(18),
-            fade_time: sentence_options.fade_time.unwrap_or(8),
+            transition_time_before: sentence_options.transition_time.unwrap_or(18),
+            fade_time_before: sentence_options.fade_time.unwrap_or(8),
+            transition_time_after: sentence_options.transition_time.unwrap_or(12),
+            fade_time_after: sentence_options.fade_time.unwrap_or(8),
         }
     }
 }

@@ -100,18 +100,20 @@ fn compute_sentence_alpha(sentence:&Sentence,
     match (sentence.syllables.first(), sentence.syllables.last()) {
         (Some( &Syllable {begin:frame_begin, ..} ),
          Some( &Syllable {end  :frame_end  , ..} )) => {
-            let end_fade_frame : u32 = (sentence_parameters.transition_time
-                                     -  sentence_parameters.fade_time) as u32 ;
+            let end_fade_frame_before : u32 = (sentence_parameters.transition_time_before
+                                     -  sentence_parameters.fade_time_before) as u32 ;
+            let end_fade_frame_after : u32 = (sentence_parameters.transition_time_after
+                                     -  sentence_parameters.fade_time_after) as u32 ;
             let begin_first_fade_frame =
-                frame_begin.saturating_sub(sentence_parameters.transition_time as u32);
+                frame_begin.saturating_sub(sentence_parameters.transition_time_before as u32);
             let end_first_fade_frame =
-                frame_begin.saturating_sub(end_fade_frame);
+                frame_begin.saturating_sub(end_fade_frame_before);
             let begin_second_fade_frame =
-                frame_end.saturating_add(end_fade_frame);
+                frame_end.saturating_add(end_fade_frame_after);
             let end_second_fade_frame =
-                frame_end.saturating_add(sentence_parameters.transition_time as u32);
+                frame_end.saturating_add(sentence_parameters.transition_time_after as u32);
             debug_assert_eq!(end_second_fade_frame - begin_second_fade_frame,
-                             sentence_parameters.fade_time as u32);
+                             sentence_parameters.fade_time_after as u32);
             if (end_first_fade_frame < frame_number &&
                 begin_second_fade_frame > frame_number) {
                 1.0
@@ -194,9 +196,9 @@ impl Frame {
                 (None,_) | (_,None) => false,
                 (Some(ref first_syllable),Some(ref last_syllable)) => {
                     let first_frame = first_syllable.begin
-                        .saturating_sub(sentence_parameters.transition_time as u32);
+                        .saturating_sub(sentence_parameters.transition_time_before as u32);
                     let last_frame = last_syllable.end
-                        .saturating_add(sentence_parameters.transition_time as u32);
+                        .saturating_add(sentence_parameters.transition_time_after as u32);
                     if ( frame_number >= first_frame && frame_number <= last_frame ) {
                         true
                     } else {

@@ -85,7 +85,7 @@ fn main() {
                         .expect("Failed to init displayer");
 
     if matches.is_present("karaoke_mode") {
-        let mut mouse_utils = sdl_context.mouse();
+        let mouse_utils = sdl_context.mouse();
         mouse_utils.show_cursor(false);
         // dont show cursor on top of player in karaoke mode
     }

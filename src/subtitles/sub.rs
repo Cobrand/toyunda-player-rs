@@ -38,13 +38,13 @@ fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence,default_se
                         sentence_candidate.sentence_options.unwrap_or(SentenceOptions::default()).or(default_sentence_options);
                     let sentence_candidate_parameters = SentenceParameters::from(sentence_candidate_options);
                     let first_frame = first_syllable.begin
-                        .saturating_sub(sentence_parameters.transition_time as u32);
+                        .saturating_sub(sentence_parameters.transition_time_before as u32);
                     let last_frame = last_syllable.end
-                        .saturating_add(sentence_parameters.transition_time as u32);
+                        .saturating_add(sentence_parameters.transition_time_after as u32);
                     let first_frame_candidate = first_syllable_candidate.begin
-                        .saturating_sub(sentence_candidate_parameters.transition_time as u32);
+                        .saturating_sub(sentence_candidate_parameters.transition_time_before as u32);
                     let last_frame_candidate = last_syllable_candidate.end
-                        .saturating_add(sentence_candidate_parameters.transition_time as u32);
+                        .saturating_add(sentence_candidate_parameters.transition_time_after as u32);
                     if (last_frame_candidate >= first_frame  && last_frame_candidate <= last_frame ) ||
                        (first_frame_candidate >= first_frame && first_frame_candidate <= last_frame) ||
                        (last_frame >= first_frame_candidate  && last_frame <= last_frame_candidate ) ||

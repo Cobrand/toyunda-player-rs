@@ -1,7 +1,6 @@
 use sdl2::render::{Renderer, BlendMode, Texture};
 use sdl2_image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
 use sdl2_ttf::{Sdl2TtfContext,init as ttf_init};
-use std::path::{Path,PathBuf};
 use ::display::font::*;
 
 pub struct Displayer<'a> {
