@@ -70,18 +70,6 @@ fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence,default_se
     sentence.position = RowPosition::Row(best_row);
 }
 
-fn adjust_sentences_row(subtitles:&mut Subtitles) {
-    let default_sentence_options : SentenceOptions =
-        subtitles.subtitles_options.as_ref().map(
-            |ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default())
-        ).unwrap_or(SentenceOptions::default());
-    for i in 0..subtitles.sentences.len() {
-        let (first_half,mut last_half) = subtitles.sentences.split_at_mut(i);
-        let sentence = last_half.first_mut().expect("Unexpected None for subtitles last_half");
-        set_best_sentence_row(first_half,sentence,default_sentence_options);
-    }
-}
-
 impl Subtitles {
     pub fn load_from_lyr_frm<P:AsRef<Path>>(lyr:P,frm:P) -> Result<Subtitles,String> {
         let frm : &Path = frm.as_ref();
@@ -194,7 +182,7 @@ impl Subtitles {
                 }
             }
         };
-        adjust_sentences_row(&mut subtitles);
+        subtitles.adjust_sentences_row();
         Ok(subtitles)
     }
 
@@ -246,5 +234,17 @@ impl Subtitles {
             }
         };
         res.and(Ok(new_texture))
+    }
+
+    pub fn adjust_sentences_row(&mut self) {
+        let default_sentence_options : SentenceOptions =
+            self.subtitles_options.as_ref().map(
+                |ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default())
+            ).unwrap_or(SentenceOptions::default());
+        for i in 0..self.sentences.len() {
+            let (first_half,mut last_half) = self.sentences.split_at_mut(i);
+            let sentence = last_half.first_mut().expect("Unexpected None for subtitles last_half");
+            set_best_sentence_row(first_half,sentence,default_sentence_options);
+        }
     }
 }

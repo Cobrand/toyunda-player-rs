@@ -100,25 +100,36 @@ impl<'a> ToyundaPlayer<'a> {
         match (path.is_file(),path.is_dir()) {
             (true,false) => {
                 // is a file
+                let json_path = path.with_extension("json");
                 let lyr_path = path.with_extension("lyr");
                 let frm_path = path.with_extension("frm");
-                if (lyr_path.is_file() && frm_path.is_file()) {
-                    info!("Loading subtitles ...");
-                    Subtitles::load_from_lyr_frm(lyr_path,frm_path)
-                        .map(|subtitles| {
-                            self.subtitles = Some(subtitles);
-                            ()
-                        })
-                        .map_err(|s| Error::Text(s))
-                } else if lyr_path.is_file() {
-                    error!("Could not find .frm file");
-                    Err(Error::FileNotFound(frm_path.display().to_string()))
-                } else if frm_path.is_file() {
-                    error!("Could not find .lyr file");
-                    Err(Error::FileNotFound(frm_path.display().to_string()))
+                if (json_path.is_file()) {
+                    info!("Loading {}",json_path.display());
+                    let json_file = ::std::fs::File::open(json_path).expect("Failed to open JSON file");
+                    let mut subtitles : Subtitles = serde_json::from_reader(json_file).expect("Failed to load json file");
+                    subtitles.adjust_sentences_row();
+                    self.subtitles = Some(subtitles);
+                    Ok(())
                 } else {
-                    error!("Could not find .lyr and .frm file");
-                    Err(Error::FileNotFound(lyr_path.display().to_string()))
+                    info!("Failed to load json file, trying lyr and frm files");
+                    if (lyr_path.is_file() && frm_path.is_file()) {
+                        info!("Loading subtitles with lyr and frm ...");
+                        Subtitles::load_from_lyr_frm(lyr_path,frm_path)
+                            .map(|subtitles| {
+                                self.subtitles = Some(subtitles);
+                                ()
+                            })
+                            .map_err(|s| Error::Text(s))
+                    } else if lyr_path.is_file() {
+                        error!("Could not find .frm file");
+                        Err(Error::FileNotFound(frm_path.display().to_string()))
+                    } else if frm_path.is_file() {
+                        error!("Could not find .lyr file");
+                        Err(Error::FileNotFound(frm_path.display().to_string()))
+                    } else {
+                        error!("Could not find .lyr and .frm file");
+                        Err(Error::FileNotFound(lyr_path.display().to_string()))
+                    }
                 }
             },
             (false,true) => {
