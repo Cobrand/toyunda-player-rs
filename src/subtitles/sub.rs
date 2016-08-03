@@ -12,7 +12,7 @@ use ::display::*;
 use sdl2::render::Texture;
 use sdl2::rect::Rect;
 
-#[derive(Debug,Default,Serialize,Deserialize)]
+#[derive(Debug,Default,Serialize,Deserialize,Clone)]
 pub struct Subtitles {
     pub sentences:Vec<Sentence>,
     pub subtitles_options:Option<SubtitlesOptions>,
@@ -59,7 +59,7 @@ fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence,default_se
         let mut taken = vec![];
         for sentence in sentences_candidate {
             match sentence.position {
-                Position::Row(i) => {taken.push(i);},
+                RowPosition::Row(i) => {taken.push(i);},
                 _ => {}
             }
         };
@@ -67,7 +67,19 @@ fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence,default_se
             best_row = best_row + 1 ;
         }
     }
-    sentence.position = Position::Row(best_row);
+    sentence.position = RowPosition::Row(best_row);
+}
+
+fn adjust_sentences_row(subtitles:&mut Subtitles) {
+    let default_sentence_options : SentenceOptions =
+        subtitles.subtitles_options.as_ref().map(
+            |ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default())
+        ).unwrap_or(SentenceOptions::default());
+    for i in 0..subtitles.sentences.len() {
+        let (first_half,mut last_half) = subtitles.sentences.split_at_mut(i);
+        let sentence = last_half.first_mut().expect("Unexpected None for subtitles last_half");
+        set_best_sentence_row(first_half,sentence,default_sentence_options);
+    }
 }
 
 impl Subtitles {
@@ -104,7 +116,7 @@ impl Subtitles {
                 };
                 let sentence = Sentence {
                     syllables : syllables,
-                    position : Position::Row(0),
+                    position : RowPosition::Row(0),
                     sentence_options : Some(current_sentence_options)
                 };
                 subtitles.sentences.push(sentence);
@@ -182,15 +194,7 @@ impl Subtitles {
                 }
             }
         };
-        let default_sentence_options : SentenceOptions =
-            subtitles.subtitles_options.as_ref().map(
-                |ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default())
-            ).unwrap_or(SentenceOptions::default());
-        for i in 0..subtitles.sentences.len() {
-            let (first_half,mut last_half) = subtitles.sentences.split_at_mut(i);
-            let sentence = last_half.first_mut().expect("Unexpected None for subtitles last_half");
-            set_best_sentence_row(first_half,sentence,default_sentence_options);
-        }
+        adjust_sentences_row(&mut subtitles);
         Ok(subtitles)
     }
 

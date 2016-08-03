@@ -1,5 +1,6 @@
 use subtitles::Color;
 use std::convert::From;
+use ::subtitles::RowPosition;
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct SubtitlesOptions {
@@ -29,9 +30,14 @@ pub struct SentenceOptions {
     pub syllable_options:Option<SyllableOptions>,
     pub display_logo:Option<bool>,
     /// Total time where subtitles start appearing, before first syllable start playing
-    pub transition_time:Option<u16>,
+    pub transition_time_before:Option<u16>,
     /// Span where subtitles start appearing
-    pub fade_time:Option<u16>
+    pub fade_time_before:Option<u16>,
+    /// Total time where subtitles are disappearing, before first syllable start playing
+    pub transition_time_after:Option<u16>,
+    /// Span where subtitles start disappearing
+    pub fade_time_after:Option<u16>,
+    pub row_position:Option<RowPosition>
 }
 
 impl SentenceOptions {
@@ -39,8 +45,11 @@ impl SentenceOptions {
         SentenceOptions {
             syllable_options:self.syllable_options.or(other.syllable_options),
             display_logo:self.display_logo.or(other.display_logo),
-            transition_time:self.transition_time.or(other.transition_time),
-            fade_time:self.fade_time.or(other.fade_time),
+            transition_time_after:self.transition_time_after.or(other.transition_time_after),
+            fade_time_after:self.fade_time_after.or(other.fade_time_after),
+            transition_time_before:self.transition_time_before.or(other.transition_time_before),
+            fade_time_before:self.fade_time_before.or(other.fade_time_before),
+            row_position:self.row_position.or(other.row_position)
         }
     }
 }
@@ -52,16 +61,18 @@ pub struct SentenceParameters {
     pub fade_time_before:u16,
     pub transition_time_after:u16,
     pub fade_time_after:u16,
+    pub row_position:Option<RowPosition>
 }
 
 impl From<SentenceOptions> for SentenceParameters {
     fn from(sentence_options:SentenceOptions) -> Self {
         SentenceParameters {
             display_logo: sentence_options.display_logo.unwrap_or(true),
-            transition_time_before: sentence_options.transition_time.unwrap_or(18),
-            fade_time_before: sentence_options.fade_time.unwrap_or(8),
-            transition_time_after: sentence_options.transition_time.unwrap_or(12),
-            fade_time_after: sentence_options.fade_time.unwrap_or(8),
+            transition_time_before: sentence_options.transition_time_before.unwrap_or(18),
+            fade_time_before: sentence_options.fade_time_before.unwrap_or(8),
+            transition_time_after: sentence_options.transition_time_after.unwrap_or(12),
+            fade_time_after: sentence_options.fade_time_after.unwrap_or(8),
+            row_position: sentence_options.row_position,
         }
     }
 }

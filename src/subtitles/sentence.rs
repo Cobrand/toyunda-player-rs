@@ -2,20 +2,27 @@ use ::subtitles::options::SentenceOptions;
 use ::subtitles::syllable::Syllable;
 use std::fmt;
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Sentence {
     pub syllables:Vec<Syllable>,
-    pub position: Position,
+    #[serde(skip_serializing,skip_deserializing)]
+    pub position: RowPosition,
     pub sentence_options:Option<SentenceOptions>
 }
 
 #[derive(Copy,Clone,Debug,Serialize,Deserialize)]
-pub enum Position {
+pub enum RowPosition {
     Row(u8),
     #[allow(dead_code)]
     ForcePos {
         x:f32,
         y:f32
+    }
+}
+
+impl Default for RowPosition {
+    fn default() -> RowPosition {
+        RowPosition::Row(0)
     }
 }
 

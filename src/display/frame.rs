@@ -1,6 +1,6 @@
 use display::*;
 use utils::*;
-use ::subtitles::{Sentence,Subtitles,Syllable,Position as SentencePos};
+use ::subtitles::{Sentence,Subtitles,Syllable,RowPosition};
 use ::subtitles::options::*;
 use sdl2::render::TextureQuery;
 use sdl2::rect::Rect;
@@ -255,11 +255,11 @@ impl Frame {
                 None => {}
             }
             let text_pos = match sentence.position {
-                SentencePos::Row(l) => {
+                RowPosition::Row(l) => {
                     (::display::PosX::Centered,
                      ::display::PosY::FromTopPercent( l as f32 * 0.15 + 0.01 ))
                 }
-                SentencePos::ForcePos{x,y} => {
+                RowPosition::ForcePos{x,y} => {
                     (::display::PosX::FromLeftPercent(x),
                      ::display::PosY::FromTopPercent(y))
                 },

@@ -275,9 +275,24 @@ impl<'a> ToyundaPlayer<'a> {
                 => self.execute_command(Command::Seek(-3.0)),
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false,.. } if mode != KaraokeMode
                 => {
-                if let Some(ref sub) = self.subtitles {
-                    println!("{}",serde_json::to_string_pretty(sub).unwrap());
-                };
+                match self.playing_state {
+                    PlayingState::Playing(ref path) => {
+                        if let Some(ref sub) = self.subtitles {
+                            let path : PathBuf = path.clone();
+                            let sub : Subtitles = sub.clone();
+                            ::std::thread::spawn(move || {
+                                let json_file_path = path.with_extension("json");
+                                let mut file = ::std::fs::File::create(&json_file_path)
+                                    .expect("Failed to create subtitles file");
+                                serde_json::to_writer_pretty(&mut file, &sub).unwrap();
+                                info!("Saved file {}",json_file_path.display());
+                            });
+                        };
+                    },
+                    _ => {
+                        error!("Could not save file, no video is playing !");
+                    }
+                }
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyDown { keycode: Some(Keycode::V), repeat: false,.. }
