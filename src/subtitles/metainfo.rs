@@ -1,4 +1,4 @@
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Serialize,Deserialize)]
 #[allow(dead_code)]
 pub enum Language {
     Fr,
@@ -10,24 +10,30 @@ pub enum Language {
 }
 
 #[allow(dead_code)]
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Serialize,Deserialize)]
 pub enum MusicType {
-    Opening(i32),
-    Ending(i32),
+    Opening{number:i32},
+    Ending{number:i32},
     Insert,
-    Other(String)
+    Other{
+        kind:String,
+        #[serde(skip_serializing_if="Option::is_none")]
+        number:Option<i32>
+    }
 }
 
 #[allow(dead_code)]
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Serialize,Deserialize)]
 pub enum MediaType {
     Anime,
     Movie,
     VideoGame,
-    Other(String)
+    Other{
+        kind:String
+    }
 }
 
-#[derive(Debug,Clone,Default)]
+#[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct MetaInfo {
     pub artist:Option<String>,
     pub origin:Option<String>,// name of anime / movie / video game

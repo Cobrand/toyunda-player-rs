@@ -1,6 +1,6 @@
 use ::subtitles::options::SyllableOptions;
 
-#[derive(Debug,Default)]
+#[derive(Debug,Default,Serialize,Deserialize)]
 pub struct Syllable {
     pub text:String,
     pub begin:u32,

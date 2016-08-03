@@ -12,7 +12,7 @@ use ::display::*;
 use sdl2::render::Texture;
 use sdl2::rect::Rect;
 
-#[derive(Debug,Default)]
+#[derive(Debug,Default,Serialize,Deserialize)]
 pub struct Subtitles {
     pub sentences:Vec<Sentence>,
     pub subtitles_options:Option<SubtitlesOptions>,

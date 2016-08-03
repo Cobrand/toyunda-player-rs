@@ -1,4 +1,11 @@
 #![allow(unused_parens)]
+#![feature(custom_derive, plugin)] // necessary for serde
+#![plugin(serde_macros)]
+extern crate serde;
+extern crate serde_json;
+extern crate serde_yaml;
+
+
 extern crate mpv ;
 extern crate sdl2;
 extern crate sdl2_ttf;

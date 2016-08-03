@@ -1,9 +1,10 @@
 extern crate sdl2;
-use sdl2::pixels::Color;
+use ::subtitles::Color;
+use ::sdl2::pixels::Color as SdlColor;
 use std::cmp::{max, min};
 
 /// will always return a flat color regardless or alpha
-pub fn mix_colors(color1: Color, color2: Color, mix_ratio: f32) -> Color {
+pub fn mix_colors(color1: SdlColor, color2: SdlColor, mix_ratio: f32) -> SdlColor {
     let (r1, g1, b1) = color1.rgb();
     let (r2, g2, b2) = color2.rgb();
     let (r1, g1, b1) = (r1 as i16, g1 as i16, b1 as i16);
@@ -15,15 +16,15 @@ pub fn mix_colors(color1: Color, color2: Color, mix_ratio: f32) -> Color {
     let (r, g, b) = (max(min(r, 0xFF), 0) as u8,
                      max(min(g, 0xFF), 0) as u8,
                      max(min(b, 0xFF), 0) as u8);
-    Color::RGB(r, g, b)
+    SdlColor::RGB(r, g, b)
 }
 
-pub fn fade_color(color1: Color, fade_ratio: f32) -> Color {
+pub fn fade_color(color1: SdlColor, fade_ratio: f32) -> SdlColor {
     let (r, g, b, a): (u8, u8, u8, u8) = match color1 {
-        Color::RGB(r, g, b) => (r, g, b, 255),
-        Color::RGBA(r, g, b, a) => (r, g, b, a),
+        SdlColor::RGB(r, g, b) => (r, g, b, 255),
+        SdlColor::RGBA(r, g, b, a) => (r, g, b, a),
     };
-    Color::RGBA(r, g, b, (a as f32 * fade_ratio) as u8)
+    SdlColor::RGBA(r, g, b, (a as f32 * fade_ratio) as u8)
 }
 
 pub fn parse_hex(hex:&str) -> Result<u32,String> {
@@ -50,7 +51,11 @@ pub fn parse_bgr(bgr : &str) -> Result<Color,String> {
         let blue = try!(parse_hex(blue)) as u8 ;
         let green = try!(parse_hex(green)) as u8 ;
         let red = try!(parse_hex(red)) as u8 ;
-        Ok(Color::RGB(red,green,blue))
+        Ok(Color {
+            red:red,
+            green:green,
+            blue:blue
+        })
     }
 }
 

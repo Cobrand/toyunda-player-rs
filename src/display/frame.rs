@@ -142,11 +142,15 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
     let syllable_options = syllable.syllable_options.unwrap_or(SyllableOptions::default())
                             .or(default_syllable_options);
     let syllable_parameters = SyllableParameters::from(syllable_options);
+    let outline = syllable_parameters.outline.map(|c| c.to_sdl_color());
+    let alive_color = syllable_parameters.alive_color.to_sdl_color();
+    let transition_color = syllable_parameters.transition_color.to_sdl_color();
+    let dead_color = syllable_parameters.dead_color.to_sdl_color();
     if (current_frame < syllable.begin) {
         let text_2d = ::display::TextElement {
             text: syllable.text.clone(),
-            color: fade_color(syllable_parameters.alive_color, alpha),
-            outline: syllable_parameters.outline,
+            color: fade_color(alive_color, alpha),
+            outline: outline,
             shadow: None,
             attach_logo:false
         };
@@ -156,13 +160,13 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
                       (syllable.end  - syllable.begin) as f32;
         // lets ease the percent a lil bits
         let percent = 1.0 - (1.0 - percent*percent).sqrt();
-        let transition_color = mix_colors(syllable_parameters.transition_color,
-                                          syllable_parameters.dead_color,
+        let transition_color = mix_colors(transition_color,
+                                          dead_color,
                                           percent);
         let text_2d = ::display::TextElement {
             text:  syllable.text.clone(),
             color: transition_color,
-            outline: syllable_parameters.outline,
+            outline: outline,
             shadow: None,
             attach_logo:false
         };
@@ -170,8 +174,8 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
     } else {
         let text_2d = ::display::TextElement {
             text: syllable.text.clone(),
-            color: fade_color(syllable_parameters.dead_color, alpha),
-            outline: syllable_parameters.outline,
+            color: fade_color(dead_color, alpha),
+            outline: outline,
             shadow: None,
             attach_logo:false
         };
@@ -255,7 +259,7 @@ impl Frame {
                     (::display::PosX::Centered,
                      ::display::PosY::FromTopPercent( l as f32 * 0.15 + 0.01 ))
                 }
-                SentencePos::ForcePos(x,y) => {
+                SentencePos::ForcePos{x,y} => {
                     (::display::PosX::FromLeftPercent(x),
                      ::display::PosY::FromTopPercent(y))
                 },

@@ -1,7 +1,7 @@
-use ::sdl2::pixels::Color;
+use subtitles::Color;
 use std::convert::From;
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct SubtitlesOptions {
     /// Global SentenceOptions
     pub sentence_options:Option<SentenceOptions>,
@@ -23,7 +23,7 @@ impl SubtitlesOptions {
     }
 }
 
-#[derive(Debug,Clone,Copy,Default)]
+#[derive(Debug,Clone,Copy,Default,Serialize,Deserialize)]
 pub struct SentenceOptions {
     /// Global SyllableOptions
     pub syllable_options:Option<SyllableOptions>,
@@ -66,7 +66,7 @@ impl From<SentenceOptions> for SentenceParameters {
     }
 }
 
-#[derive(Debug,Clone,Copy,Default)]
+#[derive(Debug,Clone,Copy,Default,Serialize,Deserialize)]
 pub struct SyllableOptions {
     pub alive_color:Option<Color>,
     pub transition_color:Option<Color>,
@@ -96,10 +96,14 @@ pub struct SyllableParameters {
 impl From<SyllableOptions> for SyllableParameters {
     fn from(syllable_options:SyllableOptions) -> Self {
         SyllableParameters {
-            alive_color:      syllable_options.alive_color.     unwrap_or(Color::RGB(255,255,  0)),
-            transition_color: syllable_options.transition_color.unwrap_or(Color::RGB(255,  0,  0)),
-            dead_color:       syllable_options.dead_color.      unwrap_or(Color::RGB(  0,255,255)),
-            outline: syllable_options.outline.unwrap_or(Some(Color::RGB(0,0,0))),
+            alive_color:      syllable_options.alive_color
+                .unwrap_or(Color{red:255,green:255,blue:0  }),
+            transition_color: syllable_options.transition_color
+                .unwrap_or(Color{red:255,green:0  ,blue:0  }),
+            dead_color:       syllable_options.dead_color
+                .unwrap_or(Color{red:0  ,green:0  ,blue:255}),
+            outline: syllable_options.outline
+                .unwrap_or(Some(Color{red:0  ,green:0  ,blue:0  }))
         }
     }
 }
