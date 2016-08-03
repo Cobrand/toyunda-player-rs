@@ -133,6 +133,7 @@ impl<'a> ToyundaPlayer<'a> {
                                         match self.import_subtitles(video_path) {
                                             Ok(_) => {
                                                 info!("Now playing : '{}'",video_path);
+                                                *self.playing_state_mut() = PlayingState::Playing(PathBuf::from(video_path));
                                                 Ok(ToyundaAction::Nothing)
                                             },
                                             Err(e) => {
@@ -165,6 +166,7 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             }
             Command::EndFile => {
+                *self.playing_state_mut() = PlayingState::Idle;
                 self.clear_subtitles();
                 Ok(ToyundaAction::Nothing)
             }

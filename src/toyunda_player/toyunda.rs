@@ -1,6 +1,8 @@
+extern crate serde_json;
+
 use ::toyunda_player::*;
 use mpv::{MpvHandlerWithGl,Event as MpvEvent};
-use std::path::Path;
+use std::path::{Path,PathBuf};
 use ::subtitles::Subtitles;
 use ::display::Displayer;
 use sdl2::event::Event;
@@ -9,7 +11,6 @@ use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
 use ::toyunda_player::error::*;
 use ::toyunda_player::command::*;
 use clap::ArgMatches ;
-use std::path::PathBuf;
 use std::collections::VecDeque;
 
 pub struct ToyundaPlayer<'a> {
@@ -17,7 +18,8 @@ pub struct ToyundaPlayer<'a> {
     mpv:Box<MpvHandlerWithGl>,
     displayer:Displayer<'a>,
     options:ToyundaOptions,
-    waiting_queue:VecDeque<PathBuf>
+    waiting_queue:VecDeque<PathBuf>,
+    playing_state:PlayingState
 }
 
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
@@ -44,7 +46,8 @@ impl<'a> ToyundaPlayer<'a> {
             mpv:mpv_box,
             displayer:displayer,
             options:ToyundaOptions::default(),
-            waiting_queue: VecDeque::new()
+            waiting_queue: VecDeque::new(),
+            playing_state:PlayingState::Idle
         }
     }
 
@@ -270,6 +273,13 @@ impl<'a> ToyundaPlayer<'a> {
                 => self.execute_command(Command::Seek(-15.0)),
             Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if mode != KaraokeMode
                 => self.execute_command(Command::Seek(-3.0)),
+            Event::KeyDown { keycode: Some(Keycode::S), repeat: false,.. } if mode != KaraokeMode
+                => {
+                if let Some(ref sub) = self.subtitles {
+                    println!("{}",serde_json::to_string_pretty(sub).unwrap());
+                };
+                Ok(ToyundaAction::Nothing)
+            },
             Event::KeyDown { keycode: Some(Keycode::V), repeat: false,.. }
                 => self.execute_command(Command::ToggleDisplaySubtitles),
             Event::MouseWheel { y:delta_y, .. } if is_ctrl_pressed
@@ -308,6 +318,14 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn options_mut(&mut self) -> &mut ToyundaOptions {
         &mut self.options
+    }
+
+    pub fn playing_state(&self) -> &PlayingState {
+        &self.playing_state
+    }
+
+    pub fn playing_state_mut(&mut self) -> &mut PlayingState {
+        &mut self.playing_state
     }
 
     pub fn clear_subtitles(&mut self) {
