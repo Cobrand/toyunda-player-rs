@@ -6,6 +6,7 @@ use std::path::{Path,PathBuf};
 use ::subtitles::Subtitles;
 use ::display::Displayer;
 use sdl2::event::Event;
+use sdl2::pixels::Color;
 use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
 use ::toyunda_player::error::*;
@@ -13,13 +14,15 @@ use ::toyunda_player::command::*;
 use clap::ArgMatches ;
 use std::collections::VecDeque;
 
+
 pub struct ToyundaPlayer<'a> {
     subtitles:Option<Subtitles>,
     mpv:Box<MpvHandlerWithGl>,
     displayer:Displayer<'a>,
     options:ToyundaOptions,
     waiting_queue:VecDeque<PathBuf>,
-    playing_state:PlayingState
+    playing_state:PlayingState,
+    graphic_messages:Vec<graphic_message::GraphicMessage>
 }
 
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
@@ -47,7 +50,8 @@ impl<'a> ToyundaPlayer<'a> {
             displayer:displayer,
             options:ToyundaOptions::default(),
             waiting_queue: VecDeque::new(),
-            playing_state:PlayingState::Idle
+            playing_state:PlayingState::Idle,
+            graphic_messages:Vec::with_capacity(2)
         }
     }
 
@@ -95,6 +99,15 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(())
     }
 
+    pub fn add_graphic_message(&mut self,category:graphic_message::Category,message:&str) {
+        use std::time::{Instant,Duration};
+        self.graphic_messages.push( graphic_message::GraphicMessage {
+            category:category,
+            text: String::from(message),
+            up_until : Instant::now() + Duration::from_secs(5)
+        });
+    }
+
     pub fn import_subtitles<P:AsRef<Path>>(&mut self,path:P) -> Result<()> {
         let path : &Path = path.as_ref();
         match (path.is_file(),path.is_dir()) {
@@ -114,6 +127,7 @@ impl<'a> ToyundaPlayer<'a> {
                     info!("Failed to load json file, trying lyr and frm files");
                     if (lyr_path.is_file() && frm_path.is_file()) {
                         info!("Loading subtitles with lyr and frm ...");
+                        self.add_graphic_message(graphic_message::Category::Info, "Failed to load json subtitle file, loading lyr and frm");
                         Subtitles::load_from_lyr_frm(lyr_path,frm_path)
                             .map(|subtitles| {
                                 self.subtitles = Some(subtitles);
@@ -149,6 +163,41 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
+    pub fn render_messages(&mut self) -> Result<()> {
+        use ::toyunda_player::graphic_message::*;
+        use std::time::Instant;
+        use ::display::* ;
+        let is_karaoke_mode =  self.options.mode == ToyundaMode::KaraokeMode ;
+        self.graphic_messages.retain(|ref message| {
+            message.up_until > Instant::now() &&
+            (!is_karaoke_mode || message.category == graphic_message::Category::Announcement)
+        });
+        let message_height = 0.06 ;
+        for (n,ref message) in self.graphic_messages.iter().enumerate() {
+            let text_elt : TextElement = TextElement {
+                text : message.text.clone(),
+                attach_logo : false,
+                color : match message.category {
+                    Category::Error => Color::RGB(255,0,0),
+                    Category::Warn => Color::RGB(255,140,0),
+                    Category::Info => Color::RGB(0,255,255),
+                    Category::Announcement => Color::RGB(255,255,255)
+                },
+                outline : Some(Color::RGB(0,0,0)),
+                shadow : None
+            };
+            let text2d : Text2D = Text2D {
+                text: vec![text_elt],
+                size: Size::FitPercent(Some(0.98),Some(message_height)),
+                pos: (PosX::FromLeftPercent(0.01),
+                      PosY::FromBottomPercent(0.01 + message_height * n as f32)),
+                anchor: (0.0, 1.0),
+            };
+            text2d.draw(&mut self.displayer);
+        };
+        Ok(())
+    }
+
     pub fn render_frame(&mut self) -> Result<()> {
         use sdl2::rect::Rect;
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
@@ -162,6 +211,7 @@ impl<'a> ToyundaPlayer<'a> {
                 self.displayer.sdl_renderer_mut().copy(&subtitles_texture,Some(Rect::new(0,0,w,h)),Some(Rect::new(0,0,w,h)));
             }
         }
+        try!(self.render_messages());
         self.displayer.render();
         Ok(())
     }

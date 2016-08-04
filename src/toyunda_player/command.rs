@@ -141,7 +141,9 @@ impl<'a> ToyundaPlayer<'a> {
                                                     error!("Error was received when importing subtitles : {} , file {} will be skipped",e,video_path);
                                                     Ok(ToyundaAction::PlayNext)
                                                 } else {
-                                                    error!("Error was received when importing subtitles : {}",e);
+                                                    let string = format!("Error was received when importing subtitles : {}",e);
+                                                    error!("{}",string.as_str());
+                                                    self.add_graphic_message(graphic_message::Category::Error, string.as_str());
                                                     Ok(ToyundaAction::Nothing)
                                                 }
                                             }
