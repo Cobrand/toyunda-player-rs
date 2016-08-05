@@ -27,16 +27,23 @@ impl SubtitlesOptions {
 #[derive(Debug,Clone,Copy,Default,Serialize,Deserialize)]
 pub struct SentenceOptions {
     /// Global SyllableOptions
+    #[serde(skip_serializing_if="Option::is_none")]
     pub syllable_options:Option<SyllableOptions>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub display_logo:Option<bool>,
     /// Total time where subtitles start appearing, before first syllable start playing
+    #[serde(skip_serializing_if="Option::is_none")]
     pub transition_time_before:Option<u16>,
     /// Span where subtitles start appearing
+    #[serde(skip_serializing_if="Option::is_none")]
     pub fade_time_before:Option<u16>,
     /// Total time where subtitles are disappearing, before first syllable start playing
+    #[serde(skip_serializing_if="Option::is_none")]
     pub transition_time_after:Option<u16>,
     /// Span where subtitles start disappearing
+    #[serde(skip_serializing_if="Option::is_none")]
     pub fade_time_after:Option<u16>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub row_position:Option<RowPosition>
 }
 
@@ -79,9 +86,13 @@ impl From<SentenceOptions> for SentenceParameters {
 
 #[derive(Debug,Clone,Copy,Default,Serialize,Deserialize)]
 pub struct SyllableOptions {
+    #[serde(skip_serializing_if="Option::is_none")]
     pub alive_color:Option<Color>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub transition_color:Option<Color>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub dead_color:Option<Color>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub outline:Option<Option<Color>> // color of
 }
 
@@ -101,6 +112,7 @@ pub struct SyllableParameters {
     pub alive_color:Color,
     pub transition_color:Color,
     pub dead_color:Color,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub outline:Option<Color>
 }
 

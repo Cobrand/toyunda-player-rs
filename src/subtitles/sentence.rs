@@ -7,6 +7,7 @@ pub struct Sentence {
     pub syllables:Vec<Syllable>,
     #[serde(skip_serializing,skip_deserializing)]
     pub position: RowPosition,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub sentence_options:Option<SentenceOptions>
 }
 

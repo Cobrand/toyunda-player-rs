@@ -15,6 +15,7 @@ use sdl2::rect::Rect;
 #[derive(Debug,Default,Serialize,Deserialize,Clone)]
 pub struct Subtitles {
     pub sentences:Vec<Sentence>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub subtitles_options:Option<SubtitlesOptions>,
     pub meta_info:MetaInfo
 }
