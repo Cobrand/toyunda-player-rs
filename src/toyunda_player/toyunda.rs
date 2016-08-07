@@ -347,6 +347,8 @@ impl<'a> ToyundaPlayer<'a> {
                 => self.execute_command(Command::Seek(-3.0)),
             Event::KeyDown { keycode: Some(Keycode::R), repeat: false,.. } if mode != KaraokeMode
                 => self.execute_command(Command::ReloadSubtitles),
+            Event::DropFile { filename: filename,.. }
+                => self.execute_command(Command::AddToQueue(PathBuf::from(filename))),
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false,.. } if mode != KaraokeMode
                 => {
                 match self.playing_state {
