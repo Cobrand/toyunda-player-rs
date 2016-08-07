@@ -108,6 +108,17 @@ impl<'a> ToyundaPlayer<'a> {
         });
     }
 
+    pub fn reload_subtitles(&mut self) -> Result<()> {
+        match self.playing_state.clone() {
+            PlayingState::Idle => {
+                Err(Error::Text(String::from("Error when reloading subtitles : no file is playing")))
+            },
+            PlayingState::Playing(path) => {
+                self.import_subtitles(path)
+            }
+        }
+    }
+
     pub fn import_subtitles<P:AsRef<Path>>(&mut self,path:P) -> Result<()> {
         let path : &Path = path.as_ref();
         match (path.is_file(),path.is_dir()) {
@@ -334,6 +345,8 @@ impl<'a> ToyundaPlayer<'a> {
                 => self.execute_command(Command::Seek(-15.0)),
             Event::KeyDown { keycode: Some(Keycode::Left), repeat: false,.. } if mode != KaraokeMode
                 => self.execute_command(Command::Seek(-3.0)),
+            Event::KeyDown { keycode: Some(Keycode::R), repeat: false,.. } if mode != KaraokeMode
+                => self.execute_command(Command::ReloadSubtitles),
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false,.. } if mode != KaraokeMode
                 => {
                 match self.playing_state {

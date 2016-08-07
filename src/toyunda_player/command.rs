@@ -13,6 +13,7 @@ pub enum Command {
     ToggleFullscreen,
     ToggleDisplaySubtitles,
     AddToQueue(PathBuf),
+    ReloadSubtitles,
     PlayNext,
     ClearQueue,
     EndFile,
@@ -170,6 +171,10 @@ impl<'a> ToyundaPlayer<'a> {
             Command::EndFile => {
                 *self.playing_state_mut() = PlayingState::Idle;
                 self.clear_subtitles();
+                Ok(ToyundaAction::Nothing)
+            }
+            Command::ReloadSubtitles => {
+                try!(self.reload_subtitles());
                 Ok(ToyundaAction::Nothing)
             }
         }
