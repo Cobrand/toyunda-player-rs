@@ -112,7 +112,6 @@ pub struct SyllableParameters {
     pub alive_color:Color,
     pub transition_color:Color,
     pub dead_color:Color,
-    #[serde(skip_serializing_if="Option::is_none")]
     pub outline:Option<Color>
 }
 

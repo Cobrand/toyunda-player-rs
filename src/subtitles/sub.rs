@@ -40,11 +40,11 @@ fn set_best_sentence_row(sentences:&[Sentence],sentence:&mut Sentence,default_se
                     let sentence_candidate_parameters = SentenceParameters::from(sentence_candidate_options);
                     let first_frame = first_syllable.begin
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
-                    let last_frame = last_syllable.end
+                    let last_frame = last_syllable.end.expect("last syllable has no end")
                         .saturating_add(sentence_parameters.transition_time_after as u32);
                     let first_frame_candidate = first_syllable_candidate.begin
                         .saturating_sub(sentence_candidate_parameters.transition_time_before as u32);
-                    let last_frame_candidate = last_syllable_candidate.end
+                    let last_frame_candidate = last_syllable_candidate.end.expect("last syllable has no end")
                         .saturating_add(sentence_candidate_parameters.transition_time_after as u32);
                     if (last_frame_candidate >= first_frame  && last_frame_candidate <= last_frame ) ||
                        (first_frame_candidate >= first_frame && first_frame_candidate <= last_frame) ||
@@ -96,7 +96,7 @@ impl Subtitles {
                                                      Syllable {
                                                          text:s.to_string(),
                                                          begin:0,
-                                                         end:0,
+                                                         end:Some(0),
                                                          syllable_options:None,
                                                      })
                                                      .collect::<Vec<_>>();
@@ -175,7 +175,7 @@ impl Subtitles {
                 match frame_iter.next() {
                     Some(&(begin,end)) => {
                         syllable.begin = begin ;
-                        syllable.end = end ;
+                        syllable.end = Some(end);
                     },
                     None => {
                         break 'sentences;
@@ -183,8 +183,26 @@ impl Subtitles {
                 }
             }
         };
+        try!(subtitles.check());
         subtitles.adjust_sentences_row();
         Ok(subtitles)
+    }
+
+    pub fn check(&self) -> Result<(),String> {
+        for (s_number,sentence) in self.sentences.iter().enumerate() {
+            match (sentence.syllables.first(),sentence.syllables.last()) {
+                (Some( _ ),
+                 Some( &Syllable {end  :Some(_)  , ..} )) => {},
+                (Some( _ ),
+                 Some( &Syllable {end  :None  , ..} )) => {
+                     return Err(format!("Error at sentence {}, no 'end' time for the last syllable",s_number))
+                 },
+                 _ => {
+                     warn!("Empty sentence {} when checking",s_number);
+                 }
+            };
+        }
+        Ok(())
     }
 
     /// Note that it will use the render_target used by the renderer,

@@ -99,7 +99,7 @@ fn compute_sentence_alpha(sentence:&Sentence,
     let sentence_parameters = SentenceParameters::from(sentence_options);
     match (sentence.syllables.first(), sentence.syllables.last()) {
         (Some( &Syllable {begin:frame_begin, ..} ),
-         Some( &Syllable {end  :frame_end  , ..} )) => {
+         Some( &Syllable {end  :Some(frame_end)  , ..} )) => {
             let end_fade_frame_before : u32 = (sentence_parameters.transition_time_before
                                      -  sentence_parameters.fade_time_before) as u32 ;
             let end_fade_frame_after : u32 = (sentence_parameters.transition_time_after
@@ -136,9 +136,12 @@ fn compute_sentence_alpha(sentence:&Sentence,
 
 fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
                 syllable:&Syllable,
+                next_syllable:Option<&Syllable>,
                 default_syllable_options:SyllableOptions,
                 current_frame:u32,
                 alpha:f32) {
+    let syllable_end = syllable.end.or(next_syllable.map(|s| s.begin.saturating_sub(1) ))
+        .expect("File has not been checked properly : end syllable has no end frame");
     let syllable_options = syllable.syllable_options.unwrap_or(SyllableOptions::default())
                             .or(default_syllable_options);
     let syllable_parameters = SyllableParameters::from(syllable_options);
@@ -155,9 +158,9 @@ fn add_syllable(mut text_elts : &mut Vec<::display::TextElement>,
             attach_logo:false
         };
         text_elts.push(text_2d);
-    } else if (syllable.begin <= current_frame) && (current_frame <= syllable.end) {
+    } else if (syllable.begin <= current_frame) && (current_frame <= syllable_end) {
         let percent = (current_frame - syllable.begin) as f32 /
-                      (syllable.end  - syllable.begin) as f32;
+                      (syllable_end  - syllable.begin) as f32;
         // lets ease the percent a lil bits
         let percent = 1.0 - (1.0 - percent*percent).sqrt();
         let transition_color = mix_colors(transition_color,
@@ -198,17 +201,19 @@ impl Frame {
             let sentence_parameters = SentenceParameters::from(sentence_options);
             match (sentence.syllables.first(),sentence.syllables.last()) {
                 (None,_) | (_,None) => false,
-                (Some(ref first_syllable),Some(ref last_syllable)) => {
-                    let first_frame = first_syllable.begin
+                (Some(&Syllable { begin : first_syllable_begin , .. } ),
+                 Some(&Syllable { end : Some(last_syllable_end), .. } )) => {
+                    let first_frame = first_syllable_begin
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
-                    let last_frame = last_syllable.end
+                    let last_frame = last_syllable_end
                         .saturating_add(sentence_parameters.transition_time_after as u32);
                     if ( frame_number >= first_frame && frame_number <= last_frame ) {
                         true
                     } else {
                         false
                     }
-                }
+                },
+                _ => panic!("Subtitles have not been checked")
             }
         }); // get all the sentences displayed on screen
         for (_sentence_number,ref sentence) in sentence_iter {
@@ -223,8 +228,17 @@ impl Frame {
                 tmp
                 .or(default_sentence_options.syllable_options.unwrap_or(SyllableOptions::default()))
                 .or(SyllableOptions::default());
-            for syllable in sentence.syllables.iter() {
-                add_syllable(&mut text_elts,syllable,default_syllable_options,frame_number,sentence_alpha);
+            {
+                for tmp_syllables in sentence.syllables.windows(2) {
+                    let (syllable1,syllable2) = (&tmp_syllables[0],&tmp_syllables[1]);
+                    add_syllable(&mut text_elts,syllable1,Some(syllable2),default_syllable_options,frame_number,sentence_alpha);
+                };
+                match sentence.syllables.last() {
+                    Some(last_syllable) => {
+                        add_syllable(&mut text_elts, last_syllable, None, default_syllable_options, frame_number, sentence_alpha);
+                    },
+                    _ => {}
+                }
             }
             'syllables: for (n,syllable) in sentence.syllables.iter().enumerate() {
                 if frame_number >= syllable.begin {
@@ -235,7 +249,7 @@ impl Frame {
             }
             match sentence.syllables.last() {
                 Some(ref syllable) => {
-                    if (frame_number > syllable.end) {
+                    if (frame_number > syllable.end.unwrap()) {
                         logo_position = None;
                     }
                 },
