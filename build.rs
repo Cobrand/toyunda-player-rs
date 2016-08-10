@@ -1,12 +1,19 @@
 use std::env;
 use std::path::PathBuf;
-use std::fs;
+use std::process::Command;
 fn main() {
-    let current_dir = env::current_dir().unwrap();
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let mut source_logo_file = current_dir.clone();
-    source_logo_file.push("logo_toyunda.png");
-    let mut target_logo_file = out_dir.clone();
-    target_logo_file.push("../../../logo_toyunda.png");
-    fs::copy(source_logo_file,target_logo_file);
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap()).join("../../..");
+
+    let _ = Command::new("cp")
+                    .arg("logo_toyunda.png")
+                    .arg(out_dir.with_file_name("logo_toyunda.png"))
+                    .output()
+                    .expect("failed to execute process");
+
+    let _ = Command::new("cp")
+                    .arg("-R")
+                    .arg("web/")
+                    .arg(out_dir)
+                    .output()
+                    .expect("failed to execute process");
 }
