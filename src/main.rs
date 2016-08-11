@@ -5,6 +5,10 @@ extern crate serde;
 extern crate serde_json;
 extern crate serde_yaml;
 
+extern crate iron ;
+extern crate staticfile;
+extern crate mount;
+extern crate router;
 
 extern crate mpv ;
 extern crate sdl2;

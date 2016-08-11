@@ -11,16 +11,15 @@ use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
 use ::toyunda_player::error::*;
 use ::toyunda_player::command::*;
+use ::toyunda_player::playlist::*;
 use clap::ArgMatches ;
-use std::collections::VecDeque;
-
 
 pub struct ToyundaPlayer<'a> {
     subtitles:Option<Subtitles>,
     mpv:Box<MpvHandlerWithGl>,
     displayer:Displayer<'a>,
     options:ToyundaOptions,
-    waiting_queue:VecDeque<PathBuf>,
+    playlist:Playlist,
     playing_state:PlayingState,
     graphic_messages:Vec<graphic_message::GraphicMessage>
 }
@@ -49,7 +48,7 @@ impl<'a> ToyundaPlayer<'a> {
             mpv:mpv_box,
             displayer:displayer,
             options:ToyundaOptions::default(),
-            waiting_queue: VecDeque::new(),
+            playlist: Playlist::new(),
             playing_state:PlayingState::Idle,
             graphic_messages:Vec::with_capacity(2)
         }
@@ -59,7 +58,8 @@ impl<'a> ToyundaPlayer<'a> {
 
         if let Some(video_files) = arg_matches.values_of("VIDEO_FILE") {
             for value in video_files {
-                self.waiting_queue.push_back(PathBuf::from(value));
+                try!(self.playlist
+                         .push_back(VideoMeta::new(PathBuf::from(value))));
             }
         }
 
@@ -109,14 +109,16 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn reload_subtitles(&mut self) -> Result<()> {
-        match self.playing_state.clone() {
-            PlayingState::Idle => {
-                Err(Error::Text(String::from("Error when reloading subtitles : no file is playing")))
+        let path = match &self.playing_state {
+            &PlayingState::Idle => {
+                return Err(Error::Text(String::from("Error when reloading subtitles : no file is playing")));
             },
-            PlayingState::Playing(path) => {
-                self.import_subtitles(path)
+            &PlayingState::Playing(ref video_meta) => {
+                video_meta.video_path.clone()
             }
-        }
+        };
+        try!(self.import_subtitles(path));
+        Ok(())
     }
 
     pub fn import_subtitles<P:AsRef<Path>>(&mut self,path:P) -> Result<()> {
@@ -347,17 +349,16 @@ impl<'a> ToyundaPlayer<'a> {
                 => self.execute_command(Command::Seek(-3.0)),
             Event::KeyDown { keycode: Some(Keycode::R), repeat: false,.. } if mode != KaraokeMode
                 => self.execute_command(Command::ReloadSubtitles),
-            Event::DropFile { filename: filename,.. }
+            Event::DropFile { filename ,.. }
                 => self.execute_command(Command::AddToQueue(PathBuf::from(filename))),
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false,.. } if mode != KaraokeMode
                 => {
                 match self.playing_state {
-                    PlayingState::Playing(ref path) => {
+                    PlayingState::Playing(ref video_meta) => {
                         if let Some(ref sub) = self.subtitles {
-                            let path : PathBuf = path.clone();
+                            let json_file_path = video_meta.video_path.with_extension("json");
                             let sub : Subtitles = sub.clone();
                             ::std::thread::spawn(move || {
-                                let json_file_path = path.with_extension("json");
                                 let mut file = ::std::fs::File::create(&json_file_path)
                                     .expect("Failed to create subtitles file");
                                 serde_json::to_writer_pretty(&mut file, &sub).unwrap();
@@ -399,8 +400,8 @@ impl<'a> ToyundaPlayer<'a> {
         &mut self.displayer
     }
 
-    pub fn queue_mut(&mut self) -> &mut VecDeque<PathBuf> {
-        &mut self.waiting_queue
+    pub fn playlist(&self) -> &Playlist {
+        &self.playlist
     }
 
     pub fn options(&self) -> &ToyundaOptions {

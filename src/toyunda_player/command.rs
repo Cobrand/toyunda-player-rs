@@ -2,6 +2,7 @@ use ::toyunda_player::*;
 use ::toyunda_player::error::{Result,Error};
 use std::cmp::{min,max};
 use std::path::PathBuf;
+use ::toyunda_player::playlist::*;
 
 #[derive(Debug)]
 pub enum Command {
@@ -97,12 +98,12 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             },
             Command::PlayNext => {
-                let video_path = self.queue_mut().pop_front();
+                let video_meta = try!(self.playlist().pop_front());
                 match self.mpv_mut().command(&["stop"]) {
                     Err(e) => {error!("Unexpected error {} ({:?}) happened when stopping player",e,e)},
                     _ => {}
                 };
-                match video_path {
+                match video_meta {
                     None => {
                         match self.options().quit_when_finished {
                             None => {
@@ -122,19 +123,22 @@ impl<'a> ToyundaPlayer<'a> {
                             }
                         }
                     },
-                    Some(video_path) => {
-                        match video_path.to_str() {
+                    Some(video_meta) => {
+                        let tmp_video_path = video_meta.video_path.to_str().map(|s| {
+                            String::from(s)
+                        });
+                        match tmp_video_path {
                             None => {
-                                error!("Invalid UTF-8 Path for {} , skipping file",video_path.display());
+                                error!("Invalid UTF-8 Path for {} , skipping file",video_meta.video_path.display());
                                 Ok(ToyundaAction::PlayNext)
                             },
                             Some(video_path) => {
-                                match self.mpv_mut().command(&["loadfile",video_path]) {
+                                match self.mpv_mut().command(&["loadfile",video_path.as_str()]) {
                                     Ok(_) => {
-                                        match self.import_subtitles(video_path) {
+                                        match self.import_subtitles(&video_path) {
                                             Ok(_) => {
-                                                info!("Now playing : '{}'",video_path);
-                                                *self.playing_state_mut() = PlayingState::Playing(PathBuf::from(video_path));
+                                                info!("Now playing : '{}'",&video_path);
+                                                *self.playing_state_mut() = PlayingState::Playing(video_meta);
                                                 Ok(ToyundaAction::Nothing)
                                             },
                                             Err(e) => {
@@ -161,11 +165,11 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             },
             Command::ClearQueue => {
-                self.queue_mut().clear();
+                try!(self.playlist().clear());
                 Ok(ToyundaAction::Nothing)
             },
             Command::AddToQueue(path) => {
-                self.queue_mut().push_back(path);
+                try!(self.playlist().push_back(VideoMeta::new(path)));
                 Ok(ToyundaAction::Nothing)
             }
             Command::EndFile => {

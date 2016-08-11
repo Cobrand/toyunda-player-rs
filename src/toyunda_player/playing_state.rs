@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-#[derive(Debug,Clone)]
+use ::toyunda_player::playlist::VideoMeta;
+#[derive(Debug)]
 pub enum PlayingState {
     Idle,
-    Playing(PathBuf)
+    Playing(VideoMeta)
 }
