@@ -12,6 +12,7 @@ use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
 use ::toyunda_player::error::*;
 use ::toyunda_player::command::*;
 use ::toyunda_player::playlist::*;
+use ::toyunda_player::manager::*;
 use clap::ArgMatches ;
 
 pub struct ToyundaPlayer<'a> {
@@ -231,6 +232,7 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn main_loop(&mut self,sdl_context:&Sdl) -> Result<()> {
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
+        let mut manager = Manager::new("0.0.0.0:8080").unwrap();
         'main: loop {
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
             for event in event_pump.poll_iter() {

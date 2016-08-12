@@ -1,6 +1,7 @@
 use iron::{Listening,status};
 use iron::prelude::*;
 use std::net::ToSocketAddrs;
+use std::ops::Drop;
 pub struct Manager {
     listening:Listening
 }
@@ -14,5 +15,11 @@ impl Manager {
         Ok(Manager {
             listening:listening
         })
+    }
+}
+
+impl Drop for Manager {
+    fn drop(&mut self) {
+        self.listening.close().unwrap();
     }
 }
