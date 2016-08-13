@@ -73,8 +73,7 @@ fn main() {
                             .help("Forces keeping alive the player once the waiting queue is finished"))
                           .arg(Arg::with_name("VIDEO_FILE")
                             .help("Sets the video file(s) to play")
-                            .multiple(true)
-                            .required(true))
+                            .multiple(true))
                           .get_matches();
 
     // INIT SDL
