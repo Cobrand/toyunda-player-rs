@@ -3,6 +3,7 @@ use ::toyunda_player::error::{Result,Error};
 use std::cmp::{min,max};
 use std::path::PathBuf;
 use ::toyunda_player::playlist::*;
+use ::toyunda_player::playing_state::*;
 
 #[derive(Debug)]
 pub enum Command {
@@ -98,7 +99,7 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             },
             Command::PlayNext => {
-                let video_meta = try!(self.playlist().pop_front());
+                let video_meta = self.state().write().unwrap().playlist.pop_front();
                 match self.mpv_mut().command(&["stop"]) {
                     Err(e) => {error!("Unexpected error {} ({:?}) happened when stopping player",e,e)},
                     _ => {}
@@ -138,7 +139,7 @@ impl<'a> ToyundaPlayer<'a> {
                                         match self.import_subtitles(&video_path) {
                                             Ok(_) => {
                                                 info!("Now playing : '{}'",&video_path);
-                                                *self.playing_state_mut() = PlayingState::Playing(video_meta);
+                                                self.state().write().unwrap().playing_state = PlayingState::Playing(video_meta);
                                                 Ok(ToyundaAction::Nothing)
                                             },
                                             Err(e) => {
@@ -165,15 +166,15 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             },
             Command::ClearQueue => {
-                try!(self.playlist().clear());
+                self.state().write().unwrap().playlist.clear();
                 Ok(ToyundaAction::Nothing)
             },
             Command::AddToQueue(path) => {
-                try!(self.playlist().push_back(VideoMeta::new(path)));
+                self.state().write().unwrap().playlist.push_back(VideoMeta::new(path));
                 Ok(ToyundaAction::Nothing)
             }
             Command::EndFile => {
-                *self.playing_state_mut() = PlayingState::Idle;
+                self.state().write().unwrap().playing_state = PlayingState::Idle;
                 self.clear_subtitles();
                 Ok(ToyundaAction::Nothing)
             }

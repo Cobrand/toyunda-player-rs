@@ -9,9 +9,12 @@ use sdl2::event::Event;
 use sdl2::pixels::Color;
 use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
+use std::sync::{RwLock,Arc};
 use ::toyunda_player::error::*;
 use ::toyunda_player::command::*;
 use ::toyunda_player::playlist::*;
+use ::toyunda_player::state::*;
+use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
 use clap::ArgMatches ;
 
@@ -20,8 +23,7 @@ pub struct ToyundaPlayer<'a> {
     mpv:Box<MpvHandlerWithGl>,
     displayer:Displayer<'a>,
     options:ToyundaOptions,
-    playlist:Playlist,
-    playing_state:PlayingState,
+    state:Arc<RwLock<State>>,
     graphic_messages:Vec<graphic_message::GraphicMessage>
 }
 
@@ -49,8 +51,11 @@ impl<'a> ToyundaPlayer<'a> {
             mpv:mpv_box,
             displayer:displayer,
             options:ToyundaOptions::default(),
-            playlist: Playlist::new(),
-            playing_state:PlayingState::Idle,
+            state: Arc::new(RwLock::new(State {
+                playlist: Playlist::new(),
+                playing_state: PlayingState::Idle,
+                logs: Vec::new()
+            })),
             graphic_messages:Vec::with_capacity(2)
         }
     }
@@ -58,9 +63,9 @@ impl<'a> ToyundaPlayer<'a> {
     pub fn start(&mut self,arg_matches:ArgMatches) -> Result<()> {
 
         if let Some(video_files) = arg_matches.values_of("VIDEO_FILE") {
+            let mut state = self.state().write().unwrap();
             for value in video_files {
-                try!(self.playlist
-                         .push_back(VideoMeta::new(PathBuf::from(value))));
+                state.playlist.push_back(VideoMeta::new(PathBuf::from(value)));
             }
         }
 
@@ -110,7 +115,7 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn reload_subtitles(&mut self) -> Result<()> {
-        let path = match &self.playing_state {
+        let path = match &self.state().read().unwrap().playing_state {
             &PlayingState::Idle => {
                 return Err(Error::Text(String::from("Error when reloading subtitles : no file is playing")));
             },
@@ -355,8 +360,8 @@ impl<'a> ToyundaPlayer<'a> {
                 => self.execute_command(Command::AddToQueue(PathBuf::from(filename))),
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false,.. } if mode != KaraokeMode
                 => {
-                match self.playing_state {
-                    PlayingState::Playing(ref video_meta) => {
+                match &self.state().read().unwrap().playing_state {
+                    &PlayingState::Playing(ref video_meta) => {
                         if let Some(ref sub) = self.subtitles {
                             let json_file_path = video_meta.video_path.with_extension("json");
                             let sub : Subtitles = sub.clone();
@@ -402,8 +407,8 @@ impl<'a> ToyundaPlayer<'a> {
         &mut self.displayer
     }
 
-    pub fn playlist(&self) -> &Playlist {
-        &self.playlist
+    pub fn state(&self) -> &RwLock<State> {
+        &self.state
     }
 
     pub fn options(&self) -> &ToyundaOptions {
@@ -412,14 +417,6 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn options_mut(&mut self) -> &mut ToyundaOptions {
         &mut self.options
-    }
-
-    pub fn playing_state(&self) -> &PlayingState {
-        &self.playing_state
-    }
-
-    pub fn playing_state_mut(&mut self) -> &mut PlayingState {
-        &mut self.playing_state
     }
 
     pub fn clear_subtitles(&mut self) {
