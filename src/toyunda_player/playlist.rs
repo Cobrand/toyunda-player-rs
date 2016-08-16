@@ -1,11 +1,10 @@
-use std::sync::{RwLock,Arc};
 use ::subtitles::metainfo::MetaInfo;
 use std::collections::VecDeque;
 use std::path::{Path,PathBuf};
 
 pub type Playlist = VecDeque<VideoMeta> ;
 
-#[derive(Debug)]
+#[derive(Debug,Serialize)]
 pub struct VideoMeta {
     pub video_path : PathBuf,
     pub meta_info : MetaInfo
