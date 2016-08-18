@@ -9,6 +9,7 @@ extern crate iron ;
 extern crate staticfile;
 extern crate mount;
 extern crate router;
+extern crate bodyparser;
 
 extern crate mpv ;
 extern crate sdl2;

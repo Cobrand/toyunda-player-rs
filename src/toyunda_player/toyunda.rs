@@ -12,10 +12,10 @@ use sdl2::keyboard::{KeyboardState,Scancode,Keycode};
 use std::sync::{RwLock,Arc};
 use ::toyunda_player::error::*;
 use ::toyunda_player::command::*;
-use ::toyunda_player::playlist::*;
 use ::toyunda_player::state::*;
 use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
+use mpv::EndFileReason::MPV_END_FILE_REASON_EOF ;
 use clap::ArgMatches ;
 
 pub struct ToyundaPlayer<'a> {
@@ -38,6 +38,7 @@ fn get_alt_keys(keyboard_state:KeyboardState) -> (bool,bool,bool) {
      keyboard_state.is_scancode_pressed(Scancode::LShift))
 }
 
+#[derive(Debug,Clone)]
 pub enum ToyundaAction {
     Nothing,
     PlayNext,
@@ -236,8 +237,11 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn main_loop(&mut self,sdl_context:&Sdl) -> Result<()> {
+        use std::sync::mpsc::* ;
+
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
-        let mut manager = Manager::new("0.0.0.0:8080",Arc::downgrade(&self.state)).unwrap();
+        let (tx,rx) = channel() ;
+        let mut manager = Manager::new("0.0.0.0:8080",Arc::downgrade(&self.state),tx).unwrap();
         'main: loop {
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
             for event in event_pump.poll_iter() {
@@ -257,13 +261,31 @@ impl<'a> ToyundaPlayer<'a> {
                     }
                 };
             }
+            for command in rx.try_recv() {
+                let res = self.execute_command(command);
+                match res {
+                    Ok(ToyundaAction::Nothing) => {},
+                    Ok(ToyundaAction::Terminate) => {break 'main},
+                    Ok(ToyundaAction::PlayNext) => {
+                        match self.execute_command(Command::PlayNext) {
+                            Err(e) => {
+                                error!("An error '{}' occured when trying to play next file",e)
+                            },
+                            _ => {}
+                        }
+                    }
+                    Err(e) => {
+                        error!("An error '{}' occured ({:?})",e,e);
+                    }
+                }
+            }
             while let Some(event) = self.mpv.wait_event(0.0) {
                 let res = match event {
                     MpvEvent::Idle => {
                         self.execute_command(Command::PlayNext)
                     },
                     MpvEvent::Shutdown => Ok(ToyundaAction::Terminate),
-                    MpvEvent::EndFile(_) => { // TODO remove EndFile and handle this better
+                    MpvEvent::EndFile(Ok(MPV_END_FILE_REASON_EOF)) => { // TODO remove EndFile and handle this better
                         self.execute_command(Command::EndFile)
                     },
                     _ => Ok(ToyundaAction::Nothing)
@@ -356,6 +378,8 @@ impl<'a> ToyundaPlayer<'a> {
                 => self.execute_command(Command::Seek(-3.0)),
             Event::KeyDown { keycode: Some(Keycode::R), repeat: false,.. } if mode != KaraokeMode
                 => self.execute_command(Command::ReloadSubtitles),
+            Event::KeyDown { keycode: Some(Keycode::N), repeat: false,.. }
+                => self.execute_command(Command::PlayNext),
             Event::DropFile { filename ,.. }
                 => self.execute_command(Command::AddToQueue(PathBuf::from(filename))),
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false,.. } if mode != KaraokeMode

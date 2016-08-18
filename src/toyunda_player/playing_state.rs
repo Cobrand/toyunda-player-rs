@@ -1,4 +1,4 @@
-use ::toyunda_player::playlist::VideoMeta;
+use ::toyunda_player::video_meta::VideoMeta;
 #[derive(Debug,Serialize)]
 pub enum PlayingState {
     #[serde(rename="idle")]
