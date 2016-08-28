@@ -9,6 +9,7 @@ use std::sync::{Weak,RwLock,Arc,Mutex};
 use ::toyunda_player::state::State as ToyundaState;
 use ::toyunda_player::command::*;
 use ::toyunda_player::yaml_meta::*;
+use ::toyunda_player::video_meta::*;
 
 use ::utils::for_each_in_dir ;
 use std::path::{Path,PathBuf};
@@ -63,7 +64,19 @@ impl Manager {
 
     fn add_yaml_file<P:AsRef<Path>>(yaml_files:&mut Vec<YamlMeta>,file:P) -> Result<(),String> { 
         let file = file.as_ref();
-        Ok(())
+
+        match VideoMeta::from_yaml(file) {
+            Ok(video_meta) => {
+                yaml_files.push(YamlMeta {
+                    yaml_path:PathBuf::from(file),
+                    video_meta:video_meta.fix_paths(file)
+                });
+                Ok(())
+            },
+            Err(e) => {
+                Err(format!("Error when loading yaml file '{}' : {}",file.display(),e))
+            }
+        }
     }
 
     fn parse_yaml_directory<P:AsRef<Path>>(directory:P) -> Result<Vec<YamlMeta>,String> {
