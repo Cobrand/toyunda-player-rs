@@ -48,7 +48,7 @@ pub struct Manager {
     listening:Listening,
     toyunda_state:Weak<RwLock<ToyundaState>>,
     pub receiver: Receiver<Command>,
-    yaml_files : Vec<YamlMeta>
+    yaml_files : Arc<Vec<YamlMeta>>
 }
 
 impl Manager {
@@ -61,13 +61,14 @@ impl Manager {
         }
     }
 
-    fn add_yaml_file<P:AsRef<Path>>(&mut self,file:P) -> Result<(),String> { 
+    fn add_yaml_file<P:AsRef<Path>>(yaml_files:&mut Vec<YamlMeta>,file:P) -> Result<(),String> { 
         let file = file.as_ref();
         Ok(())
     }
 
-    fn parse_yaml_directory<P:AsRef<Path>>(&mut self,directory:P) -> Result<(),String> {
-        let (paths,errs) = for_each_in_dir(directory,3,|path|{
+    fn parse_yaml_directory<P:AsRef<Path>>(directory:P) -> Result<Vec<YamlMeta>,String> {
+        let mut yaml_files : Vec<YamlMeta>  = Vec::new();
+        let (paths,errs) = for_each_in_dir(directory,3,&|path|{
             match path.extension() {
                 Some(s) if s == "yaml" => true,
                 _ => false
@@ -76,18 +77,18 @@ impl Manager {
         for err in errs {
             let _tmp_str = format!("IoError '{}' when parsing yaml dir",err);
             error!("{}",_tmp_str);
-            self.log(_tmp_str.as_str());
+            // self.log(_tmp_str.as_str());
         };
         for path in paths {
-            match self.add_yaml_file(&path) {
+            match Self::add_yaml_file(&mut yaml_files,&path) {
                 Ok(()) => {},
                 Err(err_string) => {
                     error!("{}",err_string);
-                    self.log(err_string.as_str());
+                    // self.log(err_string.as_str());
                 }
             }
         };
-        Ok(())
+        Ok(yaml_files)
     }
 
     fn state_request(toyunda_state:Weak<RwLock<ToyundaState>>) ->  IronResult<Response> {
@@ -101,6 +102,20 @@ impl Manager {
             },
             None => {
                 Ok(Response::with(status::ServiceUnavailable))
+            }
+        }
+    }
+    
+    fn list_request(list:Weak<Vec<YamlMeta>>) -> IronResult<Response> {
+        use iron::mime::Mime;
+        let json_mime : Mime = "application/json".parse().unwrap();
+        match list.upgrade() {
+            Some(list) => {
+                let json_answer = serde_json::to_string_pretty(list.as_ref()).unwrap();
+                Ok(Response::with((status::Ok,json_answer,json_mime)))
+            },
+            None => {
+                Ok(Response::with((status::Gone,"{}",json_mime)))
             }
         }
     }
@@ -132,8 +147,18 @@ impl Manager {
     }
 
     pub fn new<A : ToSocketAddrs>(address: A,
-                                  toyunda_state: Weak<RwLock<ToyundaState>>)
+                                  toyunda_state: Weak<RwLock<ToyundaState>>,
+                                  yaml_directories:Vec<PathBuf>)
                                   -> IronResult<Manager> {
+        let mut yaml_files : Vec<YamlMeta> = Vec::new();
+        for dir in yaml_directories {
+            if yaml_files.is_empty() {
+                yaml_files = Self::parse_yaml_directory(&dir).unwrap();
+            } else {
+                yaml_files.extend(Self::parse_yaml_directory(&dir).unwrap());
+            }
+        }
+        let yaml_files = Arc::new(yaml_files);
         let (tx,rx) = channel();
         let toyunda_state_cloned = toyunda_state.clone();
         let mut api_handler = Router::new();
@@ -145,6 +170,10 @@ impl Manager {
             let tx_command = tx_command.lock().unwrap().clone();
             Self::command(request,tx_command)
         });
+        let weak_list = Arc::downgrade(&yaml_files);
+        api_handler.get("listing",move |request :&mut Request| {
+            Self::list_request(weak_list.clone())
+        });
         let mut mount = Mount::new();
         mount.mount("/",Static::new("web/"));
         mount.mount("/api", api_handler);
@@ -152,7 +181,7 @@ impl Manager {
         Ok(Manager {
             listening:listening,
             toyunda_state : toyunda_state,
-            yaml_files : Vec::new(),
+            yaml_files : yaml_files,
             receiver : rx
         })
     }

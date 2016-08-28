@@ -62,7 +62,7 @@ pub fn parse_bgr(bgr : &str) -> Result<Color,String> {
     }
 }
 
-pub fn for_each_in_dir<P:AsRef<Path>,F:Fn(&Path)->bool>(directory:P,recursion_level:u32,filter:F) 
+pub fn for_each_in_dir<P:AsRef<Path>,F:Fn(&Path)->bool>(directory:P,recursion_level:u32,filter:&F) 
      -> (Vec<PathBuf>,Vec<io::Error>) {
     if (recursion_level == 0) {
         return (vec!(),vec!());
@@ -85,7 +85,7 @@ pub fn for_each_in_dir<P:AsRef<Path>,F:Fn(&Path)->bool>(directory:P,recursion_le
                         let pathbuf = path.path();
                         if finfo.is_dir() {
                             let (v_p,v_e) = 
-                                for_each_in_dir(&pathbuf,recursion_level - 1,&filter);
+                                for_each_in_dir(&pathbuf,recursion_level - 1,filter);
                             vec_path.extend(v_p);
                             vec_error.extend(v_e);
                         } else if filter(&pathbuf) {

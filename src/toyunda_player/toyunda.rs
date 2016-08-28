@@ -87,6 +87,19 @@ impl<'a> ToyundaPlayer<'a> {
         if arg_matches.is_present("karaoke_mode") {
             self.options.mode = ToyundaMode::KaraokeMode;
             info!("Enabling karaoke mode");
+            
+            // list of directories analyzed
+            // TODO : allow multiple in command line
+            // should be fairly easy to implement
+            // - then why dont you do it moron ?
+            let yaml_dir :Vec<_> = 
+                if let Some(yaml_directory) = arg_matches.value_of("yaml_directory") {
+                vec![PathBuf::from(yaml_directory)]
+            } else {
+                vec![]
+            };
+            let mut manager = Manager::new("0.0.0.0:8080",Arc::downgrade(&self.state),yaml_dir).unwrap();
+            self.manager = Some(manager);
         } else if arg_matches.is_present("edit_mode") {
             self.options.mode = ToyundaMode::EditMode;
             info!("Enabling edit mode");
@@ -112,7 +125,6 @@ impl<'a> ToyundaPlayer<'a> {
             }
         }
 
-        self.manager = Some(Manager::new("0.0.0.0:8080",Arc::downgrade(&self.state)).unwrap());
         Ok(())
     }
 
