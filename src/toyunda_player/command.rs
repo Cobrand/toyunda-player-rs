@@ -169,7 +169,18 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             },
             Command::AddToQueue(path) => {
-                self.state().write().unwrap().playlist.push_back(VideoMeta::new(path));
+                match VideoMeta::new(&path) {
+                    Ok(video_meta) => {
+                        self.state().write().unwrap().playlist.push_back(video_meta);
+                    },
+                    Err(e) => {
+                        error!("Error when adding '{}' to queue : {}",path.display(),e);
+                        self.add_graphic_message(
+                            graphic_message::Category::Error,
+                            &*format!("Error when adding '{}' to queue : {}",path.display(),e)
+                        );
+                    }
+                }
                 Ok(ToyundaAction::Nothing)
             }
             Command::EndFile => {

@@ -62,11 +62,17 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn start(&mut self,arg_matches:ArgMatches) -> Result<()> {
-
         if let Some(video_files) = arg_matches.values_of("VIDEO_FILE") {
             let mut state = self.state().write().unwrap();
             for value in video_files {
-                state.playlist.push_back(VideoMeta::new(PathBuf::from(value)));
+                match VideoMeta::new(value) {
+                    Ok(video_meta) => {
+                        state.playlist.push_back(video_meta);
+                    },
+                    Err(e) => {
+                        error!("Error when importing file : '{}'",e);
+                    }
+                }
             }
         }
 
@@ -387,7 +393,7 @@ impl<'a> ToyundaPlayer<'a> {
                 match &self.state().read().unwrap().playing_state {
                     &PlayingState::Playing(ref video_meta) => {
                         if let Some(ref sub) = self.subtitles {
-                            let json_file_path = video_meta.video_path.with_extension("json");
+                            let json_file_path = video_meta.json_path();
                             let sub : Subtitles = sub.clone();
                             ::std::thread::spawn(move || {
                                 let mut file = ::std::fs::File::create(&json_file_path)
