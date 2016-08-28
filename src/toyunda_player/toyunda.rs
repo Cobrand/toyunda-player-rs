@@ -112,6 +112,8 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(())
     }
 
+    /// adds a graphic message on the screen
+    /// note that errors and warnings wont be shown in KaraokeMode
     pub fn add_graphic_message(&mut self,category:graphic_message::Category,message:&str) {
         use std::time::{Instant,Duration};
         self.graphic_messages.push( graphic_message::GraphicMessage {
@@ -122,69 +124,60 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn reload_subtitles(&mut self) -> Result<()> {
-        let path = match &self.state().read().unwrap().playing_state {
-            &PlayingState::Idle => {
-                return Err(Error::Text(String::from("Error when reloading subtitles : no file is playing")));
-            },
-            &PlayingState::Playing(ref video_meta) => {
-                video_meta.video_path.clone()
-            }
-        };
-        try!(self.import_subtitles(path));
-        Ok(())
+        self.import_subtitles(None)
     }
 
-    pub fn import_subtitles<P:AsRef<Path>>(&mut self,path:P) -> Result<()> {
-        let path : &Path = path.as_ref();
-        match (path.is_file(),path.is_dir()) {
-            (true,false) => {
-                // is a file
-                let json_path = path.with_extension("json");
-                let lyr_path = path.with_extension("lyr");
-                let frm_path = path.with_extension("frm");
-                if (json_path.is_file()) {
-                    info!("Loading {}",json_path.display());
-                    let json_file = ::std::fs::File::open(json_path).expect("Failed to open JSON file");
-                    let mut subtitles : Subtitles = serde_json::from_reader(json_file).expect("Failed to load json file");
-                    subtitles.adjust_sentences_row();
-                    self.subtitles = Some(subtitles);
-                    Ok(())
-                } else {
-                    info!("Failed to load json file, trying lyr and frm files");
-                    if (lyr_path.is_file() && frm_path.is_file()) {
-                        info!("Loading subtitles with lyr and frm ...");
-                        self.add_graphic_message(graphic_message::Category::Info, "Failed to load json subtitle file, loading lyr and frm");
-                        Subtitles::load_from_lyr_frm(lyr_path,frm_path)
-                            .map(|subtitles| {
-                                self.subtitles = Some(subtitles);
-                                ()
-                            })
-                            .map_err(|s| Error::Text(s))
-                    } else if lyr_path.is_file() {
-                        error!("Could not find .frm file");
-                        Err(Error::FileNotFound(frm_path.display().to_string()))
-                    } else if frm_path.is_file() {
-                        error!("Could not find .lyr file");
-                        Err(Error::FileNotFound(frm_path.display().to_string()))
-                    } else {
-                        error!("Could not find .lyr and .frm file");
-                        Err(Error::FileNotFound(lyr_path.display().to_string()))
+    /// if video_meta is None, reload the current subtitles
+    /// otherwise load from video_meta
+    pub fn import_subtitles(&mut self,video_meta:Option<&VideoMeta>) -> Result<()> {
+        let (json_path,lyr_path,frm_path) = {
+            match video_meta {
+                None => {
+                    match &self.state.read().unwrap().playing_state {
+                        &PlayingState::Idle => {
+                            return Err(Error::Text(String::from("Error when reloading subtitles : no file is playing !")))
+                        },
+                        &PlayingState::Playing(ref video_meta) => {
+                             (video_meta.json_path(),
+                             video_meta.lyr_path(),
+                             video_meta.frm_path()) 
+                        }
                     }
+                },
+                Some(video_meta) => {
+                    (video_meta.json_path(),
+                     video_meta.lyr_path(),
+                     video_meta.frm_path())
                 }
-            },
-            (false,true) => {
-                // is a directory
-                error!("Directories are not yet implemented");
-                unimplemented!()
-            },
-            (false,false) => {
-                // not a file, nor a directory
-                error!("{} is not a file nor a directory, aborting parsing",path.display());
-                Err(Error::Text(format!("{} is not a file nor a directory, aborting",path.display())))
-            },
-            (true,true) => {
-                error!("File is both a file and a directory ... this should not happen");
-                unreachable!()
+            }
+        }; // TODO move this chunk into a private method
+        if (json_path.is_file()) {
+            info!("Loading {}",json_path.display());
+            let json_file = ::std::fs::File::open(json_path).expect("Failed to open JSON file");
+            let mut subtitles : Subtitles = serde_json::from_reader(json_file).expect("Failed to load json file");
+            subtitles.adjust_sentences_row();
+            self.subtitles = Some(subtitles);
+            Ok(())
+        } else {
+            info!("Failed to load json file, trying lyr and frm files");
+            if (lyr_path.is_file() && frm_path.is_file()) {
+                info!("Loading subtitles with lyr and frm ...");
+                self.add_graphic_message(graphic_message::Category::Info, "Failed to load json subtitle file, loading lyr and frm");
+                Subtitles::load_from_lyr_frm(lyr_path,frm_path)
+                    .map(|subtitles| {
+                        self.subtitles = Some(subtitles);
+                        ()
+                    })
+                    .map_err(|s| Error::Text(s))
+            } else if lyr_path.is_file() {
+                error!("Could not find .frm file");
+                Err(Error::FileNotFound(frm_path.display().to_string()))
+            } else if frm_path.is_file() {
+                error!("Could not find .lyr file");
+                Err(Error::FileNotFound(frm_path.display().to_string()))
+            } else {
+                error!("Could not find .lyr and .frm file");
+                Err(Error::FileNotFound(lyr_path.display().to_string()))
             }
         }
     }

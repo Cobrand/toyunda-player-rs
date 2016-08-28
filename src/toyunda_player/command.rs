@@ -135,7 +135,7 @@ impl<'a> ToyundaPlayer<'a> {
                             Some(video_path) => {
                                 match self.mpv_mut().command(&["loadfile",video_path.as_str()]) {
                                     Ok(_) => {
-                                        match self.import_subtitles(&video_path) {
+                                        match self.import_subtitles(Some(&video_meta)) {
                                             Ok(_) => {
                                                 info!("Now playing : '{}'",&video_path);
                                                 self.state().write().unwrap().playing_state = PlayingState::Playing(video_meta);

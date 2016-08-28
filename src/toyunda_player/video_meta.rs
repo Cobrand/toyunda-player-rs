@@ -96,11 +96,17 @@ impl VideoMeta {
         }
     }
 
-    // pub fn lyr_path<'a>(&'a self) -> &'a PathBuf {
-    //     self.lyr_path.as_ref().unwrap_or(&self.video_path.with_extension("lyr"))
-    // }
+    pub fn lyr_path(&self) -> PathBuf {
+        match self.lyr_path {
+            None => self.video_path.with_extension("lyr"),
+            Some(ref path) => path.clone()
+        }
+    }
 
-    // pub fn frm_path<'a>(&'a self) -> &'a PathBuf {
-    //     self.frm_path.as_ref().unwrap_or(&self.video_path.with_extension("frm"))
-    // } 
+    pub fn frm_path(&self) -> PathBuf {
+        match self.frm_path {
+            None => self.video_path.with_extension("frm"),
+            Some(ref path) => path.clone()
+        }
+    }
 }
