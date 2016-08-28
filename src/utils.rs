@@ -3,6 +3,9 @@ use ::subtitles::Color;
 use ::sdl2::pixels::Color as SdlColor;
 use std::cmp::{max, min};
 
+use std::path::{Path,PathBuf};
+use std::{io,fs};
+
 /// will always return a flat color regardless or alpha
 pub fn mix_colors(color1: SdlColor, color2: SdlColor, mix_ratio: f32) -> SdlColor {
     let (r1, g1, b1) = color1.rgb();
@@ -57,6 +60,49 @@ pub fn parse_bgr(bgr : &str) -> Result<Color,String> {
             blue:blue
         })
     }
+}
+
+pub fn for_each_in_dir<P:AsRef<Path>,F:Fn(&Path)->bool>(directory:P,recursion_level:u32,filter:F) 
+     -> (Vec<PathBuf>,Vec<io::Error>) {
+    if (recursion_level == 0) {
+        return (vec!(),vec!());
+    }
+    let mut vec_path : Vec<PathBuf> = Vec::new();
+    let mut vec_error : Vec<io::Error> = Vec::new();
+    let paths = match fs::read_dir(directory) {
+        Ok(paths) => paths,
+        Err(e) => {
+            return (vec!(),vec!(e));
+            unreachable!()
+        }
+    };
+    for path in paths {
+        match path {
+            Ok(path) => {
+                let filetype = path.file_type();
+                match filetype {
+                    Ok(finfo) => {
+                        let pathbuf = path.path();
+                        if finfo.is_dir() {
+                            let (v_p,v_e) = 
+                                for_each_in_dir(&pathbuf,recursion_level - 1,&filter);
+                            vec_path.extend(v_p);
+                            vec_error.extend(v_e);
+                        } else if filter(&pathbuf) {
+                            vec_path.push(pathbuf);
+                        }
+                    },
+                    Err(e) => {
+                        vec_error.push(e);
+                    }
+                }
+            },
+            Err(e) => {
+                vec_error.push(e);
+            }
+        }
+    };
+    (vec_path,vec_error)
 }
 
 #[test]
