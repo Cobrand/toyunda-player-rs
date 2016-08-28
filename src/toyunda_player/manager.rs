@@ -14,7 +14,7 @@ use ::utils::for_each_in_dir ;
 use std::path::{Path,PathBuf};
 use std::fs;
 use std::ops::Deref;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{channel,Sender,Receiver};
 use serde_json;
 use bodyparser;
 
@@ -47,6 +47,7 @@ struct WebCommand {
 pub struct Manager {
     listening:Listening,
     toyunda_state:Weak<RwLock<ToyundaState>>,
+    pub receiver: Receiver<Command>,
     yaml_files : Vec<YamlMeta>
 }
 
@@ -131,14 +132,15 @@ impl Manager {
     }
 
     pub fn new<A : ToSocketAddrs>(address: A,
-                                  toyunda_state: Weak<RwLock<ToyundaState>>,
-                                  tx_command : Sender<Command>) -> IronResult<Manager> {
+                                  toyunda_state: Weak<RwLock<ToyundaState>>)
+                                  -> IronResult<Manager> {
+        let (tx,rx) = channel();
         let toyunda_state_cloned = toyunda_state.clone();
         let mut api_handler = Router::new();
         api_handler.get("state",move |request :&mut Request| {
             Self::state_request(toyunda_state_cloned.clone())
         });
-        let tx_command = Mutex::new(tx_command);
+        let tx_command = Mutex::new(tx);
         api_handler.post("command",move |request :&mut Request| {
             let tx_command = tx_command.lock().unwrap().clone();
             Self::command(request,tx_command)
@@ -150,7 +152,8 @@ impl Manager {
         Ok(Manager {
             listening:listening,
             toyunda_state : toyunda_state,
-            yaml_files : Vec::new()
+            yaml_files : Vec::new(),
+            receiver : rx
         })
     }
 }

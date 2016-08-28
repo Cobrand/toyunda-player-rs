@@ -24,7 +24,8 @@ pub struct ToyundaPlayer<'a> {
     displayer:Displayer<'a>,
     options:ToyundaOptions,
     state:Arc<RwLock<State>>,
-    graphic_messages:Vec<graphic_message::GraphicMessage>
+    graphic_messages:Vec<graphic_message::GraphicMessage>,
+    manager: Option<Manager>
 }
 
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
@@ -57,7 +58,8 @@ impl<'a> ToyundaPlayer<'a> {
                 playing_state: PlayingState::Idle,
                 logs: Vec::new()
             })),
-            graphic_messages:Vec::with_capacity(2)
+            graphic_messages:Vec::with_capacity(2),
+            manager:None
         }
     }
 
@@ -109,6 +111,8 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             }
         }
+
+        self.manager = Some(Manager::new("0.0.0.0:8080",Arc::downgrade(&self.state)).unwrap());
         Ok(())
     }
 
@@ -234,13 +238,41 @@ impl<'a> ToyundaPlayer<'a> {
         self.displayer.render();
         Ok(())
     }
+    
+    // true : break
+    // false : dont break
+    fn handle_manager_commands(&mut self) -> Result<bool> {
+        let mut commands : Vec<Command> = Vec::new() ;
+        if let &Some(ref manager) = &self.manager {
+            for command in manager.receiver.try_recv() {
+                commands.push(command);
+            }
+        }
+        for command in commands {
+            let res = self.execute_command(command);
+            match res {
+                Ok(ToyundaAction::Nothing) => {},
+                Ok(ToyundaAction::Terminate) => {return Ok(true);},
+                Ok(ToyundaAction::PlayNext) => {
+                    match self.execute_command(Command::PlayNext) {
+                        Err(e) => {
+                            error!("An error '{}' occured when trying to play next file",e)
+                        },
+                        _ => {}
+                    }
+                }
+                Err(e) => {
+                    error!("An error '{}' occured ({:?})",e,e);
+                }
+            }
+        };
+        Ok(false)
+    }
 
     pub fn main_loop(&mut self,sdl_context:&Sdl) -> Result<()> {
         use std::sync::mpsc::* ;
 
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
-        let (tx,rx) = channel() ;
-        let mut manager = Manager::new("0.0.0.0:8080",Arc::downgrade(&self.state),tx).unwrap();
         'main: loop {
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
             for event in event_pump.poll_iter() {
@@ -260,24 +292,11 @@ impl<'a> ToyundaPlayer<'a> {
                     }
                 };
             }
-            for command in rx.try_recv() {
-                let res = self.execute_command(command);
-                match res {
-                    Ok(ToyundaAction::Nothing) => {},
-                    Ok(ToyundaAction::Terminate) => {break 'main},
-                    Ok(ToyundaAction::PlayNext) => {
-                        match self.execute_command(Command::PlayNext) {
-                            Err(e) => {
-                                error!("An error '{}' occured when trying to play next file",e)
-                            },
-                            _ => {}
-                        }
-                    }
-                    Err(e) => {
-                        error!("An error '{}' occured ({:?})",e,e);
-                    }
-                }
-            }
+            match self.handle_manager_commands() {
+                Ok(true) => {break 'main},
+                _ => {},
+                // TODO print/return errors (even though there are none now)
+            };
             while let Some(event) = self.mpv.wait_event(0.0) {
                 let res = match event {
                     MpvEvent::Idle => {
