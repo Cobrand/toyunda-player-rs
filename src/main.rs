@@ -59,6 +59,12 @@ fn main() {
                             .short("f")
                             .long("fullscreen")
                             .help("Enables fullscreen"))
+                          .arg(Arg::with_name("yaml_directory")
+                            .short("d")
+                            .long("directory")
+                            .takes_value(true)
+                            .help("Where to look the yaml files at")
+                            .requires("karaoke_mode"))
                           .arg(Arg::with_name("volume")
                             .short("v")
                             .long("volume")
@@ -74,6 +80,7 @@ fn main() {
                             .help("Forces keeping alive the player once the waiting queue is finished"))
                           .arg(Arg::with_name("VIDEO_FILE")
                             .help("Sets the video file(s) to play")
+                            .use_delimiter(false)
                             .multiple(true))
                           .get_matches();
 
