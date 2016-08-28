@@ -8,6 +8,11 @@ use staticfile::Static;
 use std::sync::{Weak,RwLock,Arc,Mutex};
 use ::toyunda_player::state::State as ToyundaState;
 use ::toyunda_player::command::*;
+use ::toyunda_player::yaml_meta::*;
+
+use ::utils::for_each_in_dir ;
+use std::path::{Path,PathBuf};
+use std::fs;
 use std::ops::Deref;
 use std::sync::mpsc::Sender;
 use serde_json;
@@ -36,16 +41,54 @@ enum WebCommandType {
 #[derive(Debug,Deserialize)]
 struct WebCommand {
     command:WebCommandType,
-    music_name:Option<String>,
-    variant:Option<u32>
+    music_id:Option<u32>
 }
 
 pub struct Manager {
     listening:Listening,
-    toyunda_state:Weak<RwLock<ToyundaState>>
+    toyunda_state:Weak<RwLock<ToyundaState>>,
+    yaml_files : Vec<YamlMeta>
 }
 
 impl Manager {
+    fn log(&self,message:&str) {
+        match self.toyunda_state.upgrade() {
+            Some(toy_state_arc) => {
+                toy_state_arc.write().unwrap().logs.push(String::from(message));
+            },
+            None => {}
+        }
+    }
+
+    fn add_yaml_file<P:AsRef<Path>>(&mut self,file:P) -> Result<(),String> { 
+        let file = file.as_ref();
+        Ok(())
+    }
+
+    fn parse_yaml_directory<P:AsRef<Path>>(&mut self,directory:P) -> Result<(),String> {
+        let (paths,errs) = for_each_in_dir(directory,3,|path|{
+            match path.extension() {
+                Some(s) if s == "yaml" => true,
+                _ => false
+            }
+        });
+        for err in errs {
+            let _tmp_str = format!("IoError '{}' when parsing yaml dir",err);
+            error!("{}",_tmp_str);
+            self.log(_tmp_str.as_str());
+        };
+        for path in paths {
+            match self.add_yaml_file(&path) {
+                Ok(()) => {},
+                Err(err_string) => {
+                    error!("{}",err_string);
+                    self.log(err_string.as_str());
+                }
+            }
+        };
+        Ok(())
+    }
+
     fn state_request(toyunda_state:Weak<RwLock<ToyundaState>>) ->  IronResult<Response> {
         use iron::mime::Mime;
         match toyunda_state.upgrade() {
@@ -106,7 +149,8 @@ impl Manager {
         let listening =  Iron::new(mount).http(address).unwrap();
         Ok(Manager {
             listening:listening,
-            toyunda_state : toyunda_state
+            toyunda_state : toyunda_state,
+            yaml_files : Vec::new()
         })
     }
 }

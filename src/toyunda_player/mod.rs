@@ -7,6 +7,7 @@ mod manager;
 mod playlist;
 mod state;
 mod video_meta;
+mod yaml_meta;
 pub mod graphic_message;
 
 pub use self::options::*;
