@@ -42,7 +42,7 @@ enum WebCommandType {
 #[derive(Debug,Deserialize)]
 struct WebCommand {
     command:WebCommandType,
-    music_id:Option<u32>
+    id:Option<u32>
 }
 
 pub struct Manager {
@@ -133,13 +133,28 @@ impl Manager {
         }
     }
 
-    fn command(request:&mut Request, tx : Sender<Command> ) -> IronResult<Response> {
+    fn command(request:&mut Request, tx : Sender<Command>,list:Weak<Vec<YamlMeta>>) -> IronResult<Response> {
         let web_command = request.get_ref::<bodyparser::Struct<WebCommand>>();
         match web_command {
             Ok(&Some(ref web_command)) => {
                 let command : Result<Command,String> = match web_command.command {
                     WebCommandType::PlayNext => Ok(Command::PlayNext),
                     WebCommandType::ClearQueue => Ok(Command::ClearQueue),
+                    WebCommandType::AddToQueue => {
+                        if let Some(id) = web_command.id {
+                            if let Some(list) = list.upgrade() {
+                                if let Some(ref yaml_meta) = list.get(id as usize) {
+                                    Ok(Command::AddToQueue(yaml_meta.video_meta.clone()))
+                                } else {
+                                    Err(format!("Bad Index {}",id))
+                                }
+                            } else {
+                                Err(String::from("Gone"))
+                            }
+                        } else {
+                            Err(String::from("'id' field is needed"))
+                        }
+                    },
                     _ => unimplemented!()
                 };
                 println!("command : {:?}",command);
@@ -179,11 +194,12 @@ impl Manager {
             Self::state_request(toyunda_state_cloned.clone())
         });
         let tx_command = Mutex::new(tx);
+        let weak_list = Arc::downgrade(&yaml_files);
+        let weak_list2 = weak_list.clone();
         api_handler.post("command",move |request :&mut Request| {
             let tx_command = tx_command.lock().unwrap().clone();
-            Self::command(request,tx_command)
+            Self::command(request,tx_command,weak_list2.clone())
         });
-        let weak_list = Arc::downgrade(&yaml_files);
         api_handler.get("listing",move |request :&mut Request| {
             Self::list_request(weak_list.clone())
         });

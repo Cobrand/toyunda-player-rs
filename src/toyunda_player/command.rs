@@ -13,7 +13,7 @@ pub enum Command {
     TogglePause,
     ToggleFullscreen,
     ToggleDisplaySubtitles,
-    AddToQueue(PathBuf),
+    AddToQueue(VideoMeta),
     ReloadSubtitles,
     PlayNext,
     ClearQueue,
@@ -168,19 +168,8 @@ impl<'a> ToyundaPlayer<'a> {
                 self.state().write().unwrap().playlist.clear();
                 Ok(ToyundaAction::Nothing)
             },
-            Command::AddToQueue(path) => {
-                match VideoMeta::new(&path) {
-                    Ok(video_meta) => {
-                        self.state().write().unwrap().playlist.push_back(video_meta);
-                    },
-                    Err(e) => {
-                        error!("Error when adding '{}' to queue : {}",path.display(),e);
-                        self.add_graphic_message(
-                            graphic_message::Category::Error,
-                            &*format!("Error when adding '{}' to queue : {}",path.display(),e)
-                        );
-                    }
-                }
+            Command::AddToQueue(video_meta) => {
+                self.state().write().unwrap().playlist.push_back(video_meta);
                 Ok(ToyundaAction::Nothing)
             }
             Command::EndFile => {

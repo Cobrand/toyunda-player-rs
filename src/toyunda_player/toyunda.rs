@@ -411,7 +411,12 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown { keycode: Some(Keycode::N), repeat: false,.. }
                 => self.execute_command(Command::PlayNext),
             Event::DropFile { filename ,.. }
-                => self.execute_command(Command::AddToQueue(PathBuf::from(filename))),
+                => match VideoMeta::new(filename) {
+                Ok(video_meta) => 
+                    self.execute_command(Command::AddToQueue(video_meta)),
+                Err(e) =>
+                    Err(Error::Text(e))
+            },
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false,.. } if mode != KaraokeMode
                 => {
                 match &self.state().read().unwrap().playing_state {
