@@ -9,9 +9,9 @@ pub struct FontSet {
     // it is not used for anything, but if it were to be placed somewhere else
     // it would probably call Drop while the font is being used (which is bad)
     #[allow(dead_code)]
-    rwops_regular:RWops<'static>,
+    rwops_regular: RWops<'static>,
     #[allow(dead_code)]
-    rwops_bold:RWops<'static>,
+    rwops_bold: RWops<'static>,
     /// size of the loaded font
     font_size: u16,
     /// Font object without outline
@@ -65,7 +65,7 @@ pub struct FontList {
     fonts: Vec<FontSet>,
 }
 
-const DEJAVUSANS_MONO_BYTES : &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold.ttf");
+const DEJAVUSANS_MONO_BYTES: &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold.ttf");
 
 impl FontList {
     pub fn new(ttf_context: &sdl2_ttf::Sdl2TtfContext) -> Result<FontList, String> {
@@ -77,12 +77,13 @@ impl FontList {
         'fontlist: while (font_size < font_size_max) {
             let mut rwops_regular = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
             let mut rwops_bold = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
-            let font_regular = try!(ttf_context.load_font_from_rwops(&mut rwops_regular, font_size));
+            let font_regular =
+                try!(ttf_context.load_font_from_rwops(&mut rwops_regular, font_size));
             let mut font_bold = try!(ttf_context.load_font_from_rwops(&mut rwops_bold, font_size));
             font_bold.set_outline_width(OUTLINE_WIDTH);
             result.fonts.push(FontSet {
-                rwops_regular:rwops_regular,
-                rwops_bold:rwops_bold,
+                rwops_regular: rwops_regular,
+                rwops_bold: rwops_bold,
                 font_size: font_size,
                 font_regular: font_regular,
                 font_bold: font_bold,
@@ -110,17 +111,20 @@ impl FontList {
                 1 => Ok(self.fonts.first().unwrap()),
                 _ => {
                     let search_result = self.fonts.binary_search_by(|fontset| {
-                        let search_font =
-                            if outline { &fontset.font_bold } else { &fontset.font_regular };
-                        let string_dims =
-                            search_font.size_of(string).expect("Failed to get dimensions");
+                        let search_font = if outline {
+                            &fontset.font_bold
+                        } else {
+                            &fontset.font_regular
+                        };
+                        let string_dims = search_font.size_of(string)
+                            .expect("Failed to get dimensions");
                         match max_dims {
                             (Some(width), Some(height)) => {
                                 match (string_dims.0.cmp(&width), string_dims.1.cmp(&height)) {
-                                    (Ordering::Greater, _) | (_, Ordering::Greater) => {
-                                        Ordering::Greater
-                                    }
-                                    (Ordering::Equal, _) | (_, Ordering::Equal) => Ordering::Equal,
+                                    (Ordering::Greater, _) |
+                                    (_, Ordering::Greater) => Ordering::Greater,
+                                    (Ordering::Equal, _) |
+                                    (_, Ordering::Equal) => Ordering::Equal,
                                     _ => Ordering::Less,
                                 }
                             }

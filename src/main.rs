@@ -37,57 +37,54 @@ fn main() {
     env_logger::init().unwrap();
 
     let matches = App::new("Toyunda Player")
-                          .version(crate_version!())
-                          .after_help("PLAYER SHORTCUTS :\n    \
-                            * V : Hides / Shows subtitles\n    \
-                            * F : Toggles fullscreen\n    \
-                            * + / - : Raises / Lowers the volume\n    \
-                            * Left / Right arrow : Seek backwards / frontwards\n    \
-                            ")
-                          .author("Cobrand")
-                          .about("A flexible karaoke player for the epitanime association")
-                          .arg(Arg::with_name("karaoke_mode")
-                            .short("k")
-                            .long("karaoke")
-                            .help("Sets mode to karaoke mode"))
-                          .arg(Arg::with_name("edit_mode")
-                            .short("e")
-                            .long("edit")
-                            .help("Sets mode to edit mode")
-                            .conflicts_with("karaoke_mode"))
-                          .arg(Arg::with_name("fullscreen")
-                            .short("f")
-                            .long("fullscreen")
-                            .help("Enables fullscreen"))
-                          .arg(Arg::with_name("yaml_directory")
-                            .short("d")
-                            .long("directory")
-                            .takes_value(true)
-                            .help("Where to look the yaml files at")
-                            .requires("karaoke_mode"))
-                          .arg(Arg::with_name("volume")
-                            .short("v")
-                            .long("volume")
-                            .takes_value(true)
-                            .help("Initial volume of the player; Default is 100"))
-                          .arg(Arg::with_name("quit")
-                            .short("q")
-                            .long("quit")
-                            .help("Forces quiting the player once the waiting queue is finished"))
-                          .arg(Arg::with_name("no-quit")
-                            .long("no-quit")
-                            .conflicts_with("quit")
-                            .help("Forces keeping alive the player once the waiting queue is finished"))
-                          .arg(Arg::with_name("VIDEO_FILE")
-                            .help("Sets the video file(s) to play")
-                            .use_delimiter(false)
-                            .multiple(true))
-                          .get_matches();
+        .version(crate_version!())
+        .after_help("PLAYER SHORTCUTS :\n    * V : Hides / Shows subtitles\n    * F : Toggles \
+                     fullscreen\n    * + / - : Raises / Lowers the volume\n    * Left / Right \
+                     arrow : Seek backwards / frontwards\n    ")
+        .author("Cobrand")
+        .about("A flexible karaoke player for the epitanime association")
+        .arg(Arg::with_name("karaoke_mode")
+            .short("k")
+            .long("karaoke")
+            .help("Sets mode to karaoke mode"))
+        .arg(Arg::with_name("edit_mode")
+            .short("e")
+            .long("edit")
+            .help("Sets mode to edit mode")
+            .conflicts_with("karaoke_mode"))
+        .arg(Arg::with_name("fullscreen")
+            .short("f")
+            .long("fullscreen")
+            .help("Enables fullscreen"))
+        .arg(Arg::with_name("yaml_directory")
+            .short("d")
+            .long("directory")
+            .takes_value(true)
+            .help("Where to look the yaml files at")
+            .requires("karaoke_mode"))
+        .arg(Arg::with_name("volume")
+            .short("v")
+            .long("volume")
+            .takes_value(true)
+            .help("Initial volume of the player; Default is 100"))
+        .arg(Arg::with_name("quit")
+            .short("q")
+            .long("quit")
+            .help("Forces quiting the player once the waiting queue is finished"))
+        .arg(Arg::with_name("no-quit")
+            .long("no-quit")
+            .conflicts_with("quit")
+            .help("Forces keeping alive the player once the waiting queue is finished"))
+        .arg(Arg::with_name("VIDEO_FILE")
+            .help("Sets the video file(s) to play")
+            .use_delimiter(false)
+            .multiple(true))
+        .get_matches();
 
     // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
-    let renderer = init::init_sdl(&mut video_subsystem,&matches);
+    let renderer = init::init_sdl(&mut video_subsystem, &matches);
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     // INIT MPV
     let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
@@ -96,11 +93,10 @@ fn main() {
     mpv_builder.set_option("softvol-max", 250.0).unwrap(); // makes the max volume at 250%
     mpv_builder.try_hardware_decoding().unwrap(); // try hardware decoding instead of software decoding
     let mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
-       .expect("Error while initializing MPV");
+        .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
 
-    let displayer = display::Displayer::new(renderer)
-                        .expect("Failed to init displayer");
+    let displayer = display::Displayer::new(renderer).expect("Failed to init displayer");
 
     if matches.is_present("karaoke_mode") {
         let mouse_utils = sdl_context.mouse();
@@ -113,7 +109,9 @@ fn main() {
     match toyunda_player.start(matches) {
         Err(e) => {
             error!("Failed to start player with given arguments, expect default parameters !\n\
-                    '{}' ({:?})",e,e);
+                    '{}' ({:?})",
+                   e,
+                   e);
         }
         Ok(_) => {
             info!("Parsed arguments successfully");
@@ -123,9 +121,9 @@ fn main() {
     match res {
         Ok(_) => {
             info!("Toyunda Player finished gracefully");
-        },
+        }
         Err(e) => {
-            error!("An uncoverable error occured : {}",e);
+            error!("An uncoverable error occured : {}", e);
         }
     };
 }

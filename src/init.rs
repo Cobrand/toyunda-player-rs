@@ -28,7 +28,9 @@ fn find_sdl_gl_driver() -> Option<u32> {
     opengl_driver
 }
 
-pub fn init_sdl<'a>(video_subsystem: &mut sdl2::VideoSubsystem,arg_matches:&ArgMatches) -> Renderer<'a> {
+pub fn init_sdl<'a>(video_subsystem: &mut sdl2::VideoSubsystem,
+                    arg_matches: &ArgMatches)
+                    -> Renderer<'a> {
     let opengl_driver_id = find_sdl_gl_driver().expect("Unable to find OpenGL video driver");
 
     let mut window_builder = if arg_matches.is_present("fullscreen") {
@@ -39,18 +41,18 @@ pub fn init_sdl<'a>(video_subsystem: &mut sdl2::VideoSubsystem,arg_matches:&ArgM
         video_subsystem.window("Toyunda Player", 960, 540)
     };
     let window = window_builder.resizable()
-                               .position_centered()
-                               .opengl()
-                               .build()
-                               .unwrap();
+        .position_centered()
+        .opengl()
+        .build()
+        .unwrap();
     let renderer = window.renderer()
-                         .present_vsync()
-                         .index(opengl_driver_id)
-                         .build()
-                         .expect("Failed to create renderer with given parameters");
+        .present_vsync()
+        .index(opengl_driver_id)
+        .build()
+        .expect("Failed to create renderer with given parameters");
     renderer.window()
-            .expect("Failed to extract window from displayer")
-            .gl_set_context_to_current()
-            .unwrap();
+        .expect("Failed to extract window from displayer")
+        .gl_set_context_to_current()
+        .unwrap();
     renderer
 }

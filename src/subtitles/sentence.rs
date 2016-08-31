@@ -4,21 +4,18 @@ use std::fmt;
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Sentence {
-    pub syllables:Vec<Syllable>,
+    pub syllables: Vec<Syllable>,
     #[serde(skip_serializing,skip_deserializing)]
     pub position: RowPosition,
     #[serde(skip_serializing_if="Option::is_none")]
-    pub sentence_options:Option<SentenceOptions>
+    pub sentence_options: Option<SentenceOptions>,
 }
 
 #[derive(Copy,Clone,Debug,Serialize,Deserialize)]
 pub enum RowPosition {
     Row(u8),
     #[allow(dead_code)]
-    ForcePos {
-        x:f32,
-        y:f32
-    }
+    ForcePos { x: f32, y: f32 },
 }
 
 impl Default for RowPosition {
@@ -29,7 +26,7 @@ impl Default for RowPosition {
 
 impl fmt::Display for Sentence {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let string = self.syllables.iter().fold(String::new(),|mut string,syllable|{
+        let string = self.syllables.iter().fold(String::new(), |mut string, syllable| {
             string.push_str(&*syllable.text);
             string
         });

@@ -1,6 +1,6 @@
 use std::error::Error as StdError;
 use mpv::Error as MpvError;
-pub type Result<T> = ::std::result::Result<T,Error>;
+pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Clone,Debug)]
 #[allow(dead_code)]
@@ -8,7 +8,7 @@ pub enum Error {
     Text(String),
     FileNotFound(String),
     MpvError(MpvError),
-    UnknownError
+    UnknownError,
 }
 
 impl StdError for Error {

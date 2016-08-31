@@ -6,12 +6,12 @@ pub enum Category {
     Error,
     Announcement,
     Info,
-    Warn
+    Warn,
 }
 
 #[derive(Debug)]
 pub struct GraphicMessage {
-    pub up_until : Instant,
-    pub category : Category,
-    pub text : String
+    pub up_until: Instant,
+    pub category: Category,
+    pub text: String,
 }
