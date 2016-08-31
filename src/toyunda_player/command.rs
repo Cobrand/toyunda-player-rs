@@ -15,6 +15,9 @@ pub enum Command {
     ToggleDisplaySubtitles,
     AddToQueue(VideoMeta),
     ReloadSubtitles,
+    /// Stops the queue, but doesnt empty it
+    /// Use PlayNext to play the queue again
+    Stop,
     PlayNext,
     ClearQueue,
     EndFile,
@@ -172,6 +175,11 @@ impl<'a> ToyundaPlayer<'a> {
                         }
                     }
                 }
+            }
+            Command::Stop => {
+                self.mpv_mut().command(&["stop"]);
+                self.state().write().unwrap().playing_state = PlayingState::Idle;
+                Ok(ToyundaAction::Nothing)
             }
             Command::ClearQueue => {
                 self.state().write().unwrap().playlist.clear();

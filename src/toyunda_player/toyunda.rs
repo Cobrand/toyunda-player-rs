@@ -64,12 +64,14 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn start(&mut self, arg_matches: ArgMatches) -> Result<()> {
+        let mut is_playlist_empty = true ;
         if let Some(video_files) = arg_matches.values_of("VIDEO_FILE") {
             let mut state = self.state().write().unwrap();
             for value in video_files {
                 match VideoMeta::new(value) {
                     Ok(video_meta) => {
                         state.playlist.push_back(video_meta);
+                        is_playlist_empty = false;
                     }
                     Err(e) => {
                         error!("Error when importing file : '{}'", e);
@@ -129,21 +131,22 @@ impl<'a> ToyundaPlayer<'a> {
                             info!("Successfully override initial volume");
                         }
                         Err(e) => {
-                            error!("Could not change initial volume of mpv, error '{}' ({:?})",
-                                   e,
-                                   e);
+                            error!("Could not change initial volume of mpv,\
+                                   error '{}' ({:?})", e, e);
                         }
                     };
                 }
                 Err(e) => {
                     error!("Error when parsing volume, expected some float, got '{}'; (error \
-                            {:?})",
-                           volume,
-                           e);
+                            {:?})",volume,e);
                 }
             }
         }
-
+        if (is_playlist_empty == false) {
+            if let Err(e) = self.execute_command(Command::PlayNext) {
+                error!("Error trying to play first file : '{}'",e);
+            }
+        }
         Ok(())
     }
 
@@ -337,7 +340,6 @@ impl<'a> ToyundaPlayer<'a> {
             };
             while let Some(event) = self.mpv.wait_event(0.0) {
                 let res = match event {
-                    MpvEvent::Idle => self.execute_command(Command::PlayNext),
                     MpvEvent::Shutdown => Ok(ToyundaAction::Terminate),
                     MpvEvent::EndFile(Ok(MPV_END_FILE_REASON_EOF)) => {
                         // TODO remove EndFile and handle this better
@@ -376,6 +378,11 @@ impl<'a> ToyundaPlayer<'a> {
         match event {
             Event::Quit { .. } |
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } => Ok(ToyundaAction::Terminate),
+            Event::KeyDown { keycode: Some(Keycode::S), ..} 
+                if is_ctrl_pressed && mode == NormalMode => self.execute_command(Command::Stop),
+            Event::KeyDown { keycode: Some(Keycode::N), ..}
+                if is_ctrl_pressed && mode == NormalMode => 
+                    self.execute_command(Command::PlayNext),
             Event::KeyDown { keycode: Some(Keycode::Space), repeat: false, .. } => {
                 self.execute_command(Command::TogglePause)
             }

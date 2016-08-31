@@ -33,6 +33,8 @@ enum WebCommandType {
     Unpause,
     #[serde(rename = "quit")]
     Quit,
+    #[serde(rename = "stop")]
+    Stop,
     #[serde(rename = "quit_on_finish")]
     QuitOnFinish,
     #[serde(rename = "toggle_subtitles")]
