@@ -83,11 +83,27 @@ impl<'a> ToyundaPlayer<'a> {
         } else if arg_matches.is_present("no-quit") {
             self.options.quit_when_finished = Some(false);
         }
-
+        let mut enable_manager : bool = false ;
         if arg_matches.is_present("karaoke_mode") {
             self.options.mode = ToyundaMode::KaraokeMode;
             info!("Enabling karaoke mode");
-
+            enable_manager = true ;
+        } else if arg_matches.is_present("edit_mode") {
+            self.options.mode = ToyundaMode::EditMode;
+            info!("Enabling edit mode");
+            enable_manager = false;
+        } else {
+            self.options.mode = ToyundaMode::NormalMode;
+            enable_manager = true ;
+        }
+        if arg_matches.is_present("no_manager") {
+            enable_manager = false ;
+        }
+        if enable_manager {
+            let port : String = 
+                String::from(arg_matches.value_of("manager_port").unwrap_or("8080"));
+            let listen_address : String =
+                String::from(arg_matches.value_of("manager_listen_address").unwrap_or("0.0.0.0"));
             // list of directories analyzed
             // TODO : allow multiple in command line
             // should be fairly easy to implement
@@ -98,14 +114,11 @@ impl<'a> ToyundaPlayer<'a> {
             } else {
                 vec![]
             };
-            let mut manager = Manager::new("0.0.0.0:8080", Arc::downgrade(&self.state), yaml_dir)
-                .unwrap();
-            self.manager = Some(manager);
-        } else if arg_matches.is_present("edit_mode") {
-            self.options.mode = ToyundaMode::EditMode;
-            info!("Enabling edit mode");
-        } else {
-            self.options.mode = ToyundaMode::NormalMode;
+            let manager = Manager::new(&*format!("{}:{}",listen_address,port), Arc::downgrade(&self.state), yaml_dir);
+            match manager {
+                Ok(manager) => {self.manager = Some(manager);},
+                Err(e) => {error!("Error when initializing manager : '{}'",e);}
+            }
         }
 
         if let Some(volume) = arg_matches.value_of("volume") {
