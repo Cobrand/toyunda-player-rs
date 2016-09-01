@@ -493,9 +493,6 @@ impl<'a> ToyundaPlayer<'a> {
                                                                                KaraokeMode => {
                 self.execute_command(Command::ReloadSubtitles)
             }
-            Event::KeyDown { keycode: Some(Keycode::N), repeat: false, .. } => {
-                self.execute_command(Command::PlayNext)
-            }
             Event::DropFile { filename, .. } => {
                 match VideoMeta::new(filename) {
                     Ok(video_meta) => self.execute_command(Command::AddToQueue(video_meta)),
