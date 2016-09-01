@@ -56,7 +56,6 @@ impl<'a> ToyundaPlayer<'a> {
             state: Arc::new(RwLock::new(State {
                 playlist: Playlist::new(),
                 playing_state: PlayingState::Idle,
-                logs: Vec::new(),
             })),
             graphic_messages: Vec::with_capacity(2),
             manager: None,

@@ -46,21 +46,11 @@ struct WebCommand {
 
 pub struct Manager {
     listening: Listening,
-    toyunda_state: Weak<RwLock<ToyundaState>>,
     pub receiver: Receiver<Command>,
     _yaml_files: Arc<Vec<YamlMeta>>,
 }
 
 impl Manager {
-    fn log(&self, message: &str) {
-        match self.toyunda_state.upgrade() {
-            Some(toy_state_arc) => {
-                toy_state_arc.write().unwrap().logs.push(String::from(message));
-            }
-            None => {}
-        }
-    }
-
     fn add_yaml_file<P: AsRef<Path>>(yaml_files: &mut Vec<YamlMeta>,
                                      file: P)
                                      -> Result<(), String> {
@@ -213,7 +203,6 @@ impl Manager {
         let listening = Iron::new(mount).http(address).unwrap();
         Ok(Manager {
             listening: listening,
-            toyunda_state: toyunda_state,
             _yaml_files: yaml_files,
             receiver: rx,
         })
