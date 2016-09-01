@@ -102,7 +102,7 @@ impl<'a> ToyundaPlayer<'a> {
             enable_manager = false ;
         }
         if enable_manager {
-            let port : String = 
+            let port : String =
                 String::from(arg_matches.value_of("manager_port").unwrap_or("8080"));
             let listen_address : String =
                 String::from(arg_matches.value_of("manager_listen_address").unwrap_or("0.0.0.0"));
@@ -310,6 +310,14 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(false)
     }
 
+    pub fn on_end_file(&mut self) {
+        self.state().write().unwrap().playing_state = PlayingState::Idle;
+        self.clear_subtitles();
+        if let Err(e) = self.execute_command(Command::PlayNext) {
+            error!("Error when trying to play next file : '{}'",e);
+        }
+    }
+
     pub fn main_loop(&mut self, sdl_context: &Sdl) -> Result<()> {
         use std::sync::mpsc::* ;
 
@@ -339,30 +347,17 @@ impl<'a> ToyundaPlayer<'a> {
                 // TODO print/return errors (even though there are none now)
             };
             while let Some(event) = self.mpv.wait_event(0.0) {
-                let res = match event {
-                    MpvEvent::Shutdown => Ok(ToyundaAction::Terminate),
+                match event {
+                    MpvEvent::Shutdown => {break 'main},
                     MpvEvent::EndFile(Ok(MPV_END_FILE_REASON_EOF)) => {
                         // TODO remove EndFile and handle this better
-                        self.execute_command(Command::EndFile)
-                    }
-                    _ => Ok(ToyundaAction::Nothing),
+                        self.on_end_file();
+                    },
+                    _ => {}
                 };
-                match res {
-                    Ok(ToyundaAction::Nothing) => {}
-                    Ok(ToyundaAction::Terminate) => break 'main,
-                    Ok(ToyundaAction::PlayNext) => {
-                        match self.execute_command(Command::PlayNext) {
-                            Err(e) => {
-                                error!("An error '{}' occured when trying to play next file", e)
-                            }
-                            _ => {}
-                        }
-                    }
-                    Err(e) => {
-                        error!("An error '{}' occured ({:?})", e, e);
-                    }
-                }
             }
+            // TODO change this try into something else,
+            // would be bad to crash if we cant render 1 frame ...
             try!(self.render_frame());
         }
         Ok(())
@@ -378,10 +373,10 @@ impl<'a> ToyundaPlayer<'a> {
         match event {
             Event::Quit { .. } |
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } => Ok(ToyundaAction::Terminate),
-            Event::KeyDown { keycode: Some(Keycode::S), ..} 
+            Event::KeyDown { keycode: Some(Keycode::S), ..}
                 if is_ctrl_pressed && mode == NormalMode => self.execute_command(Command::Stop),
             Event::KeyDown { keycode: Some(Keycode::N), ..}
-                if is_ctrl_pressed && mode == NormalMode => 
+                if is_ctrl_pressed && mode == NormalMode =>
                     self.execute_command(Command::PlayNext),
             Event::KeyDown { keycode: Some(Keycode::Space), repeat: false, .. } => {
                 self.execute_command(Command::TogglePause)

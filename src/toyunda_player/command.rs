@@ -20,7 +20,6 @@ pub enum Command {
     Stop,
     PlayNext,
     ClearQueue,
-    EndFile,
 }
 
 impl<'a> ToyundaPlayer<'a> {
@@ -187,11 +186,6 @@ impl<'a> ToyundaPlayer<'a> {
             }
             Command::AddToQueue(video_meta) => {
                 self.state().write().unwrap().playlist.push_back(video_meta);
-                Ok(ToyundaAction::Nothing)
-            }
-            Command::EndFile => {
-                self.state().write().unwrap().playing_state = PlayingState::Idle;
-                self.clear_subtitles();
                 Ok(ToyundaAction::Nothing)
             }
             Command::ReloadSubtitles => {
