@@ -90,7 +90,7 @@ fn compute_sentence_alpha(sentence: &Sentence,
                           -> f32 {
     let sentence_options: SentenceOptions = sentence.sentence_options
         .unwrap_or(SentenceOptions::default())
-        .or(default_sentence_options);
+        .or(&default_sentence_options);
     let sentence_parameters = SentenceParameters::from(sentence_options);
     match (sentence.syllables.first(), sentence.syllables.last()) {
         (Some(&Syllable { begin: frame_begin, .. }),
@@ -139,7 +139,7 @@ fn add_syllable(mut text_elts: &mut Vec<::display::TextElement>,
         .expect("File has not been checked properly : end syllable has no end frame");
     let syllable_options = syllable.syllable_options
         .unwrap_or(SyllableOptions::default())
-        .or(default_syllable_options);
+        .or(&default_syllable_options);
     let syllable_parameters = SyllableParameters::from(syllable_options);
     let outline = syllable_parameters.outline.map(|c| c.to_sdl_color());
     let alive_color = syllable_parameters.alive_color.to_sdl_color();
@@ -193,7 +193,7 @@ impl Frame {
         let sentence_iter = subtitles.sentences.iter().enumerate().filter(|&(_, ref sentence)| {
             let sentence_options: SentenceOptions = sentence.sentence_options
                 .unwrap_or(SentenceOptions::default())
-                .or(default_sentence_options);
+                .or(&default_sentence_options);
             let sentence_parameters = SentenceParameters::from(sentence_options);
             match (sentence.syllables.first(), sentence.syllables.last()) {
                 (None, _) | (_, None) => false,
@@ -221,9 +221,9 @@ impl Frame {
                 .map(|o| o.syllable_options.unwrap_or(SyllableOptions::default()))
                 .unwrap_or(SyllableOptions::default());
             let default_syllable_options: SyllableOptions =
-                tmp.or(default_sentence_options.syllable_options
-                        .unwrap_or(SyllableOptions::default()))
-                    .or(SyllableOptions::default());
+                tmp.or(&default_sentence_options.syllable_options
+                       .unwrap_or(SyllableOptions::default()))
+                    .or(&SyllableOptions::default());
             {
                 for tmp_syllables in sentence.syllables.windows(2) {
                     let (syllable1, syllable2) = (&tmp_syllables[0], &tmp_syllables[1]);

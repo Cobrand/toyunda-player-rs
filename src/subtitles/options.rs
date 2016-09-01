@@ -14,12 +14,6 @@ impl Default for SubtitlesOptions {
     }
 }
 
-impl SubtitlesOptions {
-    pub fn or(&self, other: SubtitlesOptions) -> SubtitlesOptions {
-        SubtitlesOptions { sentence_options: self.sentence_options.or(other.sentence_options) }
-    }
-}
-
 #[derive(Debug,Clone,Copy,Default,Serialize,Deserialize)]
 pub struct SentenceOptions {
     /// Global SyllableOptions
@@ -44,7 +38,7 @@ pub struct SentenceOptions {
 }
 
 impl SentenceOptions {
-    pub fn or(&self, other: SentenceOptions) -> SentenceOptions {
+    pub fn or(&self, other: &SentenceOptions) -> SentenceOptions {
         SentenceOptions {
             syllable_options: self.syllable_options.or(other.syllable_options),
             display_logo: self.display_logo.or(other.display_logo),
@@ -93,7 +87,7 @@ pub struct SyllableOptions {
 }
 
 impl SyllableOptions {
-    pub fn or(&self, other: SyllableOptions) -> SyllableOptions {
+    pub fn or(&self, other: &SyllableOptions) -> SyllableOptions {
         SyllableOptions {
             alive_color: self.alive_color.or(other.alive_color),
             transition_color: self.transition_color.or(other.transition_color),

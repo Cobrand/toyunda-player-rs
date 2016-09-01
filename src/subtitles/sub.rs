@@ -24,7 +24,7 @@ pub struct Subtitles {
 /// sentence : Sentence to add to the subtitles
 fn set_best_sentence_row(sentences: &[Sentence],
                          sentence: &mut Sentence,
-                         default_sentence_options: SentenceOptions) {
+                         default_sentence_options: &SentenceOptions) {
     let sentence_options: SentenceOptions = sentence.sentence_options
         .unwrap_or(SentenceOptions::default())
         .or(default_sentence_options);
@@ -39,7 +39,7 @@ fn set_best_sentence_row(sentences: &[Sentence],
                 (Some(ref first_syllable),Some(ref last_syllable),
                  Some(ref first_syllable_candidate),Some(ref last_syllable_candidate)) => {
                     let sentence_candidate_options : SentenceOptions =
-                        sentence_candidate.sentence_options.unwrap_or(SentenceOptions::default()).or(default_sentence_options);
+                        sentence_candidate.sentence_options.unwrap_or(SentenceOptions::default()).or(&default_sentence_options);
                     let sentence_candidate_parameters = SentenceParameters::from(sentence_candidate_options);
                     let first_frame = first_syllable.begin
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
@@ -291,7 +291,7 @@ impl Subtitles {
         for i in 0..self.sentences.len() {
             let (first_half, mut last_half) = self.sentences.split_at_mut(i);
             let sentence = last_half.first_mut().expect("Unexpected None for subtitles last_half");
-            set_best_sentence_row(first_half, sentence, default_sentence_options);
+            set_best_sentence_row(first_half, sentence,&default_sentence_options);
         }
     }
 }
