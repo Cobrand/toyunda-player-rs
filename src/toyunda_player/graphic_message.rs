@@ -1,4 +1,3 @@
-use display::Text2D;
 use std::time::Instant;
 
 #[derive(Debug,Clone,Copy,PartialEq,Eq)]

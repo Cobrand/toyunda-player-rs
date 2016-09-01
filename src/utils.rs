@@ -70,7 +70,6 @@ pub fn for_each_in_dir<P: AsRef<Path>, F: Fn(&Path) -> bool>(directory: P,
         Ok(paths) => paths,
         Err(e) => {
             return (vec![], vec![e]);
-            unreachable!()
         }
     };
     for path in paths {

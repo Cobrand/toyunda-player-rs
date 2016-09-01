@@ -1,7 +1,6 @@
 use ::toyunda_player::*;
 use ::toyunda_player::error::{Result, Error};
 use std::cmp::{min, max};
-use std::path::PathBuf;
 use ::toyunda_player::playing_state::*;
 
 #[derive(Debug)]
@@ -176,9 +175,12 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             }
             Command::Stop => {
-                self.mpv_mut().command(&["stop"]);
                 self.state().write().unwrap().playing_state = PlayingState::Idle;
-                Ok(ToyundaAction::Nothing)
+                if let Err(mpv_err) = self.mpv_mut().command(&["stop"]) {
+                    Err(mpv_err.into())
+                } else {
+                    Ok(ToyundaAction::Nothing)
+                }
             }
             Command::ClearQueue => {
                 self.state().write().unwrap().playlist.clear();

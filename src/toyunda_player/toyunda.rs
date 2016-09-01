@@ -2,7 +2,7 @@ extern crate serde_json;
 
 use ::toyunda_player::*;
 use mpv::{MpvHandlerWithGl, Event as MpvEvent};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use ::subtitles::Subtitles;
 use ::display::Displayer;
 use sdl2::event::Event;
@@ -79,13 +79,12 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             }
         }
-
         if arg_matches.is_present("quit") {
             self.options.quit_when_finished = Some(true);
         } else if arg_matches.is_present("no-quit") {
             self.options.quit_when_finished = Some(false);
         }
-        let mut enable_manager : bool = false ;
+        let mut enable_manager : bool ;
         if arg_matches.is_present("karaoke_mode") {
             self.options.mode = ToyundaMode::KaraokeMode;
             info!("Enabling karaoke mode");
@@ -319,8 +318,6 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn main_loop(&mut self, sdl_context: &Sdl) -> Result<()> {
-        use std::sync::mpsc::* ;
-
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
         'main: loop {
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
@@ -337,6 +334,8 @@ impl<'a> ToyundaPlayer<'a> {
                         }
                     }
                     Err(e) => {
+                        use ::toyunda_player::graphic_message::Category;
+                        self.add_graphic_message(Category::Warn,&format!("Error : {}",e));
                         error!("An error '{}' occured", e);
                     }
                 };

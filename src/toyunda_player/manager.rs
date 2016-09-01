@@ -13,7 +13,6 @@ use ::toyunda_player::video_meta::*;
 
 use ::utils::for_each_in_dir;
 use std::path::{Path, PathBuf};
-use std::fs;
 use std::ops::Deref;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use serde_json;
@@ -49,7 +48,7 @@ pub struct Manager {
     listening: Listening,
     toyunda_state: Weak<RwLock<ToyundaState>>,
     pub receiver: Receiver<Command>,
-    yaml_files: Arc<Vec<YamlMeta>>,
+    _yaml_files: Arc<Vec<YamlMeta>>,
 }
 
 impl Manager {
@@ -162,8 +161,14 @@ impl Manager {
                 };
                 println!("command : {:?}", command);
                 if let Ok(command) = command {
-                    tx.send(command);
-                    Ok(Response::with(status::Ok))
+                    if let Err(e) = tx.send(command) {
+                        error!("An error happened when trying\
+                        to send a command to the other thread : {}",e);
+                        // TODO make it Err(_) intstead
+                        Ok(Response::with(status::InternalServerError))
+                    } else {
+                        Ok(Response::with(status::Ok))
+                    }
                 } else {
                     Ok(Response::with(status::BadRequest))
                 }
@@ -189,7 +194,7 @@ impl Manager {
         let (tx, rx) = channel();
         let toyunda_state_cloned = toyunda_state.clone();
         let mut api_handler = Router::new();
-        api_handler.get("state", move |request: &mut Request| {
+        api_handler.get("state", move |_r: &mut Request| {
             Self::state_request(toyunda_state_cloned.clone())
         });
         let tx_command = Mutex::new(tx);
@@ -199,8 +204,9 @@ impl Manager {
             let tx_command = tx_command.lock().unwrap().clone();
             Self::command(request, tx_command, weak_list2.clone())
         });
-        api_handler.get("listing",
-                        move |request: &mut Request| Self::list_request(weak_list.clone()));
+        api_handler.get("listing", move |_r: &mut Request| {
+            Self::list_request(weak_list.clone())
+        });
         let mut mount = Mount::new();
         mount.mount("/", Static::new("web/"));
         mount.mount("/api", api_handler);
@@ -208,7 +214,7 @@ impl Manager {
         Ok(Manager {
             listening: listening,
             toyunda_state: toyunda_state,
-            yaml_files: yaml_files,
+            _yaml_files: yaml_files,
             receiver: rx,
         })
     }

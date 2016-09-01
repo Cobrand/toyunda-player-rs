@@ -31,6 +31,12 @@ impl StdError for Error {
     }
 }
 
+impl From<MpvError> for Error {
+    fn from(e:MpvError) -> Error {
+        Error::MpvError(e)
+    }
+}
+
 impl ::std::fmt::Display for Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "{}", self.description())
