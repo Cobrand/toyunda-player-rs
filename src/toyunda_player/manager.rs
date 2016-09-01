@@ -29,8 +29,6 @@ enum WebCommandType {
     ClearQueue,
     #[serde(rename = "pause")]
     Pause,
-    #[serde(rename = "unpause")]
-    Unpause,
     #[serde(rename = "quit")]
     Quit,
     #[serde(rename = "stop")]
@@ -143,6 +141,8 @@ impl Manager {
                 let command: Result<Command, String> = match web_command.command {
                     WebCommandType::PlayNext => Ok(Command::PlayNext),
                     WebCommandType::ClearQueue => Ok(Command::ClearQueue),
+                    WebCommandType::Stop => Ok(Command::Stop),
+                    WebCommandType::Pause => Ok(Command::TogglePause),
                     WebCommandType::AddToQueue => {
                         if let Some(id) = web_command.id {
                             if let Some(list) = list.upgrade() {
