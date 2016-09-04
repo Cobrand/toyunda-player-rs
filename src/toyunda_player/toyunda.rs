@@ -16,6 +16,7 @@ use ::toyunda_player::state::*;
 use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
+use mpv::Error::MPV_ERROR_PROPERTY_UNAVAILABLE;
 use clap::ArgMatches;
 
 pub struct ToyundaPlayer<'a> {
@@ -328,10 +329,22 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn on_end_file(&mut self) {
-        self.state().write().unwrap().playing_state = PlayingState::Idle;
-        self.clear_subtitles();
-        if let Err(e) = self.execute_command(Command::PlayNext) {
-            error!("Error when trying to play next file : '{}'",e);
+        if self.options.mode != ToyundaMode::EditMode {
+            self.state().write().unwrap().playing_state = PlayingState::Idle;
+            self.clear_subtitles();
+            if let Err(e) = self.execute_command(Command::PlayNext) {
+                error!("Error when trying to play next file : '{}'",e);
+            }
+        } else {
+            let video_path : String = if let &PlayingState::Playing(ref video_meta) =
+                &self.state().read().unwrap().playing_state {
+                String::from(video_meta.video_path.to_str().unwrap())
+            } else {
+                panic!("EditMode should never be in Idle state !!!");
+            };
+            if let Err(e) = self.mpv_mut().command(&["loadfile",&*video_path]) {
+                error!("Error when Re-loading file '{}' : {}",&*video_path,e);
+            }
         }
     }
 
@@ -512,6 +525,23 @@ impl<'a> ToyundaPlayer<'a> {
                                                                                KaraokeMode => {
                 self.execute_command(Command::ReloadSubtitles)
             }
+            Event::MouseButtonDown {x, y, .. } if mode != KaraokeMode => {
+                let (win_width,win_height) = self.displayer.sdl_renderer().window().unwrap().size();
+                if ( y as u32 > win_height * 96 / 100 ) {
+                    // bottom 4% : low enough to move
+                    let percent_pos : f64 = (100.0 * x as f64 / win_width as f64 ) ;
+                    if let Err(e) = self.mpv_mut().set_property("percent-pos",percent_pos) {
+                        match e {
+                            MPV_ERROR_PROPERTY_UNAVAILABLE => {},
+                            // happens when video is paused
+                            _ => {
+                                error!("Unexpected error : `{}` when trying to move",e);
+                            }
+                        };
+                    }
+                };
+                Ok(ToyundaAction::Nothing)
+            },
             Event::DropFile { filename, .. } => {
                 match VideoMeta::new(filename) {
                     Ok(video_meta) => self.execute_command(Command::AddToQueue(video_meta)),
