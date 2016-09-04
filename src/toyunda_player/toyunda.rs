@@ -273,6 +273,25 @@ impl<'a> ToyundaPlayer<'a> {
                                                        Some(Rect::new(0, 0, w, h)));
             }
         }
+        if (self.options.mode == ToyundaMode::EditMode ) {
+            let percent_pos : f64 = 
+                self.mpv.get_property("percent-pos").unwrap_or_else(|e|{
+                    warn!("error when trying to retrieve percent-pos from mpv : {}",e);
+                    0.0
+                });
+            let (window_width, window_height) =
+                self.displayer.sdl_renderer().window().unwrap().size();
+            let rect_width = window_width * 5 / 1000 ;
+            let rect_height = rect_width * 2 ;
+            let (rect_origin_x, rect_origin_y) = 
+               ( (((window_width - rect_width) as f64) * percent_pos / 100.0 ) as i32,
+                 (window_height - rect_height) as i32) ;
+            self.displayer.sdl_renderer_mut().set_draw_color(Color::RGB(0,0,255));
+            self.displayer.sdl_renderer_mut()
+                          .fill_rect(Rect::new(rect_origin_x,rect_origin_y,
+                                               rect_width,rect_height))
+                          .unwrap(); 
+        };
         try!(self.render_messages());
         self.displayer.render();
         Ok(())
