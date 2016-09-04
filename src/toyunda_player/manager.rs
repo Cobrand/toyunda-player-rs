@@ -149,7 +149,6 @@ impl Manager {
                     }
                     _ => unimplemented!(),
                 };
-                println!("command : {:?}", command);
                 if let Ok(command) = command {
                     if let Err(e) = tx.send(command) {
                         error!("An error happened when trying\
@@ -157,7 +156,7 @@ impl Manager {
                         // TODO make it Err(_) intstead
                         Ok(Response::with(status::InternalServerError))
                     } else {
-                        Ok(Response::with(status::Ok))
+                        Ok(Response::with(status::NoContent))
                     }
                 } else {
                     Ok(Response::with(status::BadRequest))

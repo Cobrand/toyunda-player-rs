@@ -1,3 +1,7 @@
+
+web/libs
+# external js libraries
+
 # Compiled files
 *.o
 *.so

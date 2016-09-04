@@ -2,26 +2,64 @@
 <html>
 	<head>
 		<meta charset="utf-8">
+		<link rel="stylesheet" type="text/css" href="style.css">
+		<link rel="stylesheet" type="text/css" href="libs/swal.css">
 		<title>Toyunda Manager</title>
 	</head>
 	<body>
 		<h1>TOYUNDA MANAGER</h1>
 		<div id="app">
-			<div id="current_status">
-				<ul>
-					<li v-for="(entry,index) in playlist">
-						<span>{{ entry.meta.origin }}</span>
-					</li>
-				</ul>	
+			<div class="panel">
+				<div id="draft_panel">
+					<h2> BROUILLON </h2>
+					<div id="draft_list">
+						<p v-for="(entry,index) in draft">
+							{{ entry.formatted_name }}
+						</p>
+					</div>
+				</div>
+				<div id="playlist_panel">
+					<h2> EN COURS </h2>
+					<div id="current_plus_playlist">
+						<p v-if="currently_playing" id="currently_playing">
+							{{now_playing}}
+						</p>
+						<p v-else id="currently_playing">
+							<b>Aucune musique en cours</b>
+						</p>
+						<div id="playlist">
+							<p v-for="(entry,index) in playlist">
+								{{ entry.formatted_name }}
+							</p>
+						</div>
+					</div>
+				</div>
+				<div id="commands">
+					<h2> COMMANDES </h2>
+					<input type="button" onclick="toyunda_command('play_next')" v-bind:value="play_next_value" v-bind:disabled="play_next_disabled">
+					<input type="button" onclick="toyunda_command('stop')" value="Stop" v-bind:disabled="stop_button_disabled">
+				</div>
 			</div>
-			<input placeholder="Recherche" v-model.trim="search">
-			<ul>
-				<li v-for="(entry,index) in filtered_list">
-					<span>{{entry.name}}</span>
-				</li>
-			</ul>
+			<input placeholder="Recherche" v-model.trim="search" type="text" class="mainsearch">
+			<table class="listing">
+				<thead>
+					<th>Musique</th><th>Artiste</th><th>Média</th><th>Année</th><th>Actions</th>
+				</thead>
+				<tbody>
+					<tr v-for="entry in filtered_list" v-on:click="add_to_draft(entry)">
+						<td>{{entry.formatted_name}}</td>
+						<td>{{entry.meta_info.artist}}</td>
+						<td>{{entry.meta_info.media_type}}</td>
+						<td>{{entry.meta_info.year}}</td>
+						<td>
+							<input type="button" v-on:click.stop="add_to_queue(entry)" value="Ajouter à la playlist">
+						</td>
+					</tr>
+				</tbody>
+			</table>
 		</div>
-		<script type="text/javascript" src="vue.js"></script>
+		<script type="text/javascript" src="libs/vue.js"></script>
+		<script type="text/javascript" src="libs/swal.js"></script>
 		<script type="text/javascript" src="toyunda-manager.js"></script>
 	</body>
 </html>
