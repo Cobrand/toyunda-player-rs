@@ -15,6 +15,7 @@ use ::toyunda_player::command::*;
 use ::toyunda_player::state::*;
 use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
+use ::toyunda_player::editor::*;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
 use mpv::Error::MPV_ERROR_PROPERTY_UNAVAILABLE;
 use clap::ArgMatches;
@@ -27,6 +28,7 @@ pub struct ToyundaPlayer<'a> {
     state: Arc<RwLock<State>>,
     graphic_messages: Vec<graphic_message::GraphicMessage>,
     manager: Option<Manager>,
+    editor_state: Option<EditorState>
 }
 
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
@@ -60,6 +62,7 @@ impl<'a> ToyundaPlayer<'a> {
             })),
             graphic_messages: Vec::with_capacity(2),
             manager: None,
+            editor_state:None
         }
     }
 
@@ -91,6 +94,7 @@ impl<'a> ToyundaPlayer<'a> {
             enable_manager = true ;
         } else if arg_matches.is_present("edit_mode") {
             self.options.mode = ToyundaMode::EditMode;
+            self.editor_state = Some(EditorState::new());
             info!("Enabling edit mode");
             enable_manager = false;
         } else {
@@ -275,7 +279,7 @@ impl<'a> ToyundaPlayer<'a> {
             }
         }
         if (self.options.mode == ToyundaMode::EditMode ) {
-            let percent_pos : f64 = 
+            let percent_pos : f64 =
                 self.mpv.get_property("percent-pos").unwrap_or_else(|e|{
                     warn!("error when trying to retrieve percent-pos from mpv : {}",e);
                     0.0
@@ -284,14 +288,14 @@ impl<'a> ToyundaPlayer<'a> {
                 self.displayer.sdl_renderer().window().unwrap().size();
             let rect_width = window_width * 5 / 1000 ;
             let rect_height = rect_width * 2 ;
-            let (rect_origin_x, rect_origin_y) = 
+            let (rect_origin_x, rect_origin_y) =
                ( (((window_width - rect_width) as f64) * percent_pos / 100.0 ) as i32,
                  (window_height - rect_height) as i32) ;
             self.displayer.sdl_renderer_mut().set_draw_color(Color::RGB(0,0,255));
             self.displayer.sdl_renderer_mut()
                           .fill_rect(Rect::new(rect_origin_x,rect_origin_y,
                                                rect_width,rect_height))
-                          .unwrap(); 
+                          .unwrap();
         };
         try!(self.render_messages());
         self.displayer.render();
@@ -411,6 +415,56 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown { keycode: Some(Keycode::Space), repeat: false, .. } => {
                 self.execute_command(Command::TogglePause)
             }
+            Event::KeyDown { keycode: Some(Keycode::E), ..} if mode == EditMode => {
+                // toggles editor mode
+                if self.editor_state.is_none() {
+                    self.editor_state = Some(EditorState::new());
+                } else {
+                    self.editor_state = None;
+                };
+                Ok(ToyundaAction::Nothing)
+            },
+            // TODO refactor this utter SHIT
+            Event::KeyDown {keycode: Some(Keycode::X), repeat:false, .. } => {
+                if let Some(ref mut editor_state) = self.editor_state {
+                    if let Some(ref mut subtitles) = self.subtitles {
+                        let frame : i64 =
+                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
+                        editor_state.start_timing_syllable(subtitles,frame as u32,0);
+                    }
+                };
+                Ok(ToyundaAction::Nothing)
+            },
+            Event::KeyDown {keycode: Some(Keycode::C), repeat:false, .. } => {
+                if let Some(ref mut editor_state) = self.editor_state {
+                    if let Some(ref mut subtitles) = self.subtitles {
+                        let frame : i64 =
+                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
+                        editor_state.start_timing_syllable(subtitles,frame as u32,1);
+                    }
+                };
+                Ok(ToyundaAction::Nothing)
+            },
+            Event::KeyUp {keycode: Some(Keycode::X), .. } => {
+                if let Some(ref mut editor_state) = self.editor_state {
+                    if let Some(ref mut subtitles) = self.subtitles {
+                        let frame : i64 =
+                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
+                        editor_state.end_timing_syllable(subtitles,frame as u32,0);
+                    }
+                };
+                Ok(ToyundaAction::Nothing)
+            },
+            Event::KeyUp {keycode: Some(Keycode::C), .. } => {
+                if let Some(ref mut editor_state) = self.editor_state {
+                    if let Some(ref mut subtitles) = self.subtitles {
+                        let frame : i64 =
+                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
+                        editor_state.end_timing_syllable(subtitles,frame as u32,1);
+                    }
+                };
+                Ok(ToyundaAction::Nothing)
+            },
             Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. }
                 if mode != KaraokeMode && is_shift_pressed => {
                 self.execute_command(Command::SetSpeed(1.9))
