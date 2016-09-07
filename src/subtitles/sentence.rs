@@ -26,10 +26,15 @@ impl Default for RowPosition {
 
 impl fmt::Display for Sentence {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let string = self.syllables.iter().fold(String::new(), |mut string, syllable| {
+        write!(f, "\"{}\"", self.text())
+    }
+}
+
+impl Sentence {
+    pub fn text(&self) -> String {
+        self.syllables.iter().fold(String::new(),|mut string,syllable| {
             string.push_str(&*syllable.text);
             string
-        });
-        write!(f, "\"{}\"", string)
+        })
     }
 }

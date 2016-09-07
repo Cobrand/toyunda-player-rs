@@ -237,17 +237,21 @@ impl Subtitles {
         Ok(())
     }
 
-    pub fn get_texture_at_frame(&self,
-                                displayer: &mut Displayer,
-                                frame: u32)
-                                -> Result<Texture, String> {
-        use sdl2::pixels::Color;
+    fn print_editor_frame(&self,
+                          displayer: &mut Displayer,
+                          elts:(u16,u16,bool)) -> Result<(),String>  {
+        let frame = ::display::frame::Frame::from_editor(self,elts);
+        frame.draw(displayer);
+        Ok(())   
+    }
+
+    fn prepare_texture(&self,displayer:&mut Displayer) -> Result<(),String> {
         use sdl2::pixels::PixelFormatEnum::ARGB8888;
         fn ceil_power_of_2(v: f64) -> u32 {
             2u32.pow(v.log2().ceil() as u32)
         };
-        let (renderer_w, renderer_h) = try!(displayer.sdl_renderer().output_size());
-        let texture_width = ceil_power_of_2(renderer_w as f64);
+        let (renderer_w, renderer_h) = displayer.sdl_renderer().output_size().unwrap();
+                let texture_width = ceil_power_of_2(renderer_w as f64);
         let texture_height = ceil_power_of_2(renderer_h as f64);
         let mut texture = displayer.sdl_renderer()
             .create_texture_target(ARGB8888, texture_width, texture_height)
@@ -256,10 +260,35 @@ impl Subtitles {
         if let Some(ref mut render_target) = displayer.sdl_renderer_mut().render_target() {
             let old_texture = render_target.set(texture).expect("Failed to set texture as target");
             debug_assert!(old_texture.is_none());
+            Ok(())
         } else {
             error!("Render target are not supported with this GC driver");
-            return Err("Render target are not supported with this GC driver".to_string());
+            Err("Render target are not supported with this GC driver".to_string())
+        }
+    }
+
+    fn finish_texture(&self,displayer:&mut Displayer) -> Result<Texture,String> {
+        displayer.sdl_renderer_mut().set_viewport(None);
+        let new_texture = {
+            if let Some(ref mut render_target) = displayer.sdl_renderer_mut().render_target() {
+                render_target.reset()
+                    .expect("Failed to reset render_target")
+                    .expect("Failed to retrieve texture from renderer")
+            } else {
+                error!("An unknown error happened; Failed to get render_target from renderer");
+                panic!("Failed to get render_target from renderer") //TODO dont do this
+            }
         };
+        Ok(new_texture)
+    }
+
+    pub fn get_texture_at_frame(&self,
+                                displayer: &mut Displayer,
+                                frame: u32)
+                                -> Result<Texture, String> {
+        use sdl2::pixels::Color;
+        let (renderer_w, renderer_h) = try!(displayer.sdl_renderer().output_size());
+        try!(self.prepare_texture(displayer));
         let res = {
             displayer.sdl_renderer_mut()
                 .set_viewport(Some(Rect::new(0, 0, renderer_w, renderer_h)));
@@ -269,18 +298,26 @@ impl Subtitles {
             // draw subtitles on current render target
             self.print_subtitle_frame_at(displayer, frame)
         };
-        displayer.sdl_renderer_mut().set_viewport(None);
-        let new_texture = {
-            if let Some(ref mut render_target) = displayer.sdl_renderer_mut().render_target() {
-                render_target.reset()
-                    .expect("Failed to reset render_target")
-                    .expect("Failed to retrive texture from renderer")
-            } else {
-                error!("An unknown error happened; Failed to get render_target from renderer");
-                panic!("Failed to get render_target from renderer")
-            }
+        res.and(self.finish_texture(displayer))
+    }
+
+    pub fn get_texture_at_editor_pos(&self,
+                                     displayer: &mut Displayer,
+                                     (current_syllable,current_sentence,holding):
+                                     (u16,u16,bool)) -> Result<Texture,String> {
+        use sdl2::pixels::Color;
+        let (renderer_w, renderer_h) = try!(displayer.sdl_renderer().output_size());
+        try!(self.prepare_texture(displayer));
+        let res = {
+            displayer.sdl_renderer_mut()
+                .set_viewport(Some(Rect::new(0, 0, renderer_w, renderer_h)));
+            displayer.sdl_renderer_mut().set_draw_color(Color::RGBA(0, 0, 0, 0));
+            // make the texture transparent
+            displayer.sdl_renderer_mut().clear();
+            // draw subtitles on current render target
+            self.print_editor_frame(displayer,(current_syllable,current_sentence,holding))
         };
-        res.and(Ok(new_texture))
+        res.and(self.finish_texture(displayer))
     }
 
     pub fn adjust_sentences_row(&mut self) {

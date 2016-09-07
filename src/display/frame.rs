@@ -291,4 +291,127 @@ impl Frame {
         }
         frame
     }
+
+    pub fn from_editor(subtitles: &Subtitles,(cur_sen,cur_syl,holding):(u16,u16,bool)) -> Frame {
+        use sdl2::pixels::Color;
+        let mut frame: Frame = Frame {
+            textures: Vec::with_capacity(0),
+            vec_text2d: Vec::with_capacity(4),
+        };
+        let (prev_s,cur_s,next_s) : (Option<&Sentence>,&Sentence,Option<&Sentence>) =
+        if cur_sen == 0 {
+            if let Some(s) = subtitles.sentences.get(cur_sen as usize) {
+                (None,s,subtitles.sentences.get(cur_sen as usize + 1))
+            } else {
+                return frame;
+            }
+        } else if cur_sen as usize >= subtitles.sentences.len() - 1 {
+            if let Some(s) = subtitles.sentences.get(cur_sen as usize) {
+                (subtitles.sentences.get(cur_sen as usize - 1),s,None)
+            } else {
+                return frame;
+            }
+        } else {
+            if let Some(s) = subtitles.sentences.get(cur_sen as usize) {
+                (subtitles.sentences.get(cur_sen as usize - 1),s,subtitles.sentences.get(cur_sen as usize + 1))
+            } else {
+                return frame;
+            }
+        };
+        let outline = Some(Color::RGB(0,0,0));
+        let text_size = ::display::Size::FitPercent(Some(0.95),Some(0.09));
+        // let mut cur_sentence_text_elts = vec!();
+        if let Some(s) = prev_s {
+            let mut syll_text : String = String::new();
+            for syll in &s.syllables {
+                syll_text.push_str(&*syll.text);
+            };
+            let text_elts : Vec<::display::TextElement> = vec![
+                ::display::TextElement {
+                    text:syll_text,
+                    color: Color::RGBA(255,255,255,128),
+                    outline:outline,
+                    shadow : None,
+                    attach_logo : false }
+            ];
+            frame.vec_text2d.push( ::display::Text2D {
+                text:text_elts,
+                size: text_size,
+                pos : (::display::PosX::Centered,
+                       ::display::PosY::FromTopPercent(0.05)),
+                anchor: (0.5, 0.5)
+            });
+        }
+        if let Some(s) = next_s {
+            let mut syll_text : String = String::new();
+            for syll in &s.syllables {
+                syll_text.push_str(&*syll.text);
+            };
+            let text_elts : Vec<::display::TextElement> = vec![
+                ::display::TextElement {
+                    text:syll_text,
+                    color: Color::RGBA(255,255,255,128),
+                    outline:outline,
+                    shadow : None,
+                    attach_logo : false
+                }
+            ];
+            frame.vec_text2d.push( ::display::Text2D {
+                text:text_elts,
+                size: text_size,
+                pos : (::display::PosX::Centered,
+                       ::display::PosY::FromTopPercent(0.30)),
+                anchor: (0.5, 0.5)
+            });
+        }
+        if cur_s.syllables.len() > cur_syl as usize {
+            let before = &cur_s.syllables[..(cur_syl as usize)];
+            let current = &cur_s.syllables[cur_syl as usize];
+            let after = &cur_s.syllables[(cur_syl as usize + 1)..];
+            let mut text_elts = vec![];
+            if before.len() > 0 {
+                text_elts.push(::display::TextElement {
+                    text: before.iter().fold(String::new(),|mut string,syllable| {
+                        string.push_str(&*syllable.text);
+                        string
+                    }),
+                    color: Color::RGB(255,255,255),
+                    outline:outline,
+                    shadow : None,
+                    attach_logo : false
+                });
+            }
+            text_elts.push(::display::TextElement {
+                text: current.text.clone(),
+                color: if holding {
+                    Color::RGB(255,0,0)
+                } else {
+                    Color::RGB(255,255,0)   
+                },
+                outline:outline,
+                shadow : None,
+                attach_logo : true
+            });
+            if after.len() > 0 {
+                text_elts.push(::display::TextElement {
+                    text: after.iter().fold(String::new(),|mut string,syllable| {
+                        string.push_str(&*syllable.text);
+                        string
+                    }),
+                    color: Color::RGB(255,255,255),
+                    outline:outline,
+                    shadow : None,
+                    attach_logo : false
+                });
+            }
+            frame.vec_text2d.push( ::display::Text2D {
+                text:text_elts,
+                size: text_size,
+                pos : (::display::PosX::Centered,
+                       ::display::PosY::FromTopPercent(0.15)),
+                anchor: (0.5, 0.5)
+            });
+        };
+        frame
+    }
 }

@@ -36,8 +36,8 @@
 				</div>
 				<div id="commands">
 					<h2> COMMANDES </h2>
-					<input type="button" onclick="toyunda_command('play_next')" v-bind:value="play_next_value" v-bind:disabled="play_next_disabled">
-					<input type="button" onclick="toyunda_command('stop')" value="Stop" v-bind:disabled="stop_button_disabled">
+					<input class="button" type="button" onclick="toyunda_command('play_next')" v-bind:value="play_next_value" v-bind:disabled="play_next_disabled">
+					<input class="button" type="button" onclick="toyunda_command('stop')" value="Stop" v-bind:disabled="stop_button_disabled">
 				</div>
 			</div>
 			<input placeholder="Recherche" v-model.trim="search" type="text" class="mainsearch">
@@ -51,8 +51,8 @@
 						<td>{{entry.meta_info.artist}}</td>
 						<td>{{entry.meta_info.media_type}}</td>
 						<td>{{entry.meta_info.year}}</td>
-						<td>
-							<input type="button" v-on:click.stop="add_to_queue(entry)" value="Ajouter à la playlist">
+						<td class="entry_actions">
+							<input class="button playlist_entry_button" type="button" v-on:click.stop="add_to_queue(entry)" value="+Playlist"><input class="button playlist_entry_button" type="button" v-on:click.stop="add_to_draft(entry)" value="+Brouillon">
 						</td>
 					</tr>
 				</tbody>

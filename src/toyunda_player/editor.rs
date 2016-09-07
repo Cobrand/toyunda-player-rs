@@ -19,6 +19,10 @@ impl EditorState {
         }
     }
 
+    pub fn holding(&self) -> bool {
+        self.start_frame_key_1.is_some() || self.start_frame_key_2.is_some()
+    }
+
     pub fn get_sentence<'a>(&'a self,subs:&'a Subtitles) -> Option<&Sentence> {
        subs.sentences.get(self.current_sentence as usize) 
     }

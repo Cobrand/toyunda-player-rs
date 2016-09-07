@@ -6,7 +6,7 @@ input[type="text"] {
 	font-size: 1.4em;
 }
 
-input[type="button"] {
+.button {
 	display: inline-block;
 	padding: 2px 5px;
 	margin: 2px;
@@ -76,7 +76,7 @@ table.listing {
 	border-radius: 3px;
 }
 table.listing td, table.listing th {
-	padding: 3px 8px;
+	padding: 0px 8px;
 }
 table.listing thead th {
 	background-color:#555555;
@@ -175,4 +175,16 @@ table.listing tbody tr:last-child td {
 	background-color: #f9e79f;
 	border:1px solid #f4d03f;
 	border-radius:5px;
+}
+
+table.listing td.entry_actions {
+	margin-left:0;
+	padding:0;
+}
+
+.playlist_entry_button {
+	border-right:1px solid black;
+	font-size:12px;
+	margin:0;
+	border-radius:0;
 }

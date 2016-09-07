@@ -265,9 +265,14 @@ impl<'a> ToyundaPlayer<'a> {
             if self.options.display_subtitles {
                 let frame_number: i64 =
                     self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                let subtitles_texture =
+                let subtitles_texture = if let Some(ref editor_state) = self.editor_state {
+                    subtitles.get_texture_at_editor_pos(&mut self.displayer,
+                        (editor_state.current_sentence,editor_state.current_syllable,editor_state.holding()))
+                        .unwrap()
+                } else {
                     subtitles.get_texture_at_frame(&mut self.displayer, frame_number as u32)
-                        .unwrap();
+                        .unwrap()
+                };
                 let (w, h) =
                     self.displayer.sdl_renderer().output_size().expect("Failed to get render size");
                 self.displayer
