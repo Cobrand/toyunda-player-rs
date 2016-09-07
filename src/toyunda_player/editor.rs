@@ -47,17 +47,6 @@ impl EditorState {
         }
     }
 
-    /// Returns true if it was in a consistent state, false otherwise
-    // fn assert_consistent_state(&mut self,subs:&Subtitles) -> bool {
-    //     if let Some(sentence) = subs.sentences.get(self.current_syllable) {
-    //         if let Some(_) = sentence.get(self.current_sentence) {
-    //             self.reset();
-    //         }
-    //     } else {
-    //         self.reset();
-    //     }
-    // }
-
     fn reset(&mut self) {
         self.current_sentence = 0 ;
         self.current_syllable = 0 ;
