@@ -3,7 +3,7 @@ use ::subtitles::* ;
 pub struct EditorState {
     pub current_sentence : u16,
     pub current_syllable : u16,
-    /// if this is `Some(t)`, key is being held since 
+    /// if this is `Some(t)`, key is being held since
     /// `t`, otherwise it isn't being held.
     pub start_frame_key_1 : Option<u32>,
     pub start_frame_key_2 : Option<u32>
@@ -24,7 +24,7 @@ impl EditorState {
     }
 
     pub fn get_sentence<'a>(&'a self,subs:&'a Subtitles) -> Option<&Sentence> {
-       subs.sentences.get(self.current_sentence as usize) 
+       subs.sentences.get(self.current_sentence as usize)
     }
 
     pub fn get_syllable<'a>(&'a self,subs:&'a Subtitles) -> Option<&Syllable> {
@@ -34,9 +34,9 @@ impl EditorState {
             None
         }
     }
-    
+
     pub fn get_sentence_mut<'a>(&'a self,subs:&'a mut Subtitles) -> Option<&mut Sentence> {
-       subs.sentences.get_mut(self.current_sentence as usize) 
+       subs.sentences.get_mut(self.current_sentence as usize)
     }
 
     pub fn get_syllable_mut<'a>(&'a self,subs:&'a mut Subtitles) -> Option<&mut Syllable> {
@@ -72,7 +72,7 @@ impl EditorState {
         if self.get_sentence(subs).is_some() {
             if self.current_syllable == 0 {
                 self.prev_sentence(subs);
-                self.current_syllable = 
+                self.current_syllable =
                     subs.sentences[self.current_sentence as usize].syllables.len() as u16 - 1;
             } else {
                 self.current_syllable -= 1 ;
