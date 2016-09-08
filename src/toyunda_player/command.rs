@@ -96,10 +96,6 @@ impl<'a> ToyundaPlayer<'a> {
             }
             Command::PlayNext => {
                 let video_meta = self.state().write().unwrap().playlist.pop_front();
-                // match self.mpv_mut().command(&["stop"]) {
-                //     Err(e) => {error!("Unexpected error {} ({:?}) happened when stopping player",e,e)},
-                //     _ => {}
-                // }; // skips 2 videos at once if this is enabled ; TODO : investigate sherlock
                 match video_meta {
                     None => {
                         match self.options().quit_when_finished {

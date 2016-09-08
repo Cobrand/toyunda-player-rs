@@ -47,7 +47,9 @@ pub enum ToyundaAction {
     Nothing,
     PlayNext,
     Terminate,
-}
+} // TODO remove `Terminate` from ToyundaAction and
+// use execute_command(PlayNext) where needed instead
+// ToyundaAction shoud only be used for a shutdown in the end
 
 impl<'a> ToyundaPlayer<'a> {
     pub fn new(mpv_box: Box<MpvHandlerWithGl>, displayer: Displayer<'a>) -> ToyundaPlayer<'a> {
@@ -337,13 +339,11 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(false)
     }
 
-    pub fn on_end_file(&mut self) {
+    pub fn on_end_file(&mut self) -> Result<ToyundaAction> {
         if self.options.mode != ToyundaMode::EditMode {
             self.state().write().unwrap().playing_state = PlayingState::Idle;
             self.clear_subtitles();
-            if let Err(e) = self.execute_command(Command::PlayNext) {
-                error!("Error when trying to play next file : '{}'",e);
-            }
+            self.execute_command(Command::PlayNext)
         } else {
             let video_path : String = if let &PlayingState::Playing(ref video_meta) =
                 &self.state().read().unwrap().playing_state {
@@ -351,9 +351,8 @@ impl<'a> ToyundaPlayer<'a> {
             } else {
                 panic!("EditMode should never be in Idle state !!!");
             };
-            if let Err(e) = self.mpv_mut().command(&["loadfile",&*video_path]) {
-                error!("Error when Re-loading file '{}' : {}",&*video_path,e);
-            }
+            try!(self.mpv_mut().command(&["loadfile",&*video_path]));
+            Ok(ToyundaAction::Nothing)
         }
     }
 
@@ -389,8 +388,10 @@ impl<'a> ToyundaPlayer<'a> {
                 match event {
                     MpvEvent::Shutdown => {break 'main},
                     MpvEvent::EndFile(Ok(MPV_END_FILE_REASON_EOF)) => {
-                        // TODO remove EndFile and handle this better
-                        self.on_end_file();
+                        match self.on_end_file() {
+                            Ok(ToyundaAction::Terminate) => {break 'main},
+                            _ => {}
+                        }
                     },
                     _ => {}
                 };
