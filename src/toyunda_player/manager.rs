@@ -185,17 +185,17 @@ impl Manager {
         let mut api_handler = Router::new();
         api_handler.get("state", move |_r: &mut Request| {
             Self::state_request(toyunda_state_cloned.clone())
-        });
+        }, "get_state");
         let tx_command = Mutex::new(tx);
         let weak_list = Arc::downgrade(&yaml_files);
         let weak_list2 = weak_list.clone();
         api_handler.post("command", move |request: &mut Request| {
             let tx_command = tx_command.lock().unwrap().clone();
             Self::command(request, tx_command, weak_list2.clone())
-        });
+        }, "do_command");
         api_handler.get("listing", move |_r: &mut Request| {
             Self::list_request(weak_list.clone())
-        });
+        }, "get_listing");
         let mut mount = Mount::new();
         mount.mount("/", Static::new("web/"));
         mount.mount("/api", api_handler);
