@@ -22,17 +22,21 @@ pub struct Subtitles {
 
 /// subtitles : already stored Subtitles
 /// sentence : Sentence to add to the subtitles
-fn set_best_sentence_row(sentences: &[Sentence],
+fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
                          sentence: &mut Sentence,
                          default_sentence_options: &SentenceOptions) {
+    if let Some(row_pos) = sentence.sentence_options.and_then(|o|o.row_position) {
+        sentence.position = row_pos ;
+        return; // life is meaningless
+    }
+    let (before_sentences,after_sentences) = sentences ;
     let sentence_options: SentenceOptions = sentence.sentence_options
         .unwrap_or(SentenceOptions::default())
         .or(default_sentence_options);
     let sentence_parameters = SentenceParameters::from(sentence_options);
-    // TODO
     let mut best_row = 0u8;
     {
-        let sentences_candidate = sentences.iter().filter(|sentence_candidate|{
+        let filter_fun = |sentence_candidate:&&Sentence|{
             match (sentence.syllables.first(),sentence.syllables.last(),
                    sentence_candidate.syllables.first(),sentence_candidate.syllables.last()) {
                 (None,_,_,_) | (_,None,_,_) | (_,_,None,_) | (_,_,_,None)  => false,
@@ -59,15 +63,31 @@ fn set_best_sentence_row(sentences: &[Sentence],
                     }
                 }
             }
-        });
+        };
+        // TODO remove unwraps
+        // step 1 : filter -> filter_map to remove "options" and maybe convert directly in
+        // RowPosition::Row(_)
+        let sentences_candidate_before = before_sentences.iter().filter(&filter_fun);
+        let sentences_candidate_after = after_sentences.iter().filter(|s|{
+            if let Some(sentence_options) = s.sentence_options {
+                sentence_options.row_position.is_some()
+            } else {
+                false
+            }
+        }).filter(&filter_fun);
         let mut taken = vec![];
-        for sentence in sentences_candidate {
+        for sentence in sentences_candidate_before {
             match sentence.position {
                 RowPosition::Row(i) => {
                     taken.push(i);
-                }
+                },
                 _ => {}
             }
+        };
+        for sentence in sentences_candidate_after {
+            if let RowPosition::Row(i) = sentence.sentence_options.unwrap().row_position.unwrap() {
+                taken.push(i);
+            };
         }
         while taken.iter().any(|v| *v == best_row) {
             best_row = best_row + 1;
@@ -107,9 +127,14 @@ impl Subtitles {
                 if (lyr_line.starts_with("&")) {
                     syllables.remove(0);
                 };
+                let row_position = if let Some(ref row_pos) = current_sentence_options.row_position {
+                    row_pos.clone()
+                } else {
+                    RowPosition::Row(0xFF)
+                };
                 let sentence = Sentence {
                     syllables: syllables,
-                    position: RowPosition::Row(0),
+                    position: row_position,
                     sentence_options: Some(current_sentence_options),
                 };
                 subtitles.sentences.push(sentence);
@@ -327,8 +352,8 @@ impl Subtitles {
             .unwrap_or(SentenceOptions::default());
         for i in 0..self.sentences.len() {
             let (first_half, mut last_half) = self.sentences.split_at_mut(i);
-            let sentence = last_half.first_mut().expect("Unexpected None for subtitles last_half");
-            set_best_sentence_row(first_half, sentence,&default_sentence_options);
+            let (mut middle, last_half) = last_half.split_first_mut().unwrap(); 
+            set_best_sentence_row((first_half,last_half), middle,&default_sentence_options);
         }
     }
 }

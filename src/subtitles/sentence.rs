@@ -11,10 +11,11 @@ pub struct Sentence {
     pub sentence_options: Option<SentenceOptions>,
 }
 
-#[derive(Copy,Clone,Debug,Serialize,Deserialize)]
+#[derive(Copy,Clone,Debug,Serialize,Deserialize,PartialEq)]
 pub enum RowPosition {
+    #[serde(rename="row")]
     Row(u8),
-    #[allow(dead_code)]
+    #[serde(rename="force_pos")]
     ForcePos { x: f32, y: f32 },
 }
 
