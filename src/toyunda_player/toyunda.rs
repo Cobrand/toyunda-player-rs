@@ -407,7 +407,7 @@ impl<'a> ToyundaPlayer<'a> {
                         alt_keys_state: (bool, bool, bool))
                         -> Result<ToyundaAction> {
         use ::toyunda_player::ToyundaMode::*;
-        let (_is_alt_pressed, is_ctrl_pressed, is_shift_pressed) = alt_keys_state;
+        let (is_alt_pressed, is_ctrl_pressed, is_shift_pressed) = alt_keys_state;
         let mode = self.options.mode; // shortcut
         match event {
             Event::Quit { .. } |
@@ -556,6 +556,22 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown { keycode: Some(Keycode::KpMinus), .. } => {
                 self.execute_command(Command::AddVolume(-5))
             }
+            Event::KeyDown { keycode: Some(Keycode::Up), repeat: false, .. } => {
+                if let Some(ref mut editor_state) = self.editor_state {
+                    if let Some(ref subs) = self.subtitles {
+                        editor_state.prev_sentence(subs);
+                    }
+                };
+                Ok(ToyundaAction::Nothing)
+            }
+            Event::KeyDown { keycode: Some(Keycode::Down), repeat: false, .. } => {
+                if let Some(ref mut editor_state) = self.editor_state {
+                    if let Some(ref subs) = self.subtitles {
+                        editor_state.next_sentence(subs);
+                    }
+                }
+                Ok(ToyundaAction::Nothing)
+            }
             Event::KeyDown { keycode: Some(Keycode::Right), repeat: false, .. }
                 if mode != KaraokeMode && is_ctrl_pressed => {
                 self.execute_command(Command::Framestep(1))
@@ -566,6 +582,14 @@ impl<'a> ToyundaPlayer<'a> {
             }
             Event::KeyDown { keycode: Some(Keycode::Right), repeat: false, .. } if mode !=
                                                                                    KaraokeMode => {
+                if !is_alt_pressed {
+                    if let Some(ref mut editor_state) = self.editor_state {
+                        if let Some(ref subs) = self.subtitles {
+                            editor_state.next_syllable(subs);
+                        };
+                        return Ok(ToyundaAction::Nothing);
+                    }
+                };
                 self.execute_command(Command::Seek(3.0))
             }
             Event::KeyDown { keycode: Some(Keycode::Left), repeat: false, .. }
@@ -578,6 +602,14 @@ impl<'a> ToyundaPlayer<'a> {
             }
             Event::KeyDown { keycode: Some(Keycode::Left), repeat: false, .. } if mode !=
                                                                                   KaraokeMode => {
+                if !is_alt_pressed {
+                    if let Some(ref mut editor_state) = self.editor_state {
+                        if let Some(ref subs) = self.subtitles {
+                            editor_state.prev_syllable(subs);
+                        };
+                        return Ok(ToyundaAction::Nothing);
+                    }
+                };
                 self.execute_command(Command::Seek(-3.0))
             }
             Event::KeyDown { keycode: Some(Keycode::R), repeat: false, .. } if mode !=

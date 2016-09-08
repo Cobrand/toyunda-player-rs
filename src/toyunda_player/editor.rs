@@ -72,6 +72,8 @@ impl EditorState {
         if self.get_sentence(subs).is_some() {
             if self.current_syllable == 0 {
                 self.prev_sentence(subs);
+                self.current_syllable = 
+                    subs.sentences[self.current_sentence as usize].syllables.len() as u16 - 1;
             } else {
                 self.current_syllable -= 1 ;
             }
@@ -113,7 +115,6 @@ impl EditorState {
                 if let Some(begin_frame) = self.start_frame_key_1 {
                     syllable.begin = begin_frame ;
                     syllable.end = Some(frame) ;
-                    println!("Writing ({}) -> ({}) for {}",syllable.begin,frame,syllable.text);
                     true
                 } else {
                     false
@@ -122,7 +123,6 @@ impl EditorState {
                 if let Some(begin_frame) = self.start_frame_key_2 {
                     syllable.begin = begin_frame ;
                     syllable.end = Some(frame) ;
-                    println!("Writing ({}) -> ({}) for {}",syllable.begin,frame,syllable.text);
                     true
                 } else {
                     false
