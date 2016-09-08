@@ -52,7 +52,7 @@ impl EditorState {
         self.current_syllable = 0 ;
     }
 
-    pub fn prev_sentence(&mut self,subs:&Subtitles) {
+    pub fn prev_sentence(&mut self, _subs:&Subtitles) {
         if ( self.current_sentence <= 1 ) {
             self.current_sentence = 0 ;
         } else {
