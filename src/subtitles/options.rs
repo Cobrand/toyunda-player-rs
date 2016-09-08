@@ -123,7 +123,7 @@ impl From<SyllableOptions> for SyllableParameters {
             dead_color: syllable_options.dead_color
                 .unwrap_or(Color {
                     red: 0,
-                    green: 0,
+                    green: 255,
                     blue: 255,
                 }),
             outline: syllable_options.outline
