@@ -45,11 +45,8 @@ fn get_alt_keys(keyboard_state: KeyboardState) -> (bool, bool, bool) {
 #[derive(Debug,Clone)]
 pub enum ToyundaAction {
     Nothing,
-    PlayNext,
-    Terminate,
-} // TODO remove `Terminate` from ToyundaAction and
-// use execute_command(PlayNext) where needed instead
-// ToyundaAction shoud only be used for a shutdown in the end
+    Terminate(Result<()>),
+}
 
 impl<'a> ToyundaPlayer<'a> {
     pub fn new(mpv_box: Box<MpvHandlerWithGl>, displayer: Displayer<'a>) -> ToyundaPlayer<'a> {
@@ -322,17 +319,12 @@ impl<'a> ToyundaPlayer<'a> {
             let res = self.execute_command(command);
             match res {
                 Ok(ToyundaAction::Nothing) => {}
-                Ok(ToyundaAction::Terminate) => {
+                Ok(ToyundaAction::Terminate(_)) => {
+                    // TODO parse errors
                     return Ok(true);
                 }
-                Ok(ToyundaAction::PlayNext) => {
-                    match self.execute_command(Command::PlayNext) {
-                        Err(e) => error!("An error '{}' occured when trying to play next file", e),
-                        _ => {}
-                    }
-                }
                 Err(e) => {
-                    error!("An error '{}' occured ({:?})", e, e);
+                    error!("An error '{0}' occured ({0:?})", e);
                 }
             }
         }
@@ -363,15 +355,8 @@ impl<'a> ToyundaPlayer<'a> {
             for event in event_pump.poll_iter() {
                 match self.handle_event(event, alt_keys) {
                     Ok(ToyundaAction::Nothing) => {}
-                    Ok(ToyundaAction::Terminate) => break 'main,
-                    Ok(ToyundaAction::PlayNext) => {
-                        match self.execute_command(Command::PlayNext) {
-                            Err(e) => {
-                                error!("An error '{}' occured when trying to play next file", e)
-                            }
-                            _ => {}
-                        }
-                    }
+                    Ok(ToyundaAction::Terminate(_)) => break 'main,
+                    // TODO see if terminate contains an error or not
                     Err(e) => {
                         use ::toyunda_player::graphic_message::Category;
                         self.add_graphic_message(Category::Warn,&format!("Error : {}",e));
@@ -389,7 +374,9 @@ impl<'a> ToyundaPlayer<'a> {
                     MpvEvent::Shutdown => {break 'main},
                     MpvEvent::EndFile(Ok(MPV_END_FILE_REASON_EOF)) => {
                         match self.on_end_file() {
-                            Ok(ToyundaAction::Terminate) => {break 'main},
+                            Ok(ToyundaAction::Terminate(_)) => {break 'main},
+                            // TODO see if terminate contains an error or not
+                            // TODO parse mpv error (shouldnt happen often, but still)
                             _ => {}
                         }
                     },
@@ -412,7 +399,8 @@ impl<'a> ToyundaPlayer<'a> {
         let mode = self.options.mode; // shortcut
         match event {
             Event::Quit { .. } |
-            Event::KeyDown { keycode: Some(Keycode::Escape), .. } => Ok(ToyundaAction::Terminate),
+            Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
+                Ok(ToyundaAction::Terminate(Ok(()))),
             Event::KeyDown { keycode: Some(Keycode::S), ..}
                 if is_ctrl_pressed && mode == NormalMode => self.execute_command(Command::Stop),
             Event::KeyDown { keycode: Some(Keycode::N), ..}

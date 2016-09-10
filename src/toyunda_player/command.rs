@@ -104,13 +104,14 @@ impl<'a> ToyundaPlayer<'a> {
                                     ToyundaMode::KaraokeMode | ToyundaMode::EditMode => {
                                         Ok(ToyundaAction::Nothing)
                                     }
-                                    ToyundaMode::NormalMode => Ok(ToyundaAction::Terminate),
+                                    ToyundaMode::NormalMode =>
+                                        Ok(ToyundaAction::Terminate(Ok(()))),
                                 }
                             }
                             Some(b) => {
                                 if b {
                                     // "quit_when_finished" override
-                                    Ok(ToyundaAction::Terminate)
+                                    Ok(ToyundaAction::Terminate(Ok(())))
                                 } else {
                                     // "dont_quit_when_finished" override
                                     Ok(ToyundaAction::Nothing)
@@ -125,26 +126,28 @@ impl<'a> ToyundaPlayer<'a> {
                             None => {
                                 error!("Invalid UTF-8 Path for {} , skipping file",
                                        video_meta.video_path.display());
-                                Ok(ToyundaAction::PlayNext)
+                                self.execute_command(Command::PlayNext)
                             }
                             Some(video_path) => {
                                 match self.mpv_mut().command(&["loadfile", video_path.as_str()]) {
                                     Ok(_) => {
                                         match self.import_subtitles(Some(&video_meta)) {
                                             Ok(_) => {
-                                                info!("Now playing : '{}'", &video_path);
                                                 self.state().write().unwrap().playing_state =
                                                     PlayingState::Playing(video_meta);
+                                                info!("Now playing : '{}'", &video_path);
                                                 Ok(ToyundaAction::Nothing)
                                             }
                                             Err(e) => {
+                                                self.state().write().unwrap().playing_state =
+                                                    PlayingState::Playing(video_meta);
                                                 if self.options().mode == ToyundaMode::KaraokeMode {
                                                     error!("Error was received when importing \
                                                             subtitles : {} , file {} will be \
                                                             skipped",
                                                            e,
                                                            video_path);
-                                                    Ok(ToyundaAction::PlayNext)
+                                                    self.execute_command(Command::PlayNext)
                                                 } else {
                                                     let string = format!("Error was received \
                                                                           when importing \
@@ -162,7 +165,7 @@ impl<'a> ToyundaPlayer<'a> {
                                                 Skiping file ...",
                                                video_path,
                                                e);
-                                        Ok(ToyundaAction::PlayNext)
+                                        self.execute_command(Command::PlayNext)
                                     }
                                 }
                             }
