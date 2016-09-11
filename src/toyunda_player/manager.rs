@@ -6,10 +6,9 @@ use mount::Mount;
 use router::Router;
 use staticfile::Static;
 use std::sync::{Weak, RwLock, Arc, Mutex};
-use ::toyunda_player::state::State as ToyundaState;
-use ::toyunda_player::command::*;
-use ::toyunda_player::yaml_meta::*;
-use ::toyunda_player::video_meta::*;
+use super::state::State as ToyundaState;
+use super::command::*;
+use super::video_meta::*;
 
 use ::utils::for_each_in_dir;
 use std::path::{Path, PathBuf};
@@ -47,29 +46,26 @@ struct WebCommand {
 pub struct Manager {
     listening: Listening,
     pub receiver: Receiver<Command>,
-    _yaml_files: Arc<Vec<YamlMeta>>,
+    _yaml_files: Arc<Vec<VideoMeta>>,
 }
 
 impl Manager {
-    fn add_yaml_file<P: AsRef<Path>>(yaml_files: &mut Vec<YamlMeta>,
+    fn add_yaml_file<P: AsRef<Path>>(yaml_files: &mut Vec<VideoMeta>,
                                      file: P)
                                      -> Result<(), String> {
         let file = file.as_ref();
 
         match VideoMeta::from_yaml(file) {
-            Ok(video_meta) => {
-                yaml_files.push(YamlMeta {
-                    yaml_path: PathBuf::from(file),
-                    video_meta: video_meta.fix_paths(file),
-                });
+            Ok(mut video_meta) => {
+                yaml_files.push(video_meta.fix_paths(file));
                 Ok(())
             }
             Err(e) => Err(format!("Error when loading yaml file '{}' : {}", file.display(), e)),
         }
     }
 
-    fn parse_yaml_directory<P: AsRef<Path>>(directory: P) -> Result<Vec<YamlMeta>, String> {
-        let mut yaml_files: Vec<YamlMeta> = Vec::new();
+    fn parse_yaml_directory<P: AsRef<Path>>(directory: P) -> Result<Vec<VideoMeta>, String> {
+        let mut yaml_files: Vec<VideoMeta> = Vec::new();
         let (paths, errs) = for_each_in_dir(directory,
                                             3,
                                             &|path| {
@@ -108,7 +104,7 @@ impl Manager {
         }
     }
 
-    fn list_request(list: Weak<Vec<YamlMeta>>) -> IronResult<Response> {
+    fn list_request(list: Weak<Vec<VideoMeta>>) -> IronResult<Response> {
         use iron::mime::Mime;
         let json_mime: Mime = "application/json".parse().unwrap();
         match list.upgrade() {
@@ -122,7 +118,7 @@ impl Manager {
 
     fn command(request: &mut Request,
                tx: Sender<Command>,
-               list: Weak<Vec<YamlMeta>>)
+               list: Weak<Vec<VideoMeta>>)
                -> IronResult<Response> {
         let web_command = request.get_ref::<bodyparser::Struct<WebCommand>>();
         match web_command {
@@ -135,8 +131,8 @@ impl Manager {
                     WebCommandType::AddToQueue => {
                         if let Some(id) = web_command.id {
                             if let Some(list) = list.upgrade() {
-                                if let Some(ref yaml_meta) = list.get(id as usize) {
-                                    Ok(Command::AddToQueue(yaml_meta.video_meta.clone()))
+                                if let Some(video_meta) = list.get(id as usize) {
+                                    Ok(Command::AddToQueue(video_meta.clone()))
                                 } else {
                                     Err(format!("Bad Index {}", id))
                                 }
@@ -171,7 +167,7 @@ impl Manager {
                                  toyunda_state: Weak<RwLock<ToyundaState>>,
                                  yaml_directories: Vec<PathBuf>)
                                  -> IronResult<Manager> {
-        let mut yaml_files: Vec<YamlMeta> = Vec::new();
+        let mut yaml_files: Vec<VideoMeta> = Vec::new();
         for dir in yaml_directories {
             if yaml_files.is_empty() {
                 yaml_files = Self::parse_yaml_directory(&dir).unwrap();

@@ -1,12 +1,15 @@
 extern crate serde_json;
 
-use ::toyunda_player::*;
+use super::*;
+use super::subtitle_loader::*;
 use mpv::{MpvHandlerWithGl, Event as MpvEvent};
 use std::path::PathBuf;
-use ::subtitles::Subtitles;
-use ::display::Displayer;
+use ::subtitles::{Subtitles,Load};
+use ::overlay::pos::*;
+use ::overlay::{Display,OverlayFrame,TextUnit,TextSubUnit,Outline,Color,AlphaColor};
+use ::sdl_displayer::{SDLDisplayer,SDLDisplayParameters as DisplayParams};
 use sdl2::event::Event;
-use sdl2::pixels::Color;
+use sdl2::pixels::Color as SdlColor;
 use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState, Scancode, Keycode};
 use std::sync::{RwLock, Arc};
@@ -16,19 +19,20 @@ use ::toyunda_player::state::*;
 use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
 use ::toyunda_player::editor::*;
+use ::utils::RGB;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
 use mpv::Error::MPV_ERROR_PROPERTY_UNAVAILABLE;
 use clap::ArgMatches;
 
 pub struct ToyundaPlayer<'a> {
-    subtitles: Option<Subtitles>,
-    mpv: Box<MpvHandlerWithGl>,
-    displayer: Displayer<'a>,
-    options: ToyundaOptions,
-    state: Arc<RwLock<State>>,
-    graphic_messages: Vec<graphic_message::GraphicMessage>,
-    manager: Option<Manager>,
-    editor_state: Option<EditorState>
+    pub subtitles: Option<Subtitles>,
+    pub mpv: Box<MpvHandlerWithGl>,
+    pub displayer: SDLDisplayer<'a>,
+    pub options: ToyundaOptions,
+    pub state: Arc<RwLock<State>>,
+    pub graphic_messages: Vec<graphic_message::GraphicMessage>,
+    pub manager: Option<Manager>,
+    pub editor_state: Option<EditorState>
 }
 
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
@@ -45,11 +49,11 @@ fn get_alt_keys(keyboard_state: KeyboardState) -> (bool, bool, bool) {
 #[derive(Debug,Clone)]
 pub enum ToyundaAction {
     Nothing,
-    Terminate(Result<()>),
+    Terminate,
 }
 
 impl<'a> ToyundaPlayer<'a> {
-    pub fn new(mpv_box: Box<MpvHandlerWithGl>, displayer: Displayer<'a>) -> ToyundaPlayer<'a> {
+    pub fn new(mpv_box: Box<MpvHandlerWithGl>, displayer: SDLDisplayer<'a>) -> ToyundaPlayer<'a> {
         ToyundaPlayer {
             subtitles: None,
             mpv: mpv_box,
@@ -68,7 +72,7 @@ impl<'a> ToyundaPlayer<'a> {
     pub fn start(&mut self, arg_matches: ArgMatches) -> Result<()> {
         let mut is_playlist_empty = true ;
         if let Some(video_files) = arg_matches.values_of("VIDEO_FILE") {
-            let mut state = self.state().write().unwrap();
+            let mut state = self.state.write().unwrap();
             for value in video_files {
                 match VideoMeta::new(value) {
                     Ok(video_meta) => {
@@ -93,7 +97,7 @@ impl<'a> ToyundaPlayer<'a> {
             enable_manager = true ;
         } else if arg_matches.is_present("edit_mode") {
             self.options.mode = ToyundaMode::EditMode;
-            self.editor_state = Some(EditorState::new());
+            self.editor_state = None;
             info!("Enabling edit mode");
             enable_manager = false;
         } else {
@@ -152,6 +156,71 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(())
     }
 
+    /// load media actually loads subtitles with it : when the file is finished
+    /// being loaded, we can load the subtitles for sure
+    ///
+    pub fn on_load_media(&mut self) -> Result<ToyundaAction> {
+        let res = self.import_cur_file_subtitles();
+        if let Err(e) = res {
+            if self.options.mode == ToyundaMode::KaraokeMode {
+                if let &PlayingState::Playing(ref video_meta) =
+                    &self.state.write().unwrap().playing_state {
+                        error!("Error was received when importing \
+                        subtitles : {} , file {} will be skipped",
+                        e,video_meta.video_path.display());
+                    } else {
+                        error!("Error was received when importing subtitles : {},\
+                               file will be skipped",e);
+                    }
+                    self.execute_command(Command::PlayNext)
+            } else {
+                let string = format!("Error was received \
+                    when importing subtitles : {}",e);
+                error!("{}", string.as_str());
+                self.add_graphic_message(graphic_message::Category::Error, string.as_str());
+                Ok(ToyundaAction::Nothing)
+            }
+        } else {
+            Ok(ToyundaAction::Nothing)
+        }
+    }
+
+    /// This method doesnt load subtitles ... we wait for the file to be loaded
+    /// to load subtitles (that way Video-related parameters can be sent to subtitles,
+    /// like total length, FPS...
+    pub fn load_media_from_video_meta(&mut self,video_meta:VideoMeta)
+                                           -> Result<ToyundaAction> {
+        let tmp_video_path =
+            video_meta.video_path.to_str().map(|s| String::from(s));
+        match tmp_video_path {
+            None => {
+                error!("Invalid UTF-8 Path for {} , skipping file",
+                       video_meta.video_path.display());
+                self.execute_command(Command::PlayNext)
+            }
+            Some(video_path) => {
+                match self.mpv.command(&["loadfile", video_path.as_str()]) {
+                    Ok(_) => {
+                        self.state.write().unwrap().playing_state =
+                            PlayingState::Playing(video_meta);
+                        info!("Now playing : '{}'", &video_path);
+                        Ok(ToyundaAction::Nothing)
+                    },
+                    Err(e) => {
+                        error!("Trying to play file {} but error {} occured. \
+                                Skiping file ...",video_path,e);
+                        self.execute_command(Command::PlayNext)
+                    },
+                        
+                }
+            }
+        }
+    }
+
+    pub fn get_file_fps(&self) -> f64 {
+        self.mpv.get_property::<f64>("fps").unwrap_or(0.0)
+    }
+
     /// adds a graphic message on the screen
     /// note that errors and warnings wont be shown in KaraokeMode
     pub fn add_graphic_message(&mut self, category: graphic_message::Category, message: &str) {
@@ -159,51 +228,44 @@ impl<'a> ToyundaPlayer<'a> {
         self.graphic_messages.push(graphic_message::GraphicMessage {
             category: category,
             text: String::from(message),
-            up_until: Instant::now() + Duration::from_secs(5),
+            up_until: Instant::now() + Duration::from_secs(4),
         });
-    }
-
-    pub fn reload_subtitles(&mut self) -> Result<()> {
-        self.import_subtitles(None)
     }
 
     /// if video_meta is None, reload the current subtitles
     /// otherwise load from video_meta
-    pub fn import_subtitles(&mut self, video_meta: Option<&VideoMeta>) -> Result<()> {
-        let (json_path, lyr_path, frm_path) = {
-            match video_meta {
-                None => {
-                    match &self.state.read().unwrap().playing_state {
-                        &PlayingState::Idle => {
-                            return Err(Error::Text(String::from("Error when reloading subtitles \
-                                                                 : no file is playing !")))
-                        }
-                        &PlayingState::Playing(ref video_meta) => {
-                            (video_meta.json_path(), video_meta.lyr_path(), video_meta.frm_path())
-                        }
-                    }
-                }
-                Some(video_meta) => {
+    pub fn import_cur_file_subtitles(&mut self) -> Result<()> {
+        let duration : u32 = 
+            (self.mpv.get_property::<f64>("duration").unwrap_or(0.0) * 1000.0) as u32;
+        let fps : f64 = self.get_file_fps(); 
+        let (json_path, lyr_path, frm_path) =
+            match &self.state.read().unwrap().playing_state {
+                &PlayingState::Idle => {
+                    return Err(Error::Text(String::from("Error when reloading subtitles \
+                                                         : no file is playing !")))
+                },
+                &PlayingState::Playing(ref video_meta) => {
                     (video_meta.json_path(), video_meta.lyr_path(), video_meta.frm_path())
                 }
-            }
-        }; // TODO move this chunk into a private method
+            };
+        // TODO move this chunk into a private method
         if (json_path.is_file()) {
-            info!("Loading {}", json_path.display());
+            debug!("Loading file {}", json_path.display());
             let json_file = ::std::fs::File::open(json_path).expect("Failed to open JSON file");
             let mut subtitles: Subtitles = serde_json::from_reader(json_file)
                 .expect("Failed to load json file");
-            subtitles.adjust_sentences_row();
+            subtitles.post_init(duration);
             self.subtitles = Some(subtitles);
             Ok(())
         } else {
-            info!("Failed to load json file, trying lyr and frm files");
+            debug!("Failed to load json file, trying lyr and frm files");
             if (lyr_path.is_file() && frm_path.is_file()) {
                 info!("Loading subtitles with lyr and frm ...");
                 self.add_graphic_message(graphic_message::Category::Info,
                                          "Failed to load json subtitle file, loading lyr and frm");
-                Subtitles::load_from_lyr_frm(lyr_path, frm_path)
-                    .map(|subtitles| {
+                (&*frm_path, &*lyr_path, fps).into_subtitles()
+                    .map(|mut subtitles| {
+                        subtitles.post_init(duration);
                         self.subtitles = Some(subtitles);
                         ()
                     })
@@ -221,78 +283,87 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
-    pub fn render_messages(&mut self) -> Result<()> {
+    pub fn messages_as_overlay_frame(&mut self) -> OverlayFrame {
         use ::toyunda_player::graphic_message::*;
         use std::time::Instant;
-        use ::display::* ;
         let is_karaoke_mode = self.options.mode == ToyundaMode::KaraokeMode;
         self.graphic_messages.retain(|ref message| {
             message.up_until > Instant::now() &&
             (!is_karaoke_mode || message.category == graphic_message::Category::Announcement)
         });
         let message_height = 0.06;
+        let mut overlay_frame = OverlayFrame {
+            text_units:vec![]
+        };
         for (n, ref message) in self.graphic_messages.iter().enumerate() {
-            let text_elt: TextElement = TextElement {
+            let text_elt: TextSubUnit = TextSubUnit {
                 text: message.text.clone(),
                 attach_logo: false,
                 color: match message.category {
-                    Category::Error => Color::RGB(255, 0, 0),
-                    Category::Warn => Color::RGB(255, 140, 0),
-                    Category::Info => Color::RGB(0, 255, 255),
-                    Category::Announcement => Color::RGB(255, 255, 255),
+                    Category::Error => AlphaColor::new(255, 0, 0),
+                    Category::Warn => AlphaColor::new(255, 140, 0),
+                    Category::Info => AlphaColor::new(0, 255, 255),
+                    Category::Announcement => AlphaColor::new(255, 255, 255),
                 },
-                outline: Some(Color::RGB(0, 0, 0)),
+                outline: Outline::Light(Color::new(0,0,0)),
                 shadow: None,
             };
-            let text2d: Text2D = Text2D {
+            let text_unit: TextUnit = TextUnit {
                 text: vec![text_elt],
                 size: Size::FitPercent(Some(0.98), Some(message_height)),
                 pos: (PosX::FromLeftPercent(0.01),
                       PosY::FromBottomPercent(0.01 + message_height * n as f32)),
                 anchor: (0.0, 1.0),
             };
-            text2d.draw(&mut self.displayer);
+            overlay_frame.text_units.push(text_unit);
         }
-        Ok(())
+        overlay_frame
     }
 
-    pub fn render_credits(&mut self) {
-        let fps : f64 = self.mpv.get_property::<f64>("fps").or_else(|_|{
-            self.mpv.get_property::<f64>("container-fps")
-        }).unwrap_or(30.0);
-        let duration = self.mpv.get_property::<f64>("duration");
-        if let Ok(duration) = duration {
-            let first_credits_start_frame = (2.0 * fps) as u32;
-            let first_credits_end_frame = (10.0 * fps) as u32;
-            let end_credits_start_frame = ((duration - 2.0) * fps) as u32;
-            let end_credits_end_frame = ((duration - 10.0) * fps) as u32;
-        };
-    }
-
-    pub fn render_frame(&mut self) -> Result<()> {
+    pub fn render_overlay(&mut self) -> Result<()> {
         use sdl2::rect::Rect;
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
-        self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
+        let time_pos = self.get_media_current_time();
+        let display_params : DisplayParams = 
+            match (self.mpv.get_property::<i64>("width"),
+                   self.mpv.get_property::<i64>("height")) {
+                (Ok(w),Ok(h)) => {
+                    let mpv_aspect_ratio : f64 = (w as f64) / (h as f64) ;
+                    let screen_aspect_ratio : f64 = (width as f64)/(h as f64);
+                    if mpv_aspect_ratio > screen_aspect_ratio {
+
+                    } else {
+
+                    };
+                    DisplayParams {
+                        output_size:None,
+                        offset:None
+                        // output_size:Some((w as u32,h as u32)),
+                        // offset:Some(((width.saturating_sub(w as u32))/2,
+                        //              (height.saturating_sub(h as u32))/2))
+                    }
+                },
+                _ => DisplayParams {
+                    output_size:None,
+                    offset:None
+                }
+        };
+        self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw video frame with mpv");
         if let Some(ref subtitles) = self.subtitles {
             if self.options.display_subtitles {
-                let frame_number: i64 =
-                    self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                let subtitles_texture = if let Some(ref editor_state) = self.editor_state {
-                    subtitles.get_texture_at_editor_pos(&mut self.displayer,
-                        (editor_state.current_sentence,editor_state.current_syllable,editor_state.holding()))
-                        .unwrap()
+                let overlay_frame = if let Some(ref editor_state) = self.editor_state {
+                    editor_state.to_overlay_frame(subtitles)
                 } else {
-                    subtitles.get_texture_at_frame(&mut self.displayer, frame_number as u32)
-                        .unwrap()
+                    subtitles.to_overlay_frame(time_pos)
                 };
-                let (w, h) =
-                    self.displayer.sdl_renderer().output_size().expect("Failed to get render size");
-                self.displayer
-                    .sdl_renderer_mut()
-                    .set_blend_mode(::sdl2::render::BlendMode::Blend);
-                self.displayer.sdl_renderer_mut().copy(&subtitles_texture,
-                                                       Some(Rect::new(0, 0, w, h)),
-                                                       Some(Rect::new(0, 0, w, h)));
+                match overlay_frame {
+                    Ok(overlay_frame) => {
+                        self.displayer.display(&overlay_frame,&display_params);
+                    },
+                    Err(err_string) => {
+                        error!("Error when processing overlay : {}",err_string);
+                    }
+                };
             }
         }
         if (self.options.mode == ToyundaMode::EditMode ) {
@@ -308,13 +379,15 @@ impl<'a> ToyundaPlayer<'a> {
             let (rect_origin_x, rect_origin_y) =
                ( (((window_width - rect_width) as f64) * percent_pos / 100.0 ) as i32,
                  (window_height - rect_height) as i32) ;
-            self.displayer.sdl_renderer_mut().set_draw_color(Color::RGB(0,0,255));
+            self.displayer.sdl_renderer_mut().set_draw_color(SdlColor::RGB(0,0,255));
             self.displayer.sdl_renderer_mut()
                           .fill_rect(Rect::new(rect_origin_x,rect_origin_y,
                                                rect_width,rect_height))
                           .unwrap();
         };
-        try!(self.render_messages());
+        // display logs
+        let messages_overlay_frame = self.messages_as_overlay_frame();
+        self.displayer.display(&messages_overlay_frame,&display_params);
         self.displayer.render();
         Ok(())
     }
@@ -332,8 +405,7 @@ impl<'a> ToyundaPlayer<'a> {
             let res = self.execute_command(command);
             match res {
                 Ok(ToyundaAction::Nothing) => {}
-                Ok(ToyundaAction::Terminate(_)) => {
-                    // TODO parse errors
+                Ok(ToyundaAction::Terminate) => {
                     return Ok(true);
                 }
                 Err(e) => {
@@ -346,17 +418,17 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn on_end_file(&mut self) -> Result<ToyundaAction> {
         if self.options.mode != ToyundaMode::EditMode {
-            self.state().write().unwrap().playing_state = PlayingState::Idle;
+            self.state.write().unwrap().playing_state = PlayingState::Idle;
             self.clear_subtitles();
             self.execute_command(Command::PlayNext)
         } else {
             let video_path : String = if let &PlayingState::Playing(ref video_meta) =
-                &self.state().read().unwrap().playing_state {
+                &self.state.read().unwrap().playing_state {
                 String::from(video_meta.video_path.to_str().unwrap())
             } else {
                 panic!("EditMode should never be in Idle state !!!");
             };
-            try!(self.mpv_mut().command(&["loadfile",&*video_path]));
+            try!(self.mpv.command(&["loadfile",&*video_path]));
             Ok(ToyundaAction::Nothing)
         }
     }
@@ -368,8 +440,7 @@ impl<'a> ToyundaPlayer<'a> {
             for event in event_pump.poll_iter() {
                 match self.handle_event(event, alt_keys) {
                     Ok(ToyundaAction::Nothing) => {}
-                    Ok(ToyundaAction::Terminate(_)) => break 'main,
-                    // TODO see if terminate contains an error or not
+                    Ok(ToyundaAction::Terminate) => break 'main,
                     Err(e) => {
                         use ::toyunda_player::graphic_message::Category;
                         self.add_graphic_message(Category::Warn,&format!("Error : {}",e));
@@ -387,20 +458,30 @@ impl<'a> ToyundaPlayer<'a> {
                     MpvEvent::Shutdown => {break 'main},
                     MpvEvent::EndFile(Ok(MPV_END_FILE_REASON_EOF)) => {
                         match self.on_end_file() {
-                            Ok(ToyundaAction::Terminate(_)) => {break 'main},
-                            // TODO see if terminate contains an error or not
+                            Ok(ToyundaAction::Terminate) => {break 'main},
                             // TODO parse mpv error (shouldnt happen often, but still)
                             _ => {}
                         }
                     },
+                    MpvEvent::FileLoaded => {
+                        self.on_load_media();
+                    }
                     _ => {}
                 };
             }
             // TODO change this try into something else,
-            // would be bad to crash if we cant render 1 frame ...
-            try!(self.render_frame());
+            // would be bad to crash if we cant render once ...
+            try!(self.render_overlay());
         }
         Ok(())
+    }
+
+    pub fn get_media_current_time(&self) -> u32 {
+        if let Ok(t) = self.mpv.get_property::<f64>("time-pos") {
+            (t * 1000.0) as u32
+        } else {
+            0u32
+        }
     }
 
     pub fn handle_event(&mut self,
@@ -408,12 +489,13 @@ impl<'a> ToyundaPlayer<'a> {
                         alt_keys_state: (bool, bool, bool))
                         -> Result<ToyundaAction> {
         use ::toyunda_player::ToyundaMode::*;
+        let time = self.get_media_current_time();
         let (is_alt_pressed, is_ctrl_pressed, is_shift_pressed) = alt_keys_state;
         let mode = self.options.mode; // shortcut
         match event {
             Event::Quit { .. } |
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
-                Ok(ToyundaAction::Terminate(Ok(()))),
+                Ok(ToyundaAction::Terminate),
             Event::KeyDown { keycode: Some(Keycode::S), ..}
                 if is_ctrl_pressed && mode == NormalMode => self.execute_command(Command::Stop),
             Event::KeyDown { keycode: Some(Keycode::N), ..}
@@ -425,7 +507,9 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown { keycode: Some(Keycode::E), ..} if mode == EditMode => {
                 // toggles editor mode
                 if self.editor_state.is_none() {
-                    self.editor_state = Some(EditorState::new());
+                    if let Some(subs) = self.subtitles.as_ref() {
+                        self.editor_state = Some(EditorState::new(time,subs));
+                    };
                 } else {
                     self.editor_state = None;
                 };
@@ -435,9 +519,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown {keycode: Some(Keycode::X), repeat:false, .. } => {
                 if let Some(ref mut editor_state) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
-                        let frame : i64 =
-                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                        editor_state.start_timing_syllable(subtitles,frame as u32,0);
+                        editor_state.start_timing_syllable(subtitles,time,0);
                     }
                 };
                 Ok(ToyundaAction::Nothing)
@@ -445,9 +527,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown {keycode: Some(Keycode::C), repeat:false, .. } => {
                 if let Some(ref mut editor_state) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
-                        let frame : i64 =
-                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                        editor_state.start_timing_syllable(subtitles,frame as u32,1);
+                        editor_state.start_timing_syllable(subtitles,time,1);
                     }
                 };
                 Ok(ToyundaAction::Nothing)
@@ -455,9 +535,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyUp {keycode: Some(Keycode::X), .. } => {
                 if let Some(ref mut editor_state) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
-                        let frame : i64 =
-                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                        editor_state.end_timing_syllable(subtitles,frame as u32,0);
+                        editor_state.end_timing_syllable(subtitles,time,0);
                     }
                 };
                 Ok(ToyundaAction::Nothing)
@@ -465,9 +543,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyUp {keycode: Some(Keycode::C), .. } => {
                 if let Some(ref mut editor_state) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
-                        let frame : i64 =
-                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                        editor_state.end_timing_syllable(subtitles,frame as u32,1);
+                        editor_state.end_timing_syllable(subtitles,time,1);
                     }
                 };
                 Ok(ToyundaAction::Nothing)
@@ -623,7 +699,7 @@ impl<'a> ToyundaPlayer<'a> {
                 if ( y as u32 > win_height * 96 / 100 ) {
                     // bottom 4% : low enough to move
                     let percent_pos : f64 = (100.0 * x as f64 / win_width as f64 ) ;
-                    if let Err(e) = self.mpv_mut().set_property("percent-pos",percent_pos) {
+                    if let Err(e) = self.mpv.set_property("percent-pos",percent_pos) {
                         match e {
                             MPV_ERROR_PROPERTY_UNAVAILABLE => {},
                             // happens when video is paused
@@ -643,7 +719,7 @@ impl<'a> ToyundaPlayer<'a> {
             }
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false, .. } if mode !=
                                                                                KaraokeMode => {
-                match &self.state().read().unwrap().playing_state {
+                match &self.state.read().unwrap().playing_state {
                     &PlayingState::Playing(ref video_meta) => {
                         if let Some(ref sub) = self.subtitles {
                             let json_file_path = video_meta.json_path();
@@ -676,34 +752,6 @@ impl<'a> ToyundaPlayer<'a> {
             }
             _ => Ok(ToyundaAction::Nothing),
         }
-    }
-
-    pub fn mpv(&self) -> &MpvHandlerWithGl {
-        self.mpv.as_ref()
-    }
-
-    pub fn mpv_mut(&mut self) -> &mut MpvHandlerWithGl {
-        self.mpv.as_mut()
-    }
-
-    pub fn displayer(&self) -> &Displayer<'a> {
-        &self.displayer
-    }
-
-    pub fn displayer_mut(&mut self) -> &mut Displayer<'a> {
-        &mut self.displayer
-    }
-
-    pub fn state(&self) -> &RwLock<State> {
-        &self.state
-    }
-
-    pub fn options(&self) -> &ToyundaOptions {
-        &self.options
-    }
-
-    pub fn options_mut(&mut self) -> &mut ToyundaOptions {
-        &mut self.options
     }
 
     pub fn clear_subtitles(&mut self) {

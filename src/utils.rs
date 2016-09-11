@@ -1,13 +1,29 @@
 extern crate sdl2;
-use ::subtitles::Color;
-use ::sdl2::pixels::Color as SdlColor;
 use std::cmp::{max, min};
 
 use std::path::{Path, PathBuf};
 use std::{io, fs};
 
+pub trait RGB {
+    fn r(&self) -> u8;
+    fn g(&self) -> u8;
+    fn b(&self) -> u8;
+    fn rgb(&self) -> (u8,u8,u8) {
+        (self.r(),self.g(),self.b())
+    }
+    fn new(r:u8,g:u8,b:u8) -> Self;
+}
+
+pub trait RGBA:RGB {
+    fn a(&self) -> u8;
+    fn rgba(&self) -> (u8,u8,u8,u8) {
+        (self.r(),self.g(),self.b(),self.a())
+    }
+    fn new_rgba(r:u8,g:u8,b:u8,a:u8) -> Self;
+}
+
 /// will always return a flat color regardless or alpha
-pub fn mix_colors(color1: SdlColor, color2: SdlColor, mix_ratio: f32) -> SdlColor {
+pub fn mix_colors<C:RGB>(color1: C, color2: C, mix_ratio: f32) -> C {
     let (r1, g1, b1) = color1.rgb();
     let (r2, g2, b2) = color2.rgb();
     let (r1, g1, b1) = (r1 as i16, g1 as i16, b1 as i16);
@@ -18,15 +34,12 @@ pub fn mix_colors(color1: SdlColor, color2: SdlColor, mix_ratio: f32) -> SdlColo
 
     let (r, g, b) =
         (max(min(r, 0xFF), 0) as u8, max(min(g, 0xFF), 0) as u8, max(min(b, 0xFF), 0) as u8);
-    SdlColor::RGB(r, g, b)
+    C::new(r, g, b)
 }
 
-pub fn fade_color(color1: SdlColor, fade_ratio: f32) -> SdlColor {
-    let (r, g, b, a): (u8, u8, u8, u8) = match color1 {
-        SdlColor::RGB(r, g, b) => (r, g, b, 255),
-        SdlColor::RGBA(r, g, b, a) => (r, g, b, a),
-    };
-    SdlColor::RGBA(r, g, b, (a as f32 * fade_ratio) as u8)
+pub fn fade_color<C:RGBA>(color1: C, fade_ratio: f32) -> C {
+    let (r, g, b, a): (u8, u8, u8, u8) = color1.rgba();
+    C::new_rgba(r, g, b, (a as f32 * fade_ratio) as u8)
 }
 
 pub fn parse_hex(hex: &str) -> Result<u32, String> {
@@ -39,7 +52,7 @@ pub fn parse_hex(hex: &str) -> Result<u32, String> {
     Ok(parsed)
 }
 
-pub fn parse_bgr(bgr: &str) -> Result<Color, String> {
+pub fn parse_bgr<C:RGB>(bgr: &str) -> Result<C, String> {
     let bgr = bgr.trim();
     if bgr.len() != 6 {
         Err(String::from("Invalid BGR format"))
@@ -49,11 +62,7 @@ pub fn parse_bgr(bgr: &str) -> Result<Color, String> {
         let blue = try!(parse_hex(blue)) as u8;
         let green = try!(parse_hex(green)) as u8;
         let red = try!(parse_hex(red)) as u8;
-        Ok(Color {
-            red: red,
-            green: green,
-            blue: blue,
-        })
+        Ok(C::new(red,green,blue))
     }
 }
 
@@ -110,4 +119,13 @@ fn test_bgr() {
 fn test_parse_hex() {
     let sample_hex = "201";
     assert_eq!(parse_hex(sample_hex).unwrap(), 513);
+}
+
+// width and height must be between 0 and 1
+pub fn fit_dims(dims:(u32,u32),
+                 fit_width: Option<f32>,
+                 fit_height: Option<f32>)
+                 -> (Option<u32>, Option<u32>) {
+    (fit_width.and_then(|width| Some((width * (dims.0 as f32)) as u32)),
+     fit_height.and_then(|height| Some((height * (dims.1 as f32)) as u32)))
 }

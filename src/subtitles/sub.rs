@@ -1,39 +1,37 @@
-use std::path::Path;
-use std::fs::File;
-use std::io::{BufReader, BufRead};
-use std::error::Error;
-
-use ::subtitles::sentence::*;
-use ::subtitles::syllable::Syllable;
-use ::subtitles::metainfo::MetaInfo;
-use ::subtitles::options::*;
-use ::display::*;
+use super::song_info::SongInfo;
+use super::pos::*;
+use super::{Sentence,SentenceOptions,SentenceParameters,
+        Syllable,SyllableOptions,SyllableParameters,AsSentenceOptions,
+        AsSyllableOptions};
+use ::overlay::*;
+use ::overlay::pos::*;
+use std::ops::Deref;
+use ::utils::*;
 
 use sdl2::render::Texture;
-use sdl2::rect::Rect;
 
 #[derive(Debug,Default,Serialize,Deserialize,Clone)]
 pub struct Subtitles {
     pub sentences: Vec<Sentence>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub subtitles_options: Option<SubtitlesOptions>,
-    pub meta_info: MetaInfo,
+    pub song_info: Option<SongInfo>,
 }
 
 /// subtitles : already stored Subtitles
 /// sentence : Sentence to add to the subtitles
 fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
                          sentence: &mut Sentence,
-                         default_sentence_options: &SentenceOptions) {
+                         default_sentence_options: Option<&SentenceOptions>) {
     if let Some(row_pos) = sentence.sentence_options.and_then(|o|o.row_position) {
         sentence.position = row_pos ;
         return; // life is meaningless
     }
     let (before_sentences,after_sentences) = sentences ;
-    let sentence_options: SentenceOptions = sentence.sentence_options
-        .unwrap_or(SentenceOptions::default())
-        .or(default_sentence_options);
-    let sentence_parameters = SentenceParameters::from(sentence_options);
+    let sentence_options: Option<SentenceOptions> =
+        sentence.sentence_options.or_sentence_options(default_sentence_options);
+    let sentence_parameters =
+        SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
     let mut best_row = 0u8;
     {
         let filter_fun = |sentence_candidate:&&Sentence|{
@@ -42,9 +40,10 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
                 (None,_,_,_) | (_,None,_,_) | (_,_,None,_) | (_,_,_,None)  => false,
                 (Some(ref first_syllable),Some(ref last_syllable),
                  Some(ref first_syllable_candidate),Some(ref last_syllable_candidate)) => {
-                    let sentence_candidate_options : SentenceOptions =
-                        sentence_candidate.sentence_options.unwrap_or(SentenceOptions::default()).or(&default_sentence_options);
-                    let sentence_candidate_parameters = SentenceParameters::from(sentence_candidate_options);
+                    let sentence_candidate_options : Option<SentenceOptions> =
+                        sentence_candidate.sentence_options.or_sentence_options(default_sentence_options);
+                    let sentence_candidate_parameters =
+                        SentenceParameters::from(SentenceOptions::default());
                     let first_frame = first_syllable.begin
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
                     let last_frame = last_syllable.end.expect("last syllable has no end")
@@ -97,155 +96,10 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
 }
 
 impl Subtitles {
-    pub fn load_from_lyr_frm<P: AsRef<Path>>(lyr: P, frm: P) -> Result<Subtitles, String> {
-        let frm: &Path = frm.as_ref();
-        let lyr: &Path = lyr.as_ref();
-        let mut subtitles = Subtitles::default();
-        let lyr_file = try!(File::open(lyr).map_err(|e| e.description().to_string()));
-        let frm_file = try!(File::open(frm).map_err(|e| e.description().to_string()));
-        let lyr_file = BufReader::new(&lyr_file);
-        let frm_file = BufReader::new(&frm_file);
-        let mut current_sentence_options: SentenceOptions = SentenceOptions::default();
-        for (line_number, lyr_line) in lyr_file.lines().enumerate() {
-            let lyr_line = try!(lyr_line.map_err(|e| {
-                format!("IoError when reading {} at line {} : '{}'",
-                        lyr.display(),
-                        line_number,
-                        e.description())
-            }));
-            if (!lyr_line.starts_with("%") && !lyr_line.is_empty()) {
-                let mut syllables: Vec<_> = lyr_line.split('&')
-                    .map(|s| {
-                        Syllable {
-                            text: s.to_string(),
-                            begin: 0,
-                            end: Some(0),
-                            syllable_options: None,
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                if (lyr_line.starts_with("&")) {
-                    syllables.remove(0);
-                };
-                let sentence = Sentence {
-                    syllables: syllables,
-                    position: RowPosition::Row(0xFF),
-                    sentence_options: Some(current_sentence_options),
-                };
-                subtitles.sentences.push(sentence);
-            } else if lyr_line.starts_with("%color") {
-                use utils::parse_bgr;
-                let colors: Vec<_> = lyr_line.split_whitespace().collect();
-                if colors.len() == 4 {
-                    let alive_color = parse_bgr(colors[1]);
-                    let transition_color = parse_bgr(colors[2]);
-                    let dead_color = parse_bgr(colors[3]);
-                    match (alive_color, transition_color, dead_color) {
-                        (Ok(alive_color), Ok(transition_color), Ok(dead_color)) => {
-                            if current_sentence_options.syllable_options.is_none() {
-                                current_sentence_options.syllable_options =
-                                    Some(SyllableOptions::default());
-                            }
-                            current_sentence_options.syllable_options
-                                .as_mut()
-                                .unwrap()
-                                .alive_color = Some(alive_color);
-                            current_sentence_options.syllable_options
-                                .as_mut()
-                                .unwrap()
-                                .transition_color = Some(transition_color);
-                            current_sentence_options.syllable_options
-                                .as_mut()
-                                .unwrap()
-                                .dead_color = Some(dead_color);
-                        }
-                        _ => {
-                            error!("Invalid %color syntax when reading {} at line {} : '{}'",
-                                   lyr.display(),
-                                   line_number,
-                                   lyr_line);
-                        }
-                    }
-                } else {
-                    error!("Invalid %color syntax when reading {} at line {} : '{}'",
-                           lyr.display(),
-                           line_number,
-                           lyr_line);
-                }
-            };
-        }
-        let mut frames: Vec<(u32, u32)> = vec![];
-        for (line_number, frm_line) in frm_file.lines().enumerate() {
-            let frm_line = try!(frm_line.map_err(|e| {
-                format!("IoError when reading {} at line {} : '{}'",
-                        frm.display(),
-                        line_number,
-                        e.description())
-            }));
-            if !frm_line.trim().is_empty() {
-                let line_frames: Result<Vec<_>, _> = frm_line.split(' ')
-                    .map(|s| s.parse::<u32>())
-                    .collect();
-                let begin_end = line_frames.map_err(|e| format!("{}", e))
-                    .and_then(|line_frames| {
-                        match (line_frames.get(0), line_frames.get(1), line_frames.get(2)) {
-                            (Some(&begin), Some(&end), None) => Ok((begin, end)),
-                            (None, _, _) | (_, None, _) => {
-                                Err(format!("Error while parsing frm file '{}' at line {}, not \
-                                             enough values",
-                                            frm.display(),
-                                            line_number))
-                            }
-                            (_, _, Some(_)) => {
-                                Err(format!("Error while parsing frm file '{}' at line {}, too \
-                                             many values",
-                                            frm.display(),
-                                            line_number))
-                            }
-                        }
-                    });
-                let begin_end = try!(begin_end);
-                frames.push(begin_end);
-            } else {
-                warn!("empty line {} in frm file '{}'", line_number, frm.display());
-            }
-        }
-        let mut frame_iter = frames.iter();
-        'sentences: for sentence in subtitles.sentences.iter_mut() {
-            for syllable in sentence.syllables.iter_mut() {
-                match frame_iter.next() {
-                    Some(&(begin, end)) => {
-                        syllable.begin = begin;
-                        syllable.end = Some(end);
-                    }
-                    None => {
-                        break 'sentences;
-                    }
-                }
-            }
-        }
-        try!(subtitles.check());
-        subtitles.adjust_sentences_row();
-        Ok(subtitles)
-    }
-
     pub fn credit_sentences(&self) -> Option<(String,Option<String>)> {
-        let m = &self.meta_info;
-        let first_string = if let &Some(ref title) = &m.media_title {
-            match (&m.music_type,&m.music_number) {
-                (&None,_) => format!("{}",title),
-                (&Some(ref m_type),&Some(ref number)) => format!("{} - {} {}",title,m_type.short(),number),
-                (&Some(ref m_type),&None) => format!("{} - {}",title,m_type.long())
-            } 
-        } else {
-            return None;
-        };
-        let second_string = if let (&Some(ref artist),&Some(ref song_name)) = (&m.artist,&m.song_name) {
-            Some(format!("{} - {}",artist,song_name))
-        } else {
-            None
-        };
-        Some((first_string,second_string))
+        self.song_info.as_ref().and_then(|song_info|{
+            song_info.credit_sentences()
+        })
     }
 
     pub fn check(&self) -> Result<(), String> {
@@ -264,110 +118,236 @@ impl Subtitles {
         Ok(())
     }
 
-    /// Note that it will use the render_target used by the renderer,
-    /// meaning that it can be a texture or the window depending on what
-    /// is used with Displayer
-    fn print_subtitle_frame_at(&self,
-                               displayer: &mut Displayer,
-                               frame_number: u32)
-                               -> Result<(), String> {
-        let frame = ::display::frame::Frame::from_subtitles(self, frame_number);
-        frame.draw(displayer);
-        Ok(())
+    /// length in ms
+    pub fn post_init(&mut self,duration:u32) {
+        self.adjust_sentences_row();
     }
 
-    fn print_editor_frame(&self,
-                          displayer: &mut Displayer,
-                          elts:(u16,u16,bool)) -> Result<(),String>  {
-        let frame = ::display::frame::Frame::from_editor(self,elts);
-        frame.draw(displayer);
-        Ok(())   
-    }
-
-    fn prepare_texture(&self,displayer:&mut Displayer) -> Result<(),String> {
-        use sdl2::pixels::PixelFormatEnum::ARGB8888;
-        fn ceil_power_of_2(v: f64) -> u32 {
-            2u32.pow(v.log2().ceil() as u32)
-        };
-        let (renderer_w, renderer_h) = displayer.sdl_renderer().output_size().unwrap();
-                let texture_width = ceil_power_of_2(renderer_w as f64);
-        let texture_height = ceil_power_of_2(renderer_h as f64);
-        let mut texture = displayer.sdl_renderer()
-            .create_texture_target(ARGB8888, texture_width, texture_height)
-            .expect("Failed to create texture");
-        texture.set_blend_mode(::sdl2::render::BlendMode::Blend);
-        if let Some(ref mut render_target) = displayer.sdl_renderer_mut().render_target() {
-            let old_texture = render_target.set(texture).expect("Failed to set texture as target");
-            debug_assert!(old_texture.is_none());
-            Ok(())
-        } else {
-            error!("Render target are not supported with this GC driver");
-            Err("Render target are not supported with this GC driver".to_string())
-        }
-    }
-
-    fn finish_texture(&self,displayer:&mut Displayer) -> Result<Texture,String> {
-        displayer.sdl_renderer_mut().set_viewport(None);
-        let new_texture = {
-            if let Some(ref mut render_target) = displayer.sdl_renderer_mut().render_target() {
-                render_target.reset()
-                    .expect("Failed to reset render_target")
-                    .expect("Failed to retrieve texture from renderer")
-            } else {
-                error!("An unknown error happened; Failed to get render_target from renderer");
-                panic!("Failed to get render_target from renderer") //TODO dont do this
-            }
-        };
-        Ok(new_texture)
-    }
-
-    pub fn get_texture_at_frame(&self,
-                                displayer: &mut Displayer,
-                                frame: u32)
-                                -> Result<Texture, String> {
-        use sdl2::pixels::Color;
-        let (renderer_w, renderer_h) = try!(displayer.sdl_renderer().output_size());
-        try!(self.prepare_texture(displayer));
-        let res = {
-            displayer.sdl_renderer_mut()
-                .set_viewport(Some(Rect::new(0, 0, renderer_w, renderer_h)));
-            displayer.sdl_renderer_mut().set_draw_color(Color::RGBA(0, 0, 0, 0));
-            // make the texture transparent
-            displayer.sdl_renderer_mut().clear();
-            // draw subtitles on current render target
-            self.print_subtitle_frame_at(displayer, frame)
-        };
-        res.and(self.finish_texture(displayer))
-    }
-
-    pub fn get_texture_at_editor_pos(&self,
-                                     displayer: &mut Displayer,
-                                     (current_syllable,current_sentence,holding):
-                                     (u16,u16,bool)) -> Result<Texture,String> {
-        use sdl2::pixels::Color;
-        let (renderer_w, renderer_h) = try!(displayer.sdl_renderer().output_size());
-        try!(self.prepare_texture(displayer));
-        let res = {
-            displayer.sdl_renderer_mut()
-                .set_viewport(Some(Rect::new(0, 0, renderer_w, renderer_h)));
-            displayer.sdl_renderer_mut().set_draw_color(Color::RGBA(0, 0, 0, 0));
-            // make the texture transparent
-            displayer.sdl_renderer_mut().clear();
-            // draw subtitles on current render target
-            self.print_editor_frame(displayer,(current_syllable,current_sentence,holding))
-        };
-        res.and(self.finish_texture(displayer))
-    }
-
-    pub fn adjust_sentences_row(&mut self) {
+    fn adjust_sentences_row(&mut self) {
         let default_sentence_options: SentenceOptions = self.subtitles_options
             .as_ref()
             .map(|ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default()))
             .unwrap_or(SentenceOptions::default());
         for i in 0..self.sentences.len() {
             let (first_half, mut last_half) = self.sentences.split_at_mut(i);
-            let (mut middle, last_half) = last_half.split_first_mut().unwrap(); 
-            set_best_sentence_row((first_half,last_half), middle,&default_sentence_options);
+            let (mut middle, last_half) = last_half.split_first_mut().unwrap();
+            set_best_sentence_row((first_half,last_half),
+                                  middle,
+                                  self.subtitles_options.as_sentence_options());
         }
+    }
+
+    // TODO create a  subtitles::Error type and replace String with this
+    pub fn to_overlay_frame(&self,current_time:u32) -> Result<OverlayFrame,String> {
+        let mut text_units : Vec<TextUnit> = vec![];
+        let default_sentence_options: Option<&SentenceOptions> =
+            self.subtitles_options.as_sentence_options();
+        let sentence_iter = self.sentences.iter().enumerate().filter(|&(_, ref sentence)| {
+            let sentence_options: Option<SentenceOptions> =
+                sentence.sentence_options.or_sentence_options(default_sentence_options);
+            let sentence_parameters =
+                SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
+            match (sentence.syllables.first(), sentence.syllables.last()) {
+                (None, _) | (_, None) => false,
+                (Some(&Syllable { begin: first_syllable_begin, .. }),
+                 Some(&Syllable { end: Some(last_syllable_end), .. })) => {
+                    let first_frame = first_syllable_begin
+                        .saturating_sub(sentence_parameters.transition_time_before as u32);
+                    let last_frame = last_syllable_end
+                        .saturating_add(sentence_parameters.transition_time_after as u32);
+                    if (current_time >= first_frame && current_time <= last_frame) {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                _ => panic!("Subtitles have not been checked"),
+            }
+        }); // get all the sentences displayed on screen
+        for (_sentence_number, ref sentence) in sentence_iter {
+            let sentence_alpha =
+                compute_sentence_alpha(sentence, default_sentence_options, current_time);
+            let mut text_elts = vec![];
+            let mut logo_position: Option<u16> = None;
+            let sentence_options: Option<SentenceOptions> =
+                sentence.or_sentence_options(default_sentence_options);
+            let default_syllable_options: Option<&SyllableOptions> =
+                sentence_options.as_syllable_options();
+            {
+                for tmp_syllables in sentence.syllables.windows(2) {
+                    let (syllable1, syllable2) = (&tmp_syllables[0], &tmp_syllables[1]);
+                    add_syllable(&mut text_elts,
+                                 syllable1,
+                                 Some(syllable2),
+                                 default_syllable_options,
+                                 current_time,
+                                 sentence_alpha);
+                }
+                match sentence.syllables.last() {
+                    Some(last_syllable) => {
+                        add_syllable(&mut text_elts,
+                                     last_syllable,
+                                     None,
+                                     default_syllable_options,
+                                     current_time,
+                                     sentence_alpha);
+                    }
+                    _ => {}
+                }
+            }
+            'syllables: for (n, syllable) in sentence.syllables.iter().enumerate() {
+                if current_time >= syllable.begin {
+                    logo_position = Some(n as u16);
+                } else {
+                    break 'syllables;
+                }
+            }
+            match sentence.syllables.last() {
+                Some(ref syllable) => {
+                    if (current_time > syllable.end.unwrap()) {
+                        logo_position = None;
+                    }
+                }
+                None => {}
+            }
+            match logo_position {
+                Some(logo_position) => {
+                    match text_elts.get_mut(logo_position as usize) {
+                        Some(ref mut text_elt) => {
+                            text_elt.attach_logo = true;
+                        }
+                        None => error!("Unexpected None in getting from logo_position !"),
+                    }
+                }
+                None => {}
+            }
+            let text_pos = match sentence.position {
+                RowPosition::Row(l) => {
+                    (PosX::Centered,
+                     PosY::FromTopPercent(l as f32 * 0.15 + 0.01))
+                }
+                RowPosition::ForcePos { x, y } => {
+                    (PosX::FromLeftPercent(x), PosY::FromTopPercent(y))
+                }
+            };
+            let text_unit = TextUnit {
+                text: text_elts,
+                size: Size::FitPercent(Some(0.95), Some(0.09)),
+                pos: text_pos,
+                anchor: (0.5, 0.0),
+            };
+            text_units.push(text_unit);
+        };
+        Ok(OverlayFrame {
+            text_units:text_units
+        })
+    }
+}
+
+impl Deref for SubtitlesOptions {
+    type Target = Option<SentenceOptions>;
+    fn deref(&self) -> &Option<SentenceOptions> {
+        &self.sentence_options
+    }
+}
+
+#[derive(Debug,Default,Clone,Copy,Serialize,Deserialize)]
+pub struct SubtitlesOptions {
+    /// Global SentenceOptions
+    pub sentence_options: Option<SentenceOptions>,
+}
+
+fn add_syllable(mut text_subunits: &mut Vec<TextSubUnit>,
+                syllable: &Syllable,
+                next_syllable: Option<&Syllable>,
+                default_syllable_options: Option<&SyllableOptions>,
+                current_frame: u32,
+                alpha: f32) {
+    let syllable_end = syllable.end
+        .or(next_syllable.map(|s| s.begin.saturating_sub(1)))
+        .expect("File has not been checked properly : end syllable has no end frame");
+    let syllable_options = syllable.syllable_options.or_syllable_options(default_syllable_options);
+    let syllable_parameters =
+        SyllableParameters::from(syllable_options.unwrap_or(SyllableOptions::default()));
+    let outline = Outline::from(syllable_parameters.outline);
+    let alive_color = AlphaColor::from(Color::from(syllable_parameters.alive_color));
+    let transition_color = Color::from(syllable_parameters.transition_color);
+    let dead_color = Color::from(syllable_parameters.dead_color);
+    if (current_frame < syllable.begin) {
+        let text_sub_unit = TextSubUnit {
+            text: syllable.text.clone(),
+            color: fade_color(alive_color, alpha),
+            outline: outline,
+            shadow: None,
+            attach_logo: false,
+        };
+        text_subunits.push(text_sub_unit);
+    } else if (syllable.begin <= current_frame) && (current_frame <= syllable_end) {
+        let percent = (current_frame - syllable.begin) as f32 /
+                      (syllable_end - syllable.begin) as f32;
+        // lets ease the percent a lil bits
+        let percent = 1.0 - (1.0 - percent * percent).sqrt();
+        let transition_color = AlphaColor::from(mix_colors(transition_color, dead_color, percent));
+        let text_sub_unit = TextSubUnit {
+            text: syllable.text.clone(),
+            color: transition_color,
+            outline: outline,
+            shadow: None,
+            attach_logo: false,
+        };
+        text_subunits.push(text_sub_unit);
+    } else {
+        let text_sub_unit = TextSubUnit {
+            text: syllable.text.clone(),
+            color: fade_color(AlphaColor::from(dead_color), alpha),
+            outline: outline,
+            shadow: None,
+            attach_logo: false,
+        };
+        text_subunits.push(text_sub_unit);
+    }
+}
+
+fn compute_sentence_alpha(sentence: &Sentence,
+                          default_sentence_options: Option<&SentenceOptions>,
+                          frame_number: u32)
+                          -> f32 {
+    let sentence_options: Option<SentenceOptions> = sentence.sentence_options
+        .or_sentence_options(default_sentence_options);
+    let sentence_parameters =
+        SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
+    match (sentence.syllables.first(), sentence.syllables.last()) {
+        (Some(&Syllable { begin: frame_begin, .. }),
+         Some(&Syllable { end: Some(frame_end), .. })) => {
+            let end_fade_frame_before: u32 =
+                (sentence_parameters.transition_time_before -
+                 sentence_parameters.fade_time_before) as u32;
+            let end_fade_frame_after: u32 =
+                (sentence_parameters.transition_time_after -
+                 sentence_parameters.fade_time_after) as u32;
+            let begin_first_fade_frame =
+                frame_begin.saturating_sub(sentence_parameters.transition_time_before as u32);
+            let end_first_fade_frame = frame_begin.saturating_sub(end_fade_frame_before);
+            let begin_second_fade_frame = frame_end.saturating_add(end_fade_frame_after);
+            let end_second_fade_frame =
+                frame_end.saturating_add(sentence_parameters.transition_time_after as u32);
+            debug_assert_eq!(end_second_fade_frame - begin_second_fade_frame,
+                             sentence_parameters.fade_time_after as u32);
+            if (end_first_fade_frame < frame_number && begin_second_fade_frame > frame_number) {
+                1.0
+            } else if begin_first_fade_frame <= frame_number &&
+                      end_first_fade_frame >= frame_number {
+                (frame_number - begin_first_fade_frame) as f32 /
+                (end_first_fade_frame - begin_first_fade_frame) as f32
+            } else if begin_second_fade_frame <= frame_number &&
+                      end_second_fade_frame >= frame_number {
+                1.0 -
+                ((frame_number - begin_second_fade_frame) as f32 /
+                 (end_second_fade_frame - begin_second_fade_frame) as f32)
+            } else {
+                0.0
+            }
+        }
+        _ => 0.0,
     }
 }

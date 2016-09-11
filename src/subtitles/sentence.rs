@@ -1,6 +1,6 @@
-use ::subtitles::options::SentenceOptions;
-use ::subtitles::syllable::Syllable;
-use std::fmt;
+use super::{Syllable,SyllableOptions,Subtitles,SubtitlesOptions};
+use super::pos::RowPosition;
+use std::ops::Deref;
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Sentence {
@@ -11,23 +11,60 @@ pub struct Sentence {
     pub sentence_options: Option<SentenceOptions>,
 }
 
-#[derive(Copy,Clone,Debug,Serialize,Deserialize,PartialEq)]
-pub enum RowPosition {
-    #[serde(rename="row")]
-    Row(u8),
-    #[serde(rename="force_pos")]
-    ForcePos { x: f32, y: f32 },
-}
-
-impl Default for RowPosition {
-    fn default() -> RowPosition {
-        RowPosition::Row(0)
+pub trait AsSentenceOptions {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions>;
+    fn or_sentence_options(&self,other:Option<&SentenceOptions>) -> Option<SentenceOptions> {
+        match (self.as_sentence_options(),other) {
+            (Some(s),Some(other)) => Some(SentenceOptions {
+                syllable_options: s.syllable_options.or(other.syllable_options),
+                display_logo: s.display_logo.or(other.display_logo),
+                transition_time_after: s.transition_time_after.or(other.transition_time_after),
+                fade_time_after: s.fade_time_after.or(other.fade_time_after),
+                transition_time_before: s.transition_time_before.or(other.transition_time_before),
+                fade_time_before: s.fade_time_before.or(other.fade_time_before),
+                row_position: s.row_position.or(other.row_position),
+            }),
+            (Some(s),None) => Some(s.clone()),
+            (None,Some(other)) => Some(other.clone()),
+            (None,None) => None
+        }
     }
 }
 
-impl fmt::Display for Sentence {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\"{}\"", self.text())
+impl AsSentenceOptions for Sentence {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        self.sentence_options.as_ref()
+    }
+}
+
+impl AsSentenceOptions for Subtitles {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        if let Some(ref subs_options) = self.subtitles_options {
+            subs_options.sentence_options.as_ref()
+        } else {
+            None
+        }
+    }
+}
+
+impl AsSentenceOptions for SentenceOptions {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        Some(self)
+    }
+}
+
+impl AsSentenceOptions for SubtitlesOptions {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        self.sentence_options.as_ref()
+    }
+}
+
+impl<T:AsSentenceOptions> AsSentenceOptions for Option<T> {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        match *self {
+            Some(ref t) => t.as_sentence_options(),
+            None => None
+        }
     }
 }
 
@@ -37,5 +74,58 @@ impl Sentence {
             string.push_str(&*syllable.text);
             string
         })
+    }
+}
+
+#[derive(Debug,Clone,Copy,Default,Serialize,Deserialize)]
+pub struct SentenceOptions {
+    /// Global SyllableOptions
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub syllable_options: Option<SyllableOptions>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub display_logo: Option<bool>,
+    /// Total time where subtitles start appearing, before first syllable start playing
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub transition_time_before: Option<u16>,
+    /// Span where subtitles start appearing
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub fade_time_before: Option<u16>,
+    /// Total time where subtitles are disappearing, before first syllable start playing
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub transition_time_after: Option<u16>,
+    /// Span where subtitles start disappearing
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub fade_time_after: Option<u16>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub row_position: Option<RowPosition>,
+}
+
+impl Deref for SentenceOptions {
+    type Target = Option<SyllableOptions>;
+    fn deref(&self) -> &Option<SyllableOptions> {
+        &self.syllable_options
+    }
+}
+
+#[derive(Debug,Clone)]
+pub struct SentenceParameters {
+    pub display_logo: bool,
+    pub transition_time_before: u16,
+    pub fade_time_before: u16,
+    pub transition_time_after: u16,
+    pub fade_time_after: u16,
+    pub row_position: Option<RowPosition>,
+}
+
+impl From<SentenceOptions> for SentenceParameters {
+    fn from(sentence_options: SentenceOptions) -> Self {
+        SentenceParameters {
+            display_logo: sentence_options.display_logo.unwrap_or(true),
+            transition_time_before: sentence_options.transition_time_before.unwrap_or(800),
+            fade_time_before: sentence_options.fade_time_before.unwrap_or(200),
+            transition_time_after: sentence_options.transition_time_after.unwrap_or(500),
+            fade_time_after: sentence_options.fade_time_after.unwrap_or(200),
+            row_position: sentence_options.row_position,
+        }
     }
 }
