@@ -38,7 +38,7 @@ impl VideoMeta {
                             path.display()))
             }
             Some(s) if s == "yaml" => VideoMeta::from_yaml(path).map(|v_m| v_m.fix_paths(path)),
-            Some(s) if s == "avi" || s == "mp4" => {
+            Some(s) if s == "avi" || s == "mp4" || s == "webm" => {
                 let yaml_file: PathBuf = path.with_extension("yaml");
                 if yaml_file.exists() {
                     VideoMeta::from_yaml(yaml_file).map(|v_m| v_m.fix_paths(path))
