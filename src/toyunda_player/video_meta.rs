@@ -1,6 +1,7 @@
 extern crate serde_yaml;
 
-use ::subtitles::metainfo::MetaInfo;
+use ::subtitles::song_info::SongInfo;
+use super::time_info::TimeInfo;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug,Deserialize,Serialize,Clone)]
@@ -9,8 +10,11 @@ pub struct VideoMeta {
     pub json_path: Option<PathBuf>,
     pub lyr_path: Option<PathBuf>,
     pub frm_path: Option<PathBuf>,
-    #[serde(default)] 
-    pub meta_info: MetaInfo,
+    pub yaml_path: Option<PathBuf>,
+    #[serde(default)]
+    pub song_info: SongInfo,
+    #[serde(default)]
+    pub time_info: TimeInfo,
 }
 
 impl VideoMeta {
@@ -48,7 +52,9 @@ impl VideoMeta {
                         lyr_path: None,
                         frm_path: None,
                         json_path: None,
-                        meta_info: MetaInfo::default(),
+                        yaml_path: None,
+                        song_info: SongInfo::default(),
+                        time_info: TimeInfo::default()
                     })
                 }
             }

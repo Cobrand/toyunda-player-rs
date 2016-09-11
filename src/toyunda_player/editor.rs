@@ -1,4 +1,5 @@
 use ::subtitles::* ;
+use ::overlay::{OverlayFrame,TextUnit};
 
 pub struct EditorState {
     pub current_sentence : u16,
@@ -139,5 +140,12 @@ impl EditorState {
             }
             self.next_syllable(subs);
         };
+    }
+
+    pub fn to_overlay_frame(&self,subs:&Subtitles) -> Result<OverlayFrame,String> {
+        let mut text_units : Vec<TextUnit> = vec![];
+        Ok(OverlayFrame {
+            text_units:text_units
+        })
     }
 }

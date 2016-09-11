@@ -6,8 +6,7 @@ pub struct Color {
     pub blue: u8,
 }
 
-impl Color {
-    pub fn to_sdl_color(self) -> SdlColor {
-        SdlColor::RGB(self.red, self.green, self.blue)
-    }
+#[derive(Debug,Clone,Copy,Serialize,Deserialize)]
+pub struct Outline {
+	pub color:Color
 }

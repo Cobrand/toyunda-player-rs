@@ -7,9 +7,10 @@ mod manager;
 mod playlist;
 mod state;
 mod video_meta;
-mod yaml_meta;
 mod editor;
+mod subtitle_loader;
 pub mod graphic_message;
+pub mod time_info;
 
 pub use self::options::*;
 pub use self::toyunda::*;

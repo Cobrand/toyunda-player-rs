@@ -1,9 +1,10 @@
 use sdl2::render::{Renderer, BlendMode, Texture};
 use sdl2_image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
 use sdl2_ttf::{Sdl2TtfContext, init as ttf_init};
-use ::display::font::*;
+use ::overlay::{Display,OverlayFrame,Rect} ;
+use super::font::*;
 
-pub struct Displayer<'a> {
+pub struct SDLDisplayer<'a> {
     pub fonts: FontList,
     pub renderer: Renderer<'a>,
     #[allow(dead_code)]
@@ -11,8 +12,8 @@ pub struct Displayer<'a> {
     pub lyrics_logo: Option<Texture>,
 }
 
-impl<'a> Displayer<'a> {
-    pub fn new(mut renderer: Renderer<'a>) -> Result<Displayer<'a>, ()> {
+impl<'a> SDLDisplayer<'a> {
+    pub fn new(mut renderer: Renderer<'a>) -> Result<SDLDisplayer<'a>, ()> {
         renderer.set_blend_mode(BlendMode::Blend);
         let ttf_context = ttf_init().unwrap();
         let font_list = FontList::new(&ttf_context).unwrap();
@@ -33,7 +34,7 @@ impl<'a> Displayer<'a> {
                 None
             }
         };
-        let displayer = Displayer {
+        let displayer = SDLDisplayer {
             fonts: font_list,
             ttf_context: ttf_context,
             renderer: renderer,
@@ -91,5 +92,11 @@ impl<'a> Displayer<'a> {
     #[inline]
     pub fn sdl_renderer(&self) -> &Renderer<'a> {
         &self.renderer
+    }
+}
+
+impl<'a> Display for SDLDisplayer<'a> {
+    fn display(&self,overlay_frame:&OverlayFrame) -> Vec<Rect> {
+        vec!()
     }
 }

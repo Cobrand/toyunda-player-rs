@@ -24,12 +24,14 @@ extern crate clap;
 use clap::{Arg, App};
 
 mod utils;
-mod display;
+mod overlay;
+mod sdl_displayer;
 mod init;
 mod subtitles;
 mod toyunda_player;
 
 use toyunda_player::ToyundaPlayer;
+use sdl_displayer::SDLDisplayer;
 use std::os::raw::c_void;
 
 fn main() {
@@ -108,7 +110,7 @@ fn main() {
         .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
 
-    let displayer = display::Displayer::new(renderer).expect("Failed to init displayer");
+    let displayer = SDLDisplayer::new(renderer).expect("Failed to init displayer");
 
     if matches.is_present("karaoke_mode") {
         let mouse_utils = sdl_context.mouse();
