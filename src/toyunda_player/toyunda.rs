@@ -256,6 +256,19 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(())
     }
 
+    pub fn render_credits(&mut self) {
+        let fps : f64 = self.mpv.get_property::<f64>("fps").or_else(|_|{
+            self.mpv.get_property::<f64>("container-fps")
+        }).unwrap_or(30.0);
+        let duration = self.mpv.get_property::<f64>("duration");
+        if let Ok(duration) = duration {
+            let first_credits_start_frame = (2.0 * fps) as u32;
+            let first_credits_end_frame = (10.0 * fps) as u32;
+            let end_credits_start_frame = ((duration - 2.0) * fps) as u32;
+            let end_credits_end_frame = ((duration - 10.0) * fps) as u32;
+        };
+    }
+
     pub fn render_frame(&mut self) -> Result<()> {
         use sdl2::rect::Rect;
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();

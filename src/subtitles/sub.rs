@@ -127,14 +127,9 @@ impl Subtitles {
                 if (lyr_line.starts_with("&")) {
                     syllables.remove(0);
                 };
-                let row_position = if let Some(ref row_pos) = current_sentence_options.row_position {
-                    row_pos.clone()
-                } else {
-                    RowPosition::Row(0xFF)
-                };
                 let sentence = Sentence {
                     syllables: syllables,
-                    position: row_position,
+                    position: RowPosition::Row(0xFF),
                     sentence_options: Some(current_sentence_options),
                 };
                 subtitles.sentences.push(sentence);
@@ -232,6 +227,25 @@ impl Subtitles {
         try!(subtitles.check());
         subtitles.adjust_sentences_row();
         Ok(subtitles)
+    }
+
+    pub fn credit_sentences(&self) -> Option<(String,Option<String>)> {
+        let m = &self.meta_info;
+        let first_string = if let &Some(ref title) = &m.media_title {
+            match (&m.music_type,&m.music_number) {
+                (&None,_) => format!("{}",title),
+                (&Some(ref m_type),&Some(ref number)) => format!("{} - {} {}",title,m_type.short(),number),
+                (&Some(ref m_type),&None) => format!("{} - {}",title,m_type.long())
+            } 
+        } else {
+            return None;
+        };
+        let second_string = if let (&Some(ref artist),&Some(ref song_name)) = (&m.artist,&m.song_name) {
+            Some(format!("{} - {}",artist,song_name))
+        } else {
+            None
+        };
+        Some((first_string,second_string))
     }
 
     pub fn check(&self) -> Result<(), String> {

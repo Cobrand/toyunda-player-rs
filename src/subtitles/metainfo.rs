@@ -18,6 +18,26 @@ pub enum MusicType {
     Other(String),
 }
 
+impl MusicType {
+    pub fn short(&self) -> &str {
+        match *self {
+            MusicType::Opening => "OP",
+            MusicType::Ending => "ED",
+            MusicType::Insert => "INS",
+            MusicType::Other(ref s) => s.as_str()
+        }
+    }
+
+    pub fn long(&self) -> &str {
+        match *self {
+            MusicType::Opening => "Opening",
+            MusicType::Ending => "Ending",
+            MusicType::Insert => "Insert",
+            MusicType::Other(ref s) => s.as_str()
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub enum MediaType {
