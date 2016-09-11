@@ -10,6 +10,7 @@ pub struct VideoMeta {
     pub json_path: Option<PathBuf>,
     pub lyr_path: Option<PathBuf>,
     pub frm_path: Option<PathBuf>,
+    #[serde(skip_serializing,skip_deserializing)]
     pub yaml_path: Option<PathBuf>,
     #[serde(default)]
     pub song_info: SongInfo,

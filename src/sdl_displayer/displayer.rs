@@ -1,7 +1,7 @@
 use sdl2::render::{Renderer, BlendMode, Texture};
 use sdl2_image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
 use sdl2_ttf::{Sdl2TtfContext, init as ttf_init};
-use ::overlay::{Display,OverlayFrame,Rect} ;
+use ::overlay::{Display,OverlayFrame,TextUnit,Rect} ;
 use super::font::*;
 
 pub struct SDLDisplayer<'a> {
@@ -93,10 +93,16 @@ impl<'a> SDLDisplayer<'a> {
     pub fn sdl_renderer(&self) -> &Renderer<'a> {
         &self.renderer
     }
+
+    fn display_unit(&mut self,text_unit:&TextUnit) -> Rect {
+        unimplemented!()
+    }
 }
 
 impl<'a> Display for SDLDisplayer<'a> {
-    fn display(&self,overlay_frame:&OverlayFrame) -> Vec<Rect> {
-        vec!()
+    fn display(&mut self,overlay_frame:&OverlayFrame) -> Vec<Rect> {
+        overlay_frame.text_units.iter().map(|text_unit|{
+            self.display_unit(text_unit)
+        }).collect()
     }
 }

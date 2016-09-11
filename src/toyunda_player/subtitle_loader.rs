@@ -1,13 +1,16 @@
 use std::path::Path;
 use ::subtitles::*;
 use ::std::fs::File;
+use ::std::io::{BufReader,BufRead};
+use ::std::error::Error;
+use ::subtitles::pos::RowPosition;
 
 impl<'a> Load for (&'a Path,&'a Path) {
 	fn into_subtitles(&self) -> Result<Subtitles, String> {
 		let frm: &Path = self.0;
 		let lyr: &Path = self.1;
 		let mut subtitles = Subtitles::default();
-		/*
+
 		let lyr_file = try!(File::open(lyr).map_err(|e| e.description().to_string()));
 		let frm_file = try!(File::open(frm).map_err(|e| e.description().to_string()));
 		let lyr_file = BufReader::new(&lyr_file);
@@ -36,7 +39,7 @@ impl<'a> Load for (&'a Path,&'a Path) {
 				};
 				let sentence = Sentence {
 					syllables: syllables,
-					position: RowPosition::Row(0xFF),
+					position: RowPosition::default(),
 					sentence_options: Some(current_sentence_options),
 				};
 				subtitles.sentences.push(sentence);
@@ -132,7 +135,7 @@ impl<'a> Load for (&'a Path,&'a Path) {
 			}
 		}
 		try!(subtitles.check());
-		*/
+
 		subtitles.post_init();
 		Ok(subtitles)
 	}

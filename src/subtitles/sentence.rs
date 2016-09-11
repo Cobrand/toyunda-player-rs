@@ -1,5 +1,6 @@
 use super::{Syllable,SyllableOptions};
 use super::pos::RowPosition;
+use std::ops::Deref;
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Sentence {
@@ -43,7 +44,7 @@ pub struct SentenceOptions {
 }
 
 impl SentenceOptions {
-    pub fn or(&self, other: &SentenceOptions) -> SentenceOptions {
+    pub fn or_sentence(&self, other: &SentenceOptions) -> SentenceOptions {
         SentenceOptions {
             syllable_options: self.syllable_options.or(other.syllable_options),
             display_logo: self.display_logo.or(other.display_logo),
@@ -53,6 +54,13 @@ impl SentenceOptions {
             fade_time_before: self.fade_time_before.or(other.fade_time_before),
             row_position: self.row_position.or(other.row_position),
         }
+    }
+}
+
+impl Deref for SentenceOptions {
+    type Target = Option<SyllableOptions>;
+    fn deref(&self) -> &Option<SyllableOptions> {
+        &self.syllable_options
     }
 }
 
