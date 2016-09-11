@@ -214,7 +214,7 @@ AJAX.get("/api/listing",function(status,answer) {
 				return e.video_meta ;
 			});
 			for (var i = 0 ; i < len ; i++ ) {
-				var entry = vue.listing[0] ;
+				var entry = vue.listing[i] ;
 				entry.formatted_name = format_name(entry.meta_info,entry.video_path);
 				entry.index = i ;
 			}
