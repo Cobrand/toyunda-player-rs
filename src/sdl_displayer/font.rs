@@ -97,18 +97,27 @@ impl FontList {
         self.fonts.get(index)
     }
 
-    /// Given a string and a maximum width, get the fittest font from the FontList
     pub fn get_fittest_font_set(&self,
                                 string: &str,
-                                max_dims: (Option<u32>, Option<u32>),
+                                max_dims: (Option<u32>,Option<u32>),
                                 outline: bool)
-                                -> Result<&FontSet, String> {
+                                -> Result<&FontSet,String> {
+        self.get_fittest_font_set_id(string,max_dims,outline)
+            .map(|i| self.get_font_set(i).unwrap())
+    }
+
+    /// Given a string and a maximum width, get the fittest font from the FontList
+    pub fn get_fittest_font_set_id(&self,
+                                   string: &str,
+                                   max_dims: (Option<u32>, Option<u32>),
+                                   outline: bool)
+                                   -> Result<usize, String> {
         if max_dims == (None, None) {
             Err(String::from("can't get fittiest font if both dims are None")) // cant get the fittiest if both are None !
         } else {
             match self.fonts.len() {
                 0 => Err(String::from("can't get the fittest font if there is none available")),
-                1 => Ok(self.fonts.first().unwrap()),
+                1 => Ok(0),
                 _ => {
                     let search_result = self.fonts.binary_search_by(|fontset| {
                         let search_font = if outline {
@@ -134,10 +143,10 @@ impl FontList {
                         }
                     });
                     match search_result {
-                        Ok(index) => Ok(&self.fonts[index]),
-                        Err(0) => Ok(&self.fonts[0]),
-                        Err(index) if index == self.fonts.len() => Ok(&self.fonts.last().unwrap()),
-                        Err(index) => Ok(&self.fonts[index - 1]),
+                        Ok(index) => Ok(index),
+                        Err(0) => Ok(0),
+                        Err(index) if index == self.fonts.len() => Ok(self.fonts.len()),
+                        Err(index) => Ok(index - 1),
                         // it should fit, meaning that if we can't find something exactly we should
                         // take the first that fits
                     }

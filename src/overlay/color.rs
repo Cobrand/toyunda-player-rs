@@ -1,5 +1,5 @@
 use ::utils::{RGB,RGBA};
-#[derive(Debug,Clone,Copy,Serialize,Deserialize)]
+#[derive(Debug,Clone,Copy,Serialize,Deserialize,PartialEq)]
 pub struct Color {
 	pub red:u8,
 	pub green:u8,
@@ -25,7 +25,7 @@ impl RGB for Color {
 	}
 }
 
-#[derive(Debug,Clone,Copy,Serialize,Deserialize)]
+#[derive(Debug,Clone,Copy,Serialize,Deserialize,PartialEq)]
 pub struct AlphaColor {
 	pub red:u8,
 	pub green:u8,

@@ -278,14 +278,31 @@ impl<'a> ToyundaPlayer<'a> {
         use sdl2::rect::Rect;
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         let time_pos : f64 = self.mpv.get_property("time-pos").unwrap_or(0.0);
-        let time_pos : u32 = (time_pos * 1000.0) as u32 ;
-        let display_params : Option<(u32,u32)> = 
-            match (self.mpv.get_property::<i64>("dwidth"),
-                   self.mpv.get_property::<i64>("dheight")) {
-                (Ok(w),Ok(h)) => Some((w as u32, h as u32)),
-                _ => None
-            };
-        let display_params = DisplayParams::new(display_params);
+        let time_pos : u32 = (time_pos * 1000.0) as u32;
+        let display_params : DisplayParams = 
+            match (self.mpv.get_property::<i64>("width"),
+                   self.mpv.get_property::<i64>("height")) {
+                (Ok(w),Ok(h)) => {
+                    let mpv_aspect_ratio : f64 = (w as f64) / (h as f64) ;
+                    let screen_aspect_ratio : f64 = (width as f64)/(h as f64);
+                    if mpv_aspect_ratio > screen_aspect_ratio {
+
+                    } else {
+
+                    };
+                    DisplayParams {
+                        output_size:None,
+                        offset:None
+                        // output_size:Some((w as u32,h as u32)),
+                        // offset:Some(((width.saturating_sub(w as u32))/2,
+                        //              (height.saturating_sub(h as u32))/2))
+                    }
+                },
+                _ => DisplayParams {
+                    output_size:None,
+                    offset:None
+                }
+        };
         self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
         if let Some(ref subtitles) = self.subtitles {
             if self.options.display_subtitles {

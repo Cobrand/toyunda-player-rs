@@ -1,6 +1,8 @@
 use super::Color;
 
-#[derive(Debug,Clone,Copy)]
-pub struct Outline {
-	pub color:Color
+#[derive(Debug,Clone,Copy,PartialEq)]
+pub enum Outline {
+    None,
+    Light(Color),
+    Bold(Color)
 }

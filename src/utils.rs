@@ -120,3 +120,12 @@ fn test_parse_hex() {
     let sample_hex = "201";
     assert_eq!(parse_hex(sample_hex).unwrap(), 513);
 }
+
+// width and height must be between 0 and 1
+pub fn fit_dims(dims:(u32,u32),
+                 fit_width: Option<f32>,
+                 fit_height: Option<f32>)
+                 -> (Option<u32>, Option<u32>) {
+    (fit_width.and_then(|width| Some((width * (dims.0 as f32)) as u32)),
+     fit_height.and_then(|height| Some((height * (dims.1 as f32)) as u32)))
+}

@@ -54,7 +54,8 @@ impl From<SyllableOptions> for SyllableParameters {
                 .unwrap_or(Color {red: 0  ,green: 255,blue: 255}),
             outline: syllable_options.outline
                 .unwrap_or(Outline {
-                    color :Color {red: 0  ,green: 0  ,blue: 0  }
+                    color: Color {red: 0  ,green: 0  ,blue: 0  },
+                    size: 1
                 }),
         }
     }
