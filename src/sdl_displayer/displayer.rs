@@ -3,6 +3,7 @@ use sdl2_image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
 use sdl2_ttf::{Sdl2TtfContext, init as ttf_init};
 use ::overlay::{Display,OverlayFrame,TextUnit,Rect} ;
 use super::font::*;
+use super::SDLDisplayParameters;
 
 pub struct SDLDisplayer<'a> {
     pub fonts: FontList,
@@ -95,12 +96,15 @@ impl<'a> SDLDisplayer<'a> {
     }
 
     fn display_unit(&mut self,text_unit:&TextUnit) -> Rect {
-        unimplemented!()
+    
     }
 }
 
 impl<'a> Display for SDLDisplayer<'a> {
-    fn display(&mut self,overlay_frame:&OverlayFrame) -> Vec<Rect> {
+    type Parameters = SDLDisplayParameters;
+    fn display(&mut self,
+               overlay_frame:&OverlayFrame,
+               params:&SDLDisplayParameters) -> Vec<Rect> {
         overlay_frame.text_units.iter().map(|text_unit|{
             self.display_unit(text_unit)
         }).collect()

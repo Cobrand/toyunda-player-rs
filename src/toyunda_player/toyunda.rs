@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use ::subtitles::{Subtitles,Load};
 use ::overlay::pos::*;
 use ::overlay::Display;
-use ::sdl_displayer::SDLDisplayer;
+use ::sdl_displayer::{SDLDisplayer,SDLDisplayParameters as DisplayParams};
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 use sdl2::Sdl;
@@ -279,6 +279,13 @@ impl<'a> ToyundaPlayer<'a> {
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         let time_pos : f64 = self.mpv.get_property("time-pos").unwrap_or(0.0);
         let time_pos : u32 = (time_pos * 1000.0) as u32 ;
+        let display_params : Option<(u32,u32)> = 
+            match (self.mpv.get_property::<i64>("dwidth"),
+                   self.mpv.get_property::<i64>("dheight")) {
+                (Ok(w),Ok(h)) => Some((w as u32, h as u32)),
+                _ => None
+            };
+        let display_params = DisplayParams::new(display_params);
         self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
         if let Some(ref subtitles) = self.subtitles {
             if self.options.display_subtitles {
@@ -289,7 +296,7 @@ impl<'a> ToyundaPlayer<'a> {
                 };
                 match overlay_frame {
                     Ok(overlay_frame) => {
-                        self.displayer.display(&overlay_frame);
+                        self.displayer.display(&overlay_frame,&display_params);
                     },
                     Err(err_string) => {
                         error!("Error when processing overlay : {}",err_string);
