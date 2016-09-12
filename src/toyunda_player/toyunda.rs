@@ -279,6 +279,7 @@ impl<'a> ToyundaPlayer<'a> {
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         let time_pos : f64 = self.mpv.get_property("time-pos").unwrap_or(0.0);
         let time_pos : u32 = (time_pos * 1000.0) as u32;
+        println!("time-pos: {}",time_pos);
         let display_params : DisplayParams = 
             match (self.mpv.get_property::<i64>("width"),
                    self.mpv.get_property::<i64>("height")) {
