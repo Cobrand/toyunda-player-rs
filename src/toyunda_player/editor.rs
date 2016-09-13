@@ -13,9 +13,18 @@ pub struct EditorState {
 }
 
 impl EditorState {
-    pub fn new() -> EditorState {
+    pub fn new(time:u32,subs:&Subtitles) -> EditorState {
+        let mut i : u16 = 0;
+        for (sentence_n,sentence) in subs.sentences.iter().enumerate() {
+            if let Some(syll) = sentence.syllables.last() {
+                if syll.end.unwrap() > time {
+                    i = sentence_n as u16;
+                    break;
+                }
+            }
+        };
         EditorState {
-            current_sentence:0,
+            current_sentence:i,
             current_syllable:0,
             start_frame_key_1:None,
             start_frame_key_2:None,
@@ -98,34 +107,36 @@ impl EditorState {
         }
     }
 
-    pub fn start_timing_syllable(&mut self,subs:&mut Subtitles,frame:u32,key:u8) {
+    /// time in ms
+    pub fn start_timing_syllable(&mut self,subs:&mut Subtitles,time:u32,key:u8) {
         if key == 0 {
             if let Some(_) = self.start_frame_key_2 {
-                self.end_timing_syllable(subs,frame,1);
+                self.end_timing_syllable(subs,time,1);
             };
-            self.start_frame_key_1 = Some(frame);
+            self.start_frame_key_1 = Some(time);
         } else {
             if let Some(_) = self.start_frame_key_1 {
-                self.end_timing_syllable(subs,frame,0);
+                self.end_timing_syllable(subs,time,0);
             };
-            self.start_frame_key_2 = Some(frame);
+            self.start_frame_key_2 = Some(time);
         };
     }
 
-    pub fn end_timing_syllable(&mut self,subs:&mut Subtitles,frame:u32,key:u8) {
+    /// time in ms
+    pub fn end_timing_syllable(&mut self,subs:&mut Subtitles,time:u32,key:u8) {
         let b : bool = if let Some(syllable) = self.get_syllable_mut(subs) {
             if key == 0 {
-                if let Some(begin_frame) = self.start_frame_key_1 {
-                    syllable.begin = begin_frame ;
-                    syllable.end = Some(frame) ;
+                if let Some(begin_time) = self.start_frame_key_1 {
+                    syllable.begin = begin_time ;
+                    syllable.end = Some(time) ;
                     true
                 } else {
                     false
                 }
             } else {
-                if let Some(begin_frame) = self.start_frame_key_2 {
-                    syllable.begin = begin_frame ;
-                    syllable.end = Some(frame) ;
+                if let Some(begin_time) = self.start_frame_key_2 {
+                    syllable.begin = begin_time ;
+                    syllable.end = Some(time) ;
                     true
                 } else {
                     false

@@ -96,7 +96,7 @@ impl<'a> ToyundaPlayer<'a> {
             enable_manager = true ;
         } else if arg_matches.is_present("edit_mode") {
             self.options.mode = ToyundaMode::EditMode;
-            self.editor_state = Some(EditorState::new());
+            self.editor_state = None;
             info!("Enabling edit mode");
             enable_manager = false;
         } else {
@@ -319,24 +319,10 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(())
     }
 
-    pub fn render_credits(&mut self) {
-        let fps : f64 = self.mpv.get_property::<f64>("fps").or_else(|_|{
-            self.mpv.get_property::<f64>("container-fps")
-        }).unwrap_or(30.0);
-        let duration = self.mpv.get_property::<f64>("duration");
-        if let Ok(duration) = duration {
-            let first_credits_start_frame = (2.0 * fps) as u32;
-            let first_credits_end_frame = (10.0 * fps) as u32;
-            let end_credits_start_frame = ((duration - 2.0) * fps) as u32;
-            let end_credits_end_frame = ((duration - 10.0) * fps) as u32;
-        };
-    }
-
-    pub fn render_frame(&mut self) -> Result<()> {
+    pub fn render_overlay(&mut self) -> Result<()> {
         use sdl2::rect::Rect;
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
-        let time_pos : f64 = self.mpv.get_property("time-pos").unwrap_or(0.0);
-        let time_pos : u32 = (time_pos * 1000.0) as u32;
+        let time_pos = self.get_media_current_time();
         let display_params : DisplayParams = 
             match (self.mpv.get_property::<i64>("width"),
                    self.mpv.get_property::<i64>("height")) {
@@ -361,7 +347,7 @@ impl<'a> ToyundaPlayer<'a> {
                     offset:None
                 }
         };
-        self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw frame with mpv");
+        self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw video frame with mpv");
         if let Some(ref subtitles) = self.subtitles {
             if self.options.display_subtitles {
                 let overlay_frame = if let Some(ref editor_state) = self.editor_state {
@@ -481,10 +467,18 @@ impl<'a> ToyundaPlayer<'a> {
                 };
             }
             // TODO change this try into something else,
-            // would be bad to crash if we cant render 1 frame ...
-            try!(self.render_frame());
+            // would be bad to crash if we cant render once ...
+            try!(self.render_overlay());
         }
         Ok(())
+    }
+
+    pub fn get_media_current_time(&self) -> u32 {
+        if let Ok(t) = self.mpv.get_property::<f64>("time-pos") {
+            (t * 1000.0) as u32
+        } else {
+            0u32
+        }
     }
 
     pub fn handle_event(&mut self,
@@ -492,6 +486,7 @@ impl<'a> ToyundaPlayer<'a> {
                         alt_keys_state: (bool, bool, bool))
                         -> Result<ToyundaAction> {
         use ::toyunda_player::ToyundaMode::*;
+        let time = self.get_media_current_time();
         let (is_alt_pressed, is_ctrl_pressed, is_shift_pressed) = alt_keys_state;
         let mode = self.options.mode; // shortcut
         match event {
@@ -509,7 +504,9 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown { keycode: Some(Keycode::E), ..} if mode == EditMode => {
                 // toggles editor mode
                 if self.editor_state.is_none() {
-                    self.editor_state = Some(EditorState::new());
+                    if let Some(subs) = self.subtitles.as_ref() {
+                        self.editor_state = Some(EditorState::new(time,subs));
+                    };
                 } else {
                     self.editor_state = None;
                 };
@@ -519,9 +516,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown {keycode: Some(Keycode::X), repeat:false, .. } => {
                 if let Some(ref mut editor_state) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
-                        let frame : i64 =
-                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                        editor_state.start_timing_syllable(subtitles,frame as u32,0);
+                        editor_state.start_timing_syllable(subtitles,time,0);
                     }
                 };
                 Ok(ToyundaAction::Nothing)
@@ -529,9 +524,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyDown {keycode: Some(Keycode::C), repeat:false, .. } => {
                 if let Some(ref mut editor_state) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
-                        let frame : i64 =
-                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                        editor_state.start_timing_syllable(subtitles,frame as u32,1);
+                        editor_state.start_timing_syllable(subtitles,time,1);
                     }
                 };
                 Ok(ToyundaAction::Nothing)
@@ -539,9 +532,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyUp {keycode: Some(Keycode::X), .. } => {
                 if let Some(ref mut editor_state) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
-                        let frame : i64 =
-                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                        editor_state.end_timing_syllable(subtitles,frame as u32,0);
+                        editor_state.end_timing_syllable(subtitles,time,0);
                     }
                 };
                 Ok(ToyundaAction::Nothing)
@@ -549,9 +540,7 @@ impl<'a> ToyundaPlayer<'a> {
             Event::KeyUp {keycode: Some(Keycode::C), .. } => {
                 if let Some(ref mut editor_state) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
-                        let frame : i64 =
-                            self.mpv.get_property("estimated-frame-number").unwrap_or(0);
-                        editor_state.end_timing_syllable(subtitles,frame as u32,1);
+                        editor_state.end_timing_syllable(subtitles,time,1);
                     }
                 };
                 Ok(ToyundaAction::Nothing)
