@@ -135,14 +135,8 @@ impl Subtitles {
     }
 
     // TODO create a  subtitles::Error type and replace String with this
-    pub fn to_overlay_frame(&self,time:u32) -> Result<OverlayFrame,String> {
+    pub fn to_overlay_frame(&self,current_time:u32) -> Result<OverlayFrame,String> {
         let mut text_units : Vec<TextUnit> = vec![];
-        // TODO FIXME !!!!!!!!!!!!!!!!!!!
-        // vvvvvvvvvvvv FIXME !!!!!!!!!!!
-        let fps : u32 = 30 ;
-        let frame_number = time * fps ;
-        // TODO FIXME ^^^^^^^^^^^^^^^^^^^
-        // !!!!!!!!!!!! FIXME !!!!!!!!!!!
         let default_sentence_options: SentenceOptions = SentenceOptions::default();
         // let default_sentence_options: SentenceOptions =
         //     self.subtitles_options
@@ -163,7 +157,7 @@ impl Subtitles {
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
                     let last_frame = last_syllable_end
                         .saturating_add(sentence_parameters.transition_time_after as u32);
-                    if (frame_number >= first_frame && frame_number <= last_frame) {
+                    if (current_time >= first_frame && current_time <= last_frame) {
                         true
                     } else {
                         false
@@ -174,7 +168,7 @@ impl Subtitles {
         }); // get all the sentences displayed on screen
         for (_sentence_number, ref sentence) in sentence_iter {
             let sentence_alpha =
-                compute_sentence_alpha(sentence, default_sentence_options, frame_number);
+                compute_sentence_alpha(sentence, default_sentence_options, current_time);
             let mut text_elts = vec![];
             let mut logo_position: Option<u16> = None;
             let tmp: SyllableOptions = sentence.sentence_options
@@ -191,7 +185,7 @@ impl Subtitles {
                                  syllable1,
                                  Some(syllable2),
                                  default_syllable_options,
-                                 frame_number,
+                                 current_time,
                                  sentence_alpha);
                 }
                 match sentence.syllables.last() {
@@ -200,14 +194,14 @@ impl Subtitles {
                                      last_syllable,
                                      None,
                                      default_syllable_options,
-                                     frame_number,
+                                     current_time,
                                      sentence_alpha);
                     }
                     _ => {}
                 }
             }
             'syllables: for (n, syllable) in sentence.syllables.iter().enumerate() {
-                if frame_number >= syllable.begin {
+                if current_time >= syllable.begin {
                     logo_position = Some(n as u16);
                 } else {
                     break 'syllables;
@@ -215,7 +209,7 @@ impl Subtitles {
             }
             match sentence.syllables.last() {
                 Some(ref syllable) => {
-                    if (frame_number > syllable.end.unwrap()) {
+                    if (current_time > syllable.end.unwrap()) {
                         logo_position = None;
                     }
                 }

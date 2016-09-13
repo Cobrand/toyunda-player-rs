@@ -168,12 +168,12 @@ impl<'a> ToyundaPlayer<'a> {
                         subtitles : {} , file {} will be skipped",
                         e,video_meta.video_path.display());
                     } else {
-                        error!("Error was received when importin subtitles : {},\
+                        error!("Error was received when importing subtitles : {},\
                                file will be skipped",e);
                     }
                     self.execute_command(Command::PlayNext)
             } else {
-                let string = format!("Error was received\
+                let string = format!("Error was received \
                     when importing subtitles : {}",e);
                 error!("{}", string.as_str());
                 self.add_graphic_message(graphic_message::Category::Error, string.as_str());
@@ -216,6 +216,10 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
+    pub fn get_file_fps(&self) -> f64 {
+        self.mpv.get_property::<f64>("fps").unwrap_or(0.0)
+    }
+
     /// adds a graphic message on the screen
     /// note that errors and warnings wont be shown in KaraokeMode
     pub fn add_graphic_message(&mut self, category: graphic_message::Category, message: &str) {
@@ -232,6 +236,7 @@ impl<'a> ToyundaPlayer<'a> {
     pub fn import_cur_file_subtitles(&mut self) -> Result<()> {
         let duration : u32 = 
             (self.mpv.get_property::<f64>("duration").unwrap_or(0.0) * 1000.0) as u32;
+        let fps : f64 = self.get_file_fps(); 
         let (json_path, lyr_path, frm_path) =
             match &self.state.read().unwrap().playing_state {
                 &PlayingState::Idle => {
@@ -257,7 +262,7 @@ impl<'a> ToyundaPlayer<'a> {
                 info!("Loading subtitles with lyr and frm ...");
                 self.add_graphic_message(graphic_message::Category::Info,
                                          "Failed to load json subtitle file, loading lyr and frm");
-                (&*lyr_path, &*frm_path).into_subtitles()
+                (&*frm_path, &*lyr_path, fps).into_subtitles()
                     .map(|mut subtitles| {
                         subtitles.post_init(duration);
                         self.subtitles = Some(subtitles);
@@ -332,7 +337,6 @@ impl<'a> ToyundaPlayer<'a> {
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         let time_pos : f64 = self.mpv.get_property("time-pos").unwrap_or(0.0);
         let time_pos : u32 = (time_pos * 1000.0) as u32;
-        println!("time-pos: {}",time_pos);
         let display_params : DisplayParams = 
             match (self.mpv.get_property::<i64>("width"),
                    self.mpv.get_property::<i64>("height")) {
