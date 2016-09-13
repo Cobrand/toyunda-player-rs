@@ -20,7 +20,7 @@ impl<'a> Load for (&'a Path,&'a Path,f64) {
         let frm_file = try!(File::open(frm).map_err(|e| e.description().to_string()));
         let lyr_file = BufReader::new(&lyr_file);
         let frm_file = BufReader::new(&frm_file);
-        let mut current_sentence_options: SentenceOptions = SentenceOptions::default();
+        let mut subtitles_options : Option<SubtitlesOptions> = None;
         for (line_number, lyr_line) in lyr_file.lines().enumerate() {
             let lyr_line = try!(lyr_line.map_err(|e| {
                 format!("IoError when reading {} at line {} : '{}'",
@@ -45,11 +45,11 @@ impl<'a> Load for (&'a Path,&'a Path,f64) {
                 let sentence = Sentence {
                     syllables: syllables,
                     position: RowPosition::default(),
-                    sentence_options: Some(current_sentence_options),
+                    sentence_options: None,
                 };
                 subtitles.sentences.push(sentence);
             } else if lyr_line.starts_with("%color") {
-                let syllable_options = &mut current_sentence_options.syllable_options;
+                let mut syllable_options = SyllableOptions::default();
                 use utils::parse_bgr;
                 let colors: Vec<_> = lyr_line.split_whitespace().collect();
                 if colors.len() == 4 {
@@ -58,36 +58,27 @@ impl<'a> Load for (&'a Path,&'a Path,f64) {
                     let dead_color = parse_bgr(colors[3]);
                     match (alive_color, transition_color, dead_color) {
                         (Ok(alive_color), Ok(transition_color), Ok(dead_color)) => {
-                            if syllable_options.is_none() {
-                                *syllable_options =
-                                    Some(SyllableOptions::default());
-                            }
                             syllable_options
-                                .as_mut()
-                                .unwrap()
                                 .alive_color = Some(alive_color);
                             syllable_options
-                                .as_mut()
-                                .unwrap()
                                 .transition_color = Some(transition_color);
                             syllable_options
-                                .as_mut()
-                                .unwrap()
                                 .dead_color = Some(dead_color);
                         }
                         _ => {
                             error!("Invalid %color syntax when reading {} at line {} : '{}'",
-                                   lyr.display(),
-                                   line_number,
-                                   lyr_line);
+                                   lyr.display(),line_number,lyr_line);
                         }
                     }
                 } else {
                     error!("Invalid %color syntax when reading {} at line {} : '{}'",
-                           lyr.display(),
-                           line_number,
-                           lyr_line);
+                           lyr.display(),line_number,lyr_line);
                 }
+                let mut sentence_options = SentenceOptions::default();
+                sentence_options.syllable_options = Some(syllable_options);
+                subtitles_options = Some(SubtitlesOptions {
+                    sentence_options:Some(sentence_options)
+                });
             };
         }
         let mut frames: Vec<(u32, u32)> = vec![];
@@ -140,6 +131,7 @@ impl<'a> Load for (&'a Path,&'a Path,f64) {
                 }
             }
         }
+        subtitles.subtitles_options = subtitles_options;
         try!(subtitles.check());
         Ok(subtitles)
     }
