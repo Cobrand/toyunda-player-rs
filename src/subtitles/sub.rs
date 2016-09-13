@@ -117,7 +117,8 @@ impl Subtitles {
         Ok(())
     }
 
-    pub fn post_init(&mut self) {
+    /// length in ms
+    pub fn post_init(&mut self,duration:u32) {
         self.adjust_sentences_row();
     }
 

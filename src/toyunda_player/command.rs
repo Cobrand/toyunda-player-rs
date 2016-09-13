@@ -105,13 +105,13 @@ impl<'a> ToyundaPlayer<'a> {
                                         Ok(ToyundaAction::Nothing)
                                     }
                                     ToyundaMode::NormalMode =>
-                                        Ok(ToyundaAction::Terminate(Ok(()))),
+                                        Ok(ToyundaAction::Terminate),
                                 }
                             }
                             Some(b) => {
                                 if b {
                                     // "quit_when_finished" override
-                                    Ok(ToyundaAction::Terminate(Ok(())))
+                                    Ok(ToyundaAction::Terminate)
                                 } else {
                                     // "dont_quit_when_finished" override
                                     Ok(ToyundaAction::Nothing)
@@ -120,56 +120,7 @@ impl<'a> ToyundaPlayer<'a> {
                         }
                     }
                     Some(video_meta) => {
-                        let tmp_video_path =
-                            video_meta.video_path.to_str().map(|s| String::from(s));
-                        match tmp_video_path {
-                            None => {
-                                error!("Invalid UTF-8 Path for {} , skipping file",
-                                       video_meta.video_path.display());
-                                self.execute_command(Command::PlayNext)
-                            }
-                            Some(video_path) => {
-                                match self.mpv.command(&["loadfile", video_path.as_str()]) {
-                                    Ok(_) => {
-                                        match self.import_subtitles(Some(&video_meta)) {
-                                            Ok(_) => {
-                                                self.state.write().unwrap().playing_state =
-                                                    PlayingState::Playing(video_meta);
-                                                info!("Now playing : '{}'", &video_path);
-                                                Ok(ToyundaAction::Nothing)
-                                            }
-                                            Err(e) => {
-                                                self.state.write().unwrap().playing_state =
-                                                    PlayingState::Playing(video_meta);
-                                                if self.options.mode == ToyundaMode::KaraokeMode {
-                                                    error!("Error was received when importing \
-                                                            subtitles : {} , file {} will be \
-                                                            skipped",
-                                                           e,
-                                                           video_path);
-                                                    self.execute_command(Command::PlayNext)
-                                                } else {
-                                                    let string = format!("Error was received \
-                                                                          when importing \
-                                                                          subtitles : {}",
-                                                                         e);
-                                                    error!("{}", string.as_str());
-                                                    self.add_graphic_message(graphic_message::Category::Error, string.as_str());
-                                                    Ok(ToyundaAction::Nothing)
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Err(e) => {
-                                        error!("Trying to play file {} but error {} occured. \
-                                                Skiping file ...",
-                                               video_path,
-                                               e);
-                                        self.execute_command(Command::PlayNext)
-                                    }
-                                }
-                            }
-                        }
+                        self.load_media_from_video_meta(video_meta)
                     }
                 }
             }
@@ -190,7 +141,7 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             }
             Command::ReloadSubtitles => {
-                try!(self.reload_subtitles());
+                try!(self.import_cur_file_subtitles());
                 Ok(ToyundaAction::Nothing)
             }
         }

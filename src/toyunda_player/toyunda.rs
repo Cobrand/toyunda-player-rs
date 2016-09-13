@@ -48,7 +48,7 @@ fn get_alt_keys(keyboard_state: KeyboardState) -> (bool, bool, bool) {
 #[derive(Debug,Clone)]
 pub enum ToyundaAction {
     Nothing,
-    Terminate(Result<()>),
+    Terminate,
 }
 
 impl<'a> ToyundaPlayer<'a> {
@@ -155,6 +155,67 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(())
     }
 
+    /// load media actually loads subtitles with it : when the file is finished
+    /// being loaded, we can load the subtitles for sure
+    ///
+    pub fn on_load_media(&mut self) -> Result<ToyundaAction> {
+        let res = self.import_cur_file_subtitles();
+        if let Err(e) = res {
+            if self.options.mode == ToyundaMode::KaraokeMode {
+                if let &PlayingState::Playing(ref video_meta) =
+                    &self.state.write().unwrap().playing_state {
+                        error!("Error was received when importing \
+                        subtitles : {} , file {} will be skipped",
+                        e,video_meta.video_path.display());
+                    } else {
+                        error!("Error was received when importin subtitles : {},\
+                               file will be skipped",e);
+                    }
+                    self.execute_command(Command::PlayNext)
+            } else {
+                let string = format!("Error was received\
+                    when importing subtitles : {}",e);
+                error!("{}", string.as_str());
+                self.add_graphic_message(graphic_message::Category::Error, string.as_str());
+                Ok(ToyundaAction::Nothing)
+            }
+        } else {
+            Ok(ToyundaAction::Nothing)
+        }
+    }
+
+    /// This method doesnt load subtitles ... we wait for the file to be loaded
+    /// to load subtitles (that way Video-related parameters can be sent to subtitles,
+    /// like total length, FPS...
+    pub fn load_media_from_video_meta(&mut self,video_meta:VideoMeta)
+                                           -> Result<ToyundaAction> {
+        let tmp_video_path =
+            video_meta.video_path.to_str().map(|s| String::from(s));
+        match tmp_video_path {
+            None => {
+                error!("Invalid UTF-8 Path for {} , skipping file",
+                       video_meta.video_path.display());
+                self.execute_command(Command::PlayNext)
+            }
+            Some(video_path) => {
+                match self.mpv.command(&["loadfile", video_path.as_str()]) {
+                    Ok(_) => {
+                        self.state.write().unwrap().playing_state =
+                            PlayingState::Playing(video_meta);
+                        info!("Now playing : '{}'", &video_path);
+                        Ok(ToyundaAction::Nothing)
+                    },
+                    Err(e) => {
+                        error!("Trying to play file {} but error {} occured. \
+                                Skiping file ...",video_path,e);
+                        self.execute_command(Command::PlayNext)
+                    },
+                        
+                }
+            }
+        }
+    }
+
     /// adds a graphic message on the screen
     /// note that errors and warnings wont be shown in KaraokeMode
     pub fn add_graphic_message(&mut self, category: graphic_message::Category, message: &str) {
@@ -162,51 +223,43 @@ impl<'a> ToyundaPlayer<'a> {
         self.graphic_messages.push(graphic_message::GraphicMessage {
             category: category,
             text: String::from(message),
-            up_until: Instant::now() + Duration::from_secs(5),
+            up_until: Instant::now() + Duration::from_secs(4),
         });
-    }
-
-    pub fn reload_subtitles(&mut self) -> Result<()> {
-        self.import_subtitles(None)
     }
 
     /// if video_meta is None, reload the current subtitles
     /// otherwise load from video_meta
-    pub fn import_subtitles(&mut self, video_meta: Option<&VideoMeta>) -> Result<()> {
-        let (json_path, lyr_path, frm_path) = {
-            match video_meta {
-                None => {
-                    match &self.state.read().unwrap().playing_state {
-                        &PlayingState::Idle => {
-                            return Err(Error::Text(String::from("Error when reloading subtitles \
-                                                                 : no file is playing !")))
-                        }
-                        &PlayingState::Playing(ref video_meta) => {
-                            (video_meta.json_path(), video_meta.lyr_path(), video_meta.frm_path())
-                        }
-                    }
-                }
-                Some(video_meta) => {
+    pub fn import_cur_file_subtitles(&mut self) -> Result<()> {
+        let duration : u32 = 
+            (self.mpv.get_property::<f64>("duration").unwrap_or(0.0) * 1000.0) as u32;
+        let (json_path, lyr_path, frm_path) =
+            match &self.state.read().unwrap().playing_state {
+                &PlayingState::Idle => {
+                    return Err(Error::Text(String::from("Error when reloading subtitles \
+                                                         : no file is playing !")))
+                },
+                &PlayingState::Playing(ref video_meta) => {
                     (video_meta.json_path(), video_meta.lyr_path(), video_meta.frm_path())
                 }
-            }
-        }; // TODO move this chunk into a private method
+            };
+        // TODO move this chunk into a private method
         if (json_path.is_file()) {
-            info!("Loading {}", json_path.display());
+            debug!("Loading file {}", json_path.display());
             let json_file = ::std::fs::File::open(json_path).expect("Failed to open JSON file");
             let mut subtitles: Subtitles = serde_json::from_reader(json_file)
                 .expect("Failed to load json file");
-            subtitles.post_init();
+            subtitles.post_init(duration);
             self.subtitles = Some(subtitles);
             Ok(())
         } else {
-            info!("Failed to load json file, trying lyr and frm files");
+            debug!("Failed to load json file, trying lyr and frm files");
             if (lyr_path.is_file() && frm_path.is_file()) {
                 info!("Loading subtitles with lyr and frm ...");
                 self.add_graphic_message(graphic_message::Category::Info,
                                          "Failed to load json subtitle file, loading lyr and frm");
                 (&*lyr_path, &*frm_path).into_subtitles()
-                    .map(|subtitles| {
+                    .map(|mut subtitles| {
+                        subtitles.post_init(duration);
                         self.subtitles = Some(subtitles);
                         ()
                     })
@@ -359,8 +412,7 @@ impl<'a> ToyundaPlayer<'a> {
             let res = self.execute_command(command);
             match res {
                 Ok(ToyundaAction::Nothing) => {}
-                Ok(ToyundaAction::Terminate(_)) => {
-                    // TODO parse errors
+                Ok(ToyundaAction::Terminate) => {
                     return Ok(true);
                 }
                 Err(e) => {
@@ -395,8 +447,7 @@ impl<'a> ToyundaPlayer<'a> {
             for event in event_pump.poll_iter() {
                 match self.handle_event(event, alt_keys) {
                     Ok(ToyundaAction::Nothing) => {}
-                    Ok(ToyundaAction::Terminate(_)) => break 'main,
-                    // TODO see if terminate contains an error or not
+                    Ok(ToyundaAction::Terminate) => break 'main,
                     Err(e) => {
                         use ::toyunda_player::graphic_message::Category;
                         self.add_graphic_message(Category::Warn,&format!("Error : {}",e));
@@ -414,12 +465,14 @@ impl<'a> ToyundaPlayer<'a> {
                     MpvEvent::Shutdown => {break 'main},
                     MpvEvent::EndFile(Ok(MPV_END_FILE_REASON_EOF)) => {
                         match self.on_end_file() {
-                            Ok(ToyundaAction::Terminate(_)) => {break 'main},
-                            // TODO see if terminate contains an error or not
+                            Ok(ToyundaAction::Terminate) => {break 'main},
                             // TODO parse mpv error (shouldnt happen often, but still)
                             _ => {}
                         }
                     },
+                    MpvEvent::FileLoaded => {
+                        self.on_load_media();
+                    }
                     _ => {}
                 };
             }
@@ -440,7 +493,7 @@ impl<'a> ToyundaPlayer<'a> {
         match event {
             Event::Quit { .. } |
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
-                Ok(ToyundaAction::Terminate(Ok(()))),
+                Ok(ToyundaAction::Terminate),
             Event::KeyDown { keycode: Some(Keycode::S), ..}
                 if is_ctrl_pressed && mode == NormalMode => self.execute_command(Command::Stop),
             Event::KeyDown { keycode: Some(Keycode::N), ..}
