@@ -78,10 +78,10 @@ impl From<SentenceOptions> for SentenceParameters {
     fn from(sentence_options: SentenceOptions) -> Self {
         SentenceParameters {
             display_logo: sentence_options.display_logo.unwrap_or(true),
-            transition_time_before: sentence_options.transition_time_before.unwrap_or(18),
-            fade_time_before: sentence_options.fade_time_before.unwrap_or(8),
-            transition_time_after: sentence_options.transition_time_after.unwrap_or(12),
-            fade_time_after: sentence_options.fade_time_after.unwrap_or(8),
+            transition_time_before: sentence_options.transition_time_before.unwrap_or(800),
+            fade_time_before: sentence_options.fade_time_before.unwrap_or(200),
+            transition_time_after: sentence_options.transition_time_after.unwrap_or(500),
+            fade_time_after: sentence_options.fade_time_after.unwrap_or(200),
             row_position: sentence_options.row_position,
         }
     }
