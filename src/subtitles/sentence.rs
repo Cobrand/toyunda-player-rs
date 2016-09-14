@@ -1,4 +1,4 @@
-use super::{Syllable,SyllableOptions};
+use super::{Syllable,SyllableOptions,Subtitles,SubtitlesOptions};
 use super::pos::RowPosition;
 use std::ops::Deref;
 
@@ -9,6 +9,63 @@ pub struct Sentence {
     pub position: RowPosition,
     #[serde(skip_serializing_if="Option::is_none")]
     pub sentence_options: Option<SentenceOptions>,
+}
+
+pub trait AsSentenceOptions {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions>;
+    fn or_sentence_options(&self,other:Option<&SentenceOptions>) -> Option<SentenceOptions> {
+        match (self.as_sentence_options(),other) {
+            (Some(s),Some(other)) => Some(SentenceOptions {
+                syllable_options: s.syllable_options.or(other.syllable_options),
+                display_logo: s.display_logo.or(other.display_logo),
+                transition_time_after: s.transition_time_after.or(other.transition_time_after),
+                fade_time_after: s.fade_time_after.or(other.fade_time_after),
+                transition_time_before: s.transition_time_before.or(other.transition_time_before),
+                fade_time_before: s.fade_time_before.or(other.fade_time_before),
+                row_position: s.row_position.or(other.row_position),
+            }),
+            (Some(s),None) => Some(s.clone()),
+            (None,Some(other)) => Some(other.clone()),
+            (None,None) => None
+        }
+    }
+}
+
+impl AsSentenceOptions for Sentence {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        self.sentence_options.as_ref()
+    }
+}
+
+impl AsSentenceOptions for Subtitles {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        if let Some(ref subs_options) = self.subtitles_options {
+            subs_options.sentence_options.as_ref()
+        } else {
+            None
+        }
+    }
+}
+
+impl AsSentenceOptions for SentenceOptions {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        Some(self)
+    }
+}
+
+impl AsSentenceOptions for SubtitlesOptions {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        self.sentence_options.as_ref()
+    }
+}
+
+impl<T:AsSentenceOptions> AsSentenceOptions for Option<T> {
+    fn as_sentence_options(&self) -> Option<&SentenceOptions> {
+        match *self {
+            Some(ref t) => t.as_sentence_options(),
+            None => None
+        }
+    }
 }
 
 impl Sentence {
@@ -41,20 +98,6 @@ pub struct SentenceOptions {
     pub fade_time_after: Option<u16>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub row_position: Option<RowPosition>,
-}
-
-impl SentenceOptions {
-    pub fn or_sentence(&self, other: &SentenceOptions) -> SentenceOptions {
-        SentenceOptions {
-            syllable_options: self.syllable_options.or(other.syllable_options),
-            display_logo: self.display_logo.or(other.display_logo),
-            transition_time_after: self.transition_time_after.or(other.transition_time_after),
-            fade_time_after: self.fade_time_after.or(other.fade_time_after),
-            transition_time_before: self.transition_time_before.or(other.transition_time_before),
-            fade_time_before: self.fade_time_before.or(other.fade_time_before),
-            row_position: self.row_position.or(other.row_position),
-        }
-    }
 }
 
 impl Deref for SentenceOptions {

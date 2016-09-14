@@ -1,4 +1,4 @@
-use super::misc::*;
+use super::*;
 
 #[derive(Debug,Default,Serialize,Deserialize,Clone)]
 pub struct Syllable {
@@ -31,6 +31,80 @@ impl SyllableOptions {
             transition_color: self.transition_color.or(other.transition_color),
             dead_color: self.dead_color.or(other.dead_color),
             outline: self.outline.or(other.outline),
+        }
+    }
+}
+
+pub trait AsSyllableOptions {
+    fn as_syllable_options(&self) -> Option<&SyllableOptions>;
+    fn or_syllable_options(&self,other:Option<&SyllableOptions>) -> Option<SyllableOptions> {
+        match (self.as_syllable_options(),other) {
+            (Some(s),Some(other)) => Some(SyllableOptions {
+                alive_color: s.alive_color.or(other.alive_color),
+                transition_color: s.transition_color.or(other.transition_color),
+                dead_color: s.dead_color.or(other.dead_color),
+                outline: s.outline.or(other.outline),
+            }),
+            (Some(s),None) => Some(s.clone()),
+            (None,Some(other)) => Some(other.clone()),
+            (None,None) => None
+        }
+    }
+}
+
+impl AsSyllableOptions for Subtitles{
+    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+        if let Some(ref sub_options) = self.subtitles_options {
+            sub_options.as_syllable_options()
+        } else {
+            None
+        }
+    }
+}
+
+impl AsSyllableOptions for SubtitlesOptions {
+    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+        if let Some(ref sen_options) = self.sentence_options {
+            sen_options.as_syllable_options()
+        } else {
+            None
+        }
+    }
+}
+
+impl AsSyllableOptions for Sentence {
+    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+        if let Some(ref sen_options) = self.sentence_options {
+            sen_options.as_syllable_options()
+        } else {
+            None
+        }
+    }
+}
+
+impl AsSyllableOptions for SentenceOptions {
+    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+        self.syllable_options.as_ref()
+    }
+}
+
+impl AsSyllableOptions for Syllable {
+    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+        self.syllable_options.as_ref()
+    }
+}
+
+impl AsSyllableOptions for SyllableOptions {
+    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+        Some(self)
+    }
+}
+
+impl<T:AsSyllableOptions> AsSyllableOptions for Option<T> {
+    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+        match *self {
+            Some(ref t) => t.as_syllable_options(),
+            None => None
         }
     }
 }

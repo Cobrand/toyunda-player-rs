@@ -1,7 +1,8 @@
 use super::song_info::SongInfo;
 use super::pos::*;
 use super::{Sentence,SentenceOptions,SentenceParameters,
-        Syllable,SyllableOptions,SyllableParameters};
+        Syllable,SyllableOptions,SyllableParameters,AsSentenceOptions,
+        AsSyllableOptions};
 use ::overlay::*;
 use ::overlay::pos::*;
 use std::ops::Deref;
@@ -21,17 +22,16 @@ pub struct Subtitles {
 /// sentence : Sentence to add to the subtitles
 fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
                          sentence: &mut Sentence,
-                         default_sentence_options: &SentenceOptions) {
+                         default_sentence_options: Option<&SentenceOptions>) {
     if let Some(row_pos) = sentence.sentence_options.and_then(|o|o.row_position) {
         sentence.position = row_pos ;
         return; // life is meaningless
     }
     let (before_sentences,after_sentences) = sentences ;
-    // let sentence_options: SentenceOptions = sentence.sentence_options
-    //     .unwrap_or(SentenceOptions::default())
-    //     .or(default_sentence_options);
-    // let sentence_parameters = SentenceParameters::from(sentence_options);
-    let sentence_parameters = SentenceParameters::from(SentenceOptions::default());
+    let sentence_options: Option<SentenceOptions> =
+        sentence.sentence_options.or_sentence_options(default_sentence_options);
+    let sentence_parameters =
+        SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
     let mut best_row = 0u8;
     {
         let filter_fun = |sentence_candidate:&&Sentence|{
@@ -40,9 +40,10 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
                 (None,_,_,_) | (_,None,_,_) | (_,_,None,_) | (_,_,_,None)  => false,
                 (Some(ref first_syllable),Some(ref last_syllable),
                  Some(ref first_syllable_candidate),Some(ref last_syllable_candidate)) => {
-                    // let sentence_candidate_options : SentenceOptions =
-                    //     sentence_candidate.sentence_options.unwrap_or(SentenceOptions::default()).or_sentence(&default_sentence_options);
-                    let sentence_candidate_parameters = SentenceParameters::from(SentenceOptions::default());
+                    let sentence_candidate_options : Option<SentenceOptions> =
+                        sentence_candidate.sentence_options.or_sentence_options(default_sentence_options);
+                    let sentence_candidate_parameters =
+                        SentenceParameters::from(SentenceOptions::default());
                     let first_frame = first_syllable.begin
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
                     let last_frame = last_syllable.end.expect("last syllable has no end")
@@ -130,25 +131,22 @@ impl Subtitles {
         for i in 0..self.sentences.len() {
             let (first_half, mut last_half) = self.sentences.split_at_mut(i);
             let (mut middle, last_half) = last_half.split_first_mut().unwrap();
-            set_best_sentence_row((first_half,last_half), middle,&default_sentence_options);
+            set_best_sentence_row((first_half,last_half),
+                                  middle,
+                                  self.subtitles_options.as_sentence_options());
         }
     }
 
     // TODO create a  subtitles::Error type and replace String with this
     pub fn to_overlay_frame(&self,current_time:u32) -> Result<OverlayFrame,String> {
         let mut text_units : Vec<TextUnit> = vec![];
-        let default_sentence_options: SentenceOptions = SentenceOptions::default();
-        // let default_sentence_options: SentenceOptions =
-        //     self.subtitles_options
-        //     .as_ref()
-        //     .map(|ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default()))
-        //     .unwrap_or(SentenceOptions::default());
+        let default_sentence_options: Option<&SentenceOptions> =
+            self.subtitles_options.as_sentence_options();
         let sentence_iter = self.sentences.iter().enumerate().filter(|&(_, ref sentence)| {
-            // let sentence_options: SentenceOptions = sentence.sentence_options
-            //     .unwrap_or(SentenceOptions::default())
-            //     .or(&default_sentence_options);
-            // let sentence_parameters = SentenceParameters::from(sentence_options);
-            let sentence_parameters = SentenceParameters::from(SentenceOptions::default());
+            let sentence_options: Option<SentenceOptions> =
+                sentence.sentence_options.or_sentence_options(default_sentence_options);
+            let sentence_parameters =
+                SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
             match (sentence.syllables.first(), sentence.syllables.last()) {
                 (None, _) | (_, None) => false,
                 (Some(&Syllable { begin: first_syllable_begin, .. }),
@@ -171,13 +169,10 @@ impl Subtitles {
                 compute_sentence_alpha(sentence, default_sentence_options, current_time);
             let mut text_elts = vec![];
             let mut logo_position: Option<u16> = None;
-            let tmp: SyllableOptions = sentence.sentence_options
-                .map(|o| o.syllable_options.unwrap_or(SyllableOptions::default()))
-                .unwrap_or(SyllableOptions::default());
-            let default_syllable_options: SyllableOptions =
-                tmp.or(&default_sentence_options.syllable_options
-                       .unwrap_or(SyllableOptions::default()))
-                    .or(&SyllableOptions::default());
+            let sentence_options: Option<SentenceOptions> =
+                sentence.or_sentence_options(default_sentence_options);
+            let default_syllable_options: Option<&SyllableOptions> =
+                sentence_options.as_syllable_options();
             {
                 for tmp_syllables in sentence.syllables.windows(2) {
                     let (syllable1, syllable2) = (&tmp_syllables[0], &tmp_syllables[1]);
@@ -265,16 +260,15 @@ pub struct SubtitlesOptions {
 fn add_syllable(mut text_subunits: &mut Vec<TextSubUnit>,
                 syllable: &Syllable,
                 next_syllable: Option<&Syllable>,
-                default_syllable_options: SyllableOptions,
+                default_syllable_options: Option<&SyllableOptions>,
                 current_frame: u32,
                 alpha: f32) {
     let syllable_end = syllable.end
         .or(next_syllable.map(|s| s.begin.saturating_sub(1)))
         .expect("File has not been checked properly : end syllable has no end frame");
-    // let syllable_options = syllable.syllable_options
-    //     .unwrap_or(SyllableOptions::default())
-    //     .or(&default_syllable_options);
-    let syllable_parameters = SyllableParameters::from(SyllableOptions::default());
+    let syllable_options = syllable.syllable_options.or_syllable_options(default_syllable_options);
+    let syllable_parameters =
+        SyllableParameters::from(syllable_options.unwrap_or(SyllableOptions::default()));
     let outline = Outline::from(syllable_parameters.outline);
     let alive_color = AlphaColor::from(Color::from(syllable_parameters.alive_color));
     let transition_color = Color::from(syllable_parameters.transition_color);
@@ -315,14 +309,13 @@ fn add_syllable(mut text_subunits: &mut Vec<TextSubUnit>,
 }
 
 fn compute_sentence_alpha(sentence: &Sentence,
-                          default_sentence_options: SentenceOptions,
+                          default_sentence_options: Option<&SentenceOptions>,
                           frame_number: u32)
                           -> f32 {
-    // let sentence_options: SentenceOptions = sentence.sentence_options
-    //     .unwrap_or(SentenceOptions::default())
-    //     .or(&default_sentence_options);
-    // let sentence_parameters = SentenceParameters::from(sentence_options);
-    let sentence_parameters = SentenceParameters::from(SentenceOptions::default());
+    let sentence_options: Option<SentenceOptions> = sentence.sentence_options
+        .or_sentence_options(default_sentence_options);
+    let sentence_parameters =
+        SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
     match (sentence.syllables.first(), sentence.syllables.last()) {
         (Some(&Syllable { begin: frame_begin, .. }),
          Some(&Syllable { end: Some(frame_end), .. })) => {
