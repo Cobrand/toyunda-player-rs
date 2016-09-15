@@ -263,7 +263,7 @@ impl<'a> ToyundaPlayer<'a> {
                 info!("Loading subtitles with lyr and frm ...");
                 self.add_graphic_message(graphic_message::Category::Info,
                                          "Failed to load json subtitle file, loading lyr and frm");
-                (&*frm_path, &*lyr_path, fps).into_subtitles()
+                (Some(&*frm_path), &*lyr_path, fps).into_subtitles()
                     .map(|mut subtitles| {
                         subtitles.post_init(duration);
                         self.subtitles = Some(subtitles);
@@ -271,8 +271,18 @@ impl<'a> ToyundaPlayer<'a> {
                     })
                     .map_err(|s| Error::Text(s))
             } else if lyr_path.is_file() {
-                error!("Could not find .frm file");
-                Err(Error::FileNotFound(frm_path.display().to_string()))
+                info!("Loading subtitles with lyr and frm ...");
+                self.add_graphic_message(graphic_message::Category::Info,
+                                         "Failed to load json subtitle file, loading lyr and frm");
+                self.add_graphic_message(graphic_message::Category::Warn,
+                                         "Failed to load .frm file; Subtitles file won't have timings");
+                (None, &*lyr_path, fps).into_subtitles()
+                    .map(|mut subtitles| {
+                        subtitles.post_init(duration);
+                        self.subtitles = Some(subtitles);
+                        ()
+                    })
+                    .map_err(|s| Error::Text(s))
             } else if frm_path.is_file() {
                 error!("Could not find .lyr file");
                 Err(Error::FileNotFound(frm_path.display().to_string()))
