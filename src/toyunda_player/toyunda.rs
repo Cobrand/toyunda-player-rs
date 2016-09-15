@@ -6,10 +6,10 @@ use mpv::{MpvHandlerWithGl, Event as MpvEvent};
 use std::path::PathBuf;
 use ::subtitles::{Subtitles,Load};
 use ::overlay::pos::*;
-use ::overlay::Display;
+use ::overlay::{Display,OverlayFrame,TextUnit,TextSubUnit,Outline,Color,AlphaColor};
 use ::sdl_displayer::{SDLDisplayer,SDLDisplayParameters as DisplayParams};
 use sdl2::event::Event;
-use sdl2::pixels::Color;
+use sdl2::pixels::Color as SdlColor;
 use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState, Scancode, Keycode};
 use std::sync::{RwLock, Arc};
@@ -19,6 +19,7 @@ use ::toyunda_player::state::*;
 use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
 use ::toyunda_player::editor::*;
+use ::utils::RGB;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
 use mpv::Error::MPV_ERROR_PROPERTY_UNAVAILABLE;
 use clap::ArgMatches;
@@ -282,41 +283,41 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
-    pub fn render_messages(&mut self) -> Result<()> {
-        /*
+    pub fn messages_as_overlay_frame(&mut self) -> OverlayFrame {
         use ::toyunda_player::graphic_message::*;
         use std::time::Instant;
-        use ::display::* ;
         let is_karaoke_mode = self.options.mode == ToyundaMode::KaraokeMode;
         self.graphic_messages.retain(|ref message| {
             message.up_until > Instant::now() &&
             (!is_karaoke_mode || message.category == graphic_message::Category::Announcement)
         });
         let message_height = 0.06;
+        let mut overlay_frame = OverlayFrame {
+            text_units:vec![]
+        };
         for (n, ref message) in self.graphic_messages.iter().enumerate() {
-            let text_elt: TextElement = TextElement {
+            let text_elt: TextSubUnit = TextSubUnit {
                 text: message.text.clone(),
                 attach_logo: false,
                 color: match message.category {
-                    Category::Error => Color::RGB(255, 0, 0),
-                    Category::Warn => Color::RGB(255, 140, 0),
-                    Category::Info => Color::RGB(0, 255, 255),
-                    Category::Announcement => Color::RGB(255, 255, 255),
+                    Category::Error => AlphaColor::new(255, 0, 0),
+                    Category::Warn => AlphaColor::new(255, 140, 0),
+                    Category::Info => AlphaColor::new(0, 255, 255),
+                    Category::Announcement => AlphaColor::new(255, 255, 255),
                 },
-                outline: Some(Color::RGB(0, 0, 0)),
+                outline: Outline::Light(Color::new(0,0,0)),
                 shadow: None,
             };
-            let text2d: Text2D = Text2D {
+            let text_unit: TextUnit = TextUnit {
                 text: vec![text_elt],
                 size: Size::FitPercent(Some(0.98), Some(message_height)),
                 pos: (PosX::FromLeftPercent(0.01),
                       PosY::FromBottomPercent(0.01 + message_height * n as f32)),
                 anchor: (0.0, 1.0),
             };
-            text2d.draw(&mut self.displayer);
+            overlay_frame.text_units.push(text_unit);
         }
-        */
-        Ok(())
+        overlay_frame
     }
 
     pub fn render_overlay(&mut self) -> Result<()> {
@@ -378,13 +379,15 @@ impl<'a> ToyundaPlayer<'a> {
             let (rect_origin_x, rect_origin_y) =
                ( (((window_width - rect_width) as f64) * percent_pos / 100.0 ) as i32,
                  (window_height - rect_height) as i32) ;
-            self.displayer.sdl_renderer_mut().set_draw_color(Color::RGB(0,0,255));
+            self.displayer.sdl_renderer_mut().set_draw_color(SdlColor::RGB(0,0,255));
             self.displayer.sdl_renderer_mut()
                           .fill_rect(Rect::new(rect_origin_x,rect_origin_y,
                                                rect_width,rect_height))
                           .unwrap();
         };
-        try!(self.render_messages());
+        // display logs
+        let messages_overlay_frame = self.messages_as_overlay_frame();
+        self.displayer.display(&messages_overlay_frame,&display_params);
         self.displayer.render();
         Ok(())
     }
