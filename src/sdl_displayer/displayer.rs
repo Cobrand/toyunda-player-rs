@@ -117,6 +117,7 @@ impl<'a> SDLDisplayer<'a> {
     }
 
     fn display_unit(&mut self,text_unit:&TextUnit,params:&SDLDisplayParameters) -> Rect {
+        let (offset_x,offset_y) = params.offset.unwrap_or((0,0));
         let (canevas_width, canevas_height) : (u32,u32) = match params.output_size {
             None => self.sdl_renderer().window().unwrap().size(),
             Some(e) => e
@@ -151,7 +152,8 @@ impl<'a> SDLDisplayer<'a> {
             let syllable_rect =
                 self.blit_text_subunit(&text_subunit,
                                        font_set_id,
-                                       (text_pos_x + width_offset as i32, text_pos_y));
+                                       (offset_x + text_pos_x + width_offset as i32,
+                                        offset_y + text_pos_y));
             if text_subunit.attach_logo {
                 let (syllable_center_x, _) = syllable_rect.center().into();
                 let syllable_bottom = syllable_rect.bottom();
@@ -177,8 +179,8 @@ impl<'a> SDLDisplayer<'a> {
             width_offset = width_offset + w;
         };
         Rect {
-            x:text_pos_x,
-            y:text_pos_y,
+            x:offset_x + text_pos_x,
+            y:offset_y + text_pos_y,
             width:text_width,
             height:text_height
         }

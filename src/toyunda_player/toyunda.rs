@@ -422,19 +422,26 @@ impl<'a> ToyundaPlayer<'a> {
             match (self.mpv.get_property::<i64>("width"),
                    self.mpv.get_property::<i64>("height")) {
                 (Ok(w),Ok(h)) => {
+                    let (mut final_w, mut final_h);
+                    let (mut offset_x, mut offset_y);
                     let mpv_aspect_ratio : f64 = (w as f64) / (h as f64) ;
-                    let screen_aspect_ratio : f64 = (width as f64)/(h as f64);
-                    if mpv_aspect_ratio > screen_aspect_ratio {
-
+                    let screen_aspect_ratio : f64 = (width as f64)/(height as f64);
+                    if mpv_aspect_ratio < screen_aspect_ratio {
+                        final_w = ((mpv_aspect_ratio / screen_aspect_ratio)
+                                   * (width as f64)) as u32;
+                        final_h = height;
+                        offset_y = 0;
+                        offset_x = ((width - final_w) / 2) as i32;
                     } else {
-
+                        final_h = ((screen_aspect_ratio / mpv_aspect_ratio)
+                                   * (height as f64)) as u32;
+                        final_w = width;
+                        offset_x = 0;
+                        offset_y = ((height - final_h) / 2) as i32;
                     };
                     DisplayParams {
-                        output_size:None,
-                        offset:None
-                        // output_size:Some((w as u32,h as u32)),
-                        // offset:Some(((width.saturating_sub(w as u32))/2,
-                        //              (height.saturating_sub(h as u32))/2))
+                        output_size:Some((final_w,final_h)),
+                        offset:Some((offset_x,offset_y))
                     }
                 },
                 _ => DisplayParams {
