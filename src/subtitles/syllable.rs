@@ -54,11 +54,7 @@ pub trait AsSyllableOptions {
 
 impl AsSyllableOptions for Subtitles{
     fn as_syllable_options(&self) -> Option<&SyllableOptions> {
-        if let Some(ref sub_options) = self.subtitles_options {
-            sub_options.as_syllable_options()
-        } else {
-            None
-        }
+        self.subtitles_options.as_syllable_options()
     }
 }
 

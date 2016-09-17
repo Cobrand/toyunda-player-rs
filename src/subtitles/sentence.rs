@@ -39,11 +39,7 @@ impl AsSentenceOptions for Sentence {
 
 impl AsSentenceOptions for Subtitles {
     fn as_sentence_options(&self) -> Option<&SentenceOptions> {
-        if let Some(ref subs_options) = self.subtitles_options {
-            subs_options.sentence_options.as_ref()
-        } else {
-            None
-        }
+        self.subtitles_options.sentence_options.as_ref()
     }
 }
 
