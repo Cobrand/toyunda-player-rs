@@ -58,24 +58,18 @@ pub enum MediaType {
 
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct SongInfo {
-    #[serde(skip_serializing_if="Option::is_none")]
     pub artist: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")]
     /// name of anime / movie / video game
     pub media_title: Option<String>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub media_alt_titles: Option<Vec<String>>,
-    #[serde(skip_serializing_if="Option::is_none")]
     pub song_name: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")]
     pub music_type: Option<MusicType>,
-    #[serde(skip_serializing_if="Option::is_none")]
     /// 5 of ED5 for instance
     pub music_number: Option<u32>,
     #[serde(skip_serializing_if="Option::is_none")]
     /// "v2" of ED5v2
     pub version: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")]
     /// Anime / Movie / ...
     pub media_type: Option<MediaType>,
     #[serde(skip_serializing_if="Option::is_none")]

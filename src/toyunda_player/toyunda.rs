@@ -292,6 +292,90 @@ impl<'a> ToyundaPlayer<'a> {
             }
         }
     }
+    
+    /// this should only be called by "credits_as_overlay_frame"
+    // maybe if should be moved somewhere else ? TODO
+    fn credits_with_percent_to_overlay(&self,percent:f64) -> OverlayFrame {
+        fn inner_percent(global_percent:f64,lower_bound:f64,higher_bound:f64)->f64 {
+            (global_percent - lower_bound) / (higher_bound - lower_bound)
+        };
+        const credits_transition_time : f64 = 0.04;
+        let mut overlay_frame = OverlayFrame::new();
+        let subs = self.subtitles.as_ref().unwrap();
+        // we SHOULD have checked that subtitles arent none beforehand
+        if let Some((first_sentence,second_sentence_opt)) = subs.credit_sentences() {
+            let mut string = String::new();
+            let mut color = AlphaColor::new(128,255,128);
+            if percent >= 1.0 - credits_transition_time {
+                // second credits end transition
+                if let Some(second_sentence) = second_sentence_opt {
+                    string = second_sentence;
+                    color.alpha = (inner_percent(percent,1.0,1.0-credits_transition_time) * 192.0) as u8;
+                }
+            } else if percent >= 0.5 + credits_transition_time {
+                // second credits
+                if let Some(second_sentence) = second_sentence_opt {
+                    string = second_sentence;
+                    color.alpha = 192;
+                }
+            } else if percent >= 0.5 {
+                // second credits begin transition
+                if let Some(second_sentence) = second_sentence_opt {
+                    string = second_sentence;
+                    color.alpha = (inner_percent(percent,0.5,0.5+credits_transition_time) * 192.0) as u8;
+                }
+            } else if percent >= 0.5 - credits_transition_time {
+                // first credits end transition
+                string = first_sentence;
+                color.alpha = (inner_percent(percent,0.5,0.5-credits_transition_time) * 192.0) as u8;
+            } else if percent >= credits_transition_time {
+                // first credits
+                string = first_sentence;
+                color.alpha = 192;
+            } else {
+                // first credits begin transition
+                string = first_sentence;
+                color.alpha = (inner_percent(percent,0.0,credits_transition_time) * 192.0) as u8;
+            }
+            if !string.is_empty() {
+                let text_sub_unit = TextSubUnit {
+                    text: format!("[{}]",string),
+                    attach_logo: false,
+                    color: color,
+                    outline: Outline::Light(Color::new(0,0,0)),
+                    shadow: None,
+                };
+                overlay_frame.text_units.push(TextUnit {
+                    text: vec![text_sub_unit],
+                    size: Size::FitPercent(Some(0.98), Some(0.065)),
+                    pos: (PosX::FromLeftPercent(0.03),
+                          PosY::FromBottomPercent(0.03)),
+                    anchor: (0.0, 1.0),
+                });
+            }
+        };
+        overlay_frame
+    }
+    
+    pub fn credits_as_overlay_frame(&self) -> OverlayFrame {
+        let time_pos = self.get_media_current_time();
+        if let Some(ref subtitles) = self.subtitles {
+            let opts = &subtitles.subtitles_options; // use as an alias
+            let mut percent_credits : f64;
+            percent_credits = (time_pos as f64 - opts.start_credits_time as f64) /
+                (opts.credits_time as f64);
+            if percent_credits >= 0.0 && percent_credits <= 1.0 {
+                return self.credits_with_percent_to_overlay(percent_credits);
+            } else {
+                percent_credits = (time_pos as f64 - opts.end_credits_time as f64) /
+                    (opts.credits_time as f64);
+                if percent_credits >= 0.0 && percent_credits <= 1.0 {
+                    return self.credits_with_percent_to_overlay(percent_credits);
+                }
+            }
+        }
+        OverlayFrame::new()
+    }
 
     pub fn messages_as_overlay_frame(&mut self) -> OverlayFrame {
         use ::toyunda_player::graphic_message::*;
@@ -396,6 +480,8 @@ impl<'a> ToyundaPlayer<'a> {
                           .unwrap();
         };
         // display logs
+        let credits_overlay_frame = self.credits_as_overlay_frame();
+        self.displayer.display(&credits_overlay_frame,&display_params);
         let messages_overlay_frame = self.messages_as_overlay_frame();
         self.displayer.display(&messages_overlay_frame,&display_params);
         self.displayer.render();

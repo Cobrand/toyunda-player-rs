@@ -19,7 +19,7 @@ impl<'a> Load for (Option<&'a Path>,&'a Path,f64) {
         let mut subtitles = Subtitles::default();
         let lyr_file = try!(File::open(lyr).map_err(|e| e.description().to_string()));
         let lyr_file = BufReader::new(&lyr_file);
-        let mut subtitles_options : Option<SubtitlesOptions> = None;
+        let mut subtitles_options : SubtitlesOptions = Default::default();
         for (line_number, lyr_line) in lyr_file.lines().enumerate() {
             let lyr_line = try!(lyr_line.map_err(|e| {
                 format!("IoError when reading {} at line {} : '{}'",
@@ -75,9 +75,7 @@ impl<'a> Load for (Option<&'a Path>,&'a Path,f64) {
                 }
                 let mut sentence_options = SentenceOptions::default();
                 sentence_options.syllable_options = Some(syllable_options);
-                subtitles_options = Some(SubtitlesOptions {
-                    sentence_options:Some(sentence_options)
-                });
+                subtitles_options.sentence_options = Some(sentence_options);
             };
         }
         if let Some(frm) = frm {

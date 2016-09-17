@@ -13,9 +13,10 @@ use sdl2::render::Texture;
 #[derive(Debug,Default,Serialize,Deserialize,Clone)]
 pub struct Subtitles {
     pub sentences: Vec<Sentence>,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub subtitles_options: Option<SubtitlesOptions>,
-    pub song_info: Option<SongInfo>,
+    #[serde(default)]
+    pub subtitles_options: SubtitlesOptions,
+    #[serde(default)]
+    pub song_info: SongInfo,
 }
 
 /// subtitles : already stored Subtitles
@@ -97,9 +98,7 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
 
 impl Subtitles {
     pub fn credit_sentences(&self) -> Option<(String,Option<String>)> {
-        self.song_info.as_ref().and_then(|song_info|{
-            song_info.credit_sentences()
-        })
+        self.song_info.credit_sentences()
     }
 
     pub fn check(&self) -> Result<(), String> {
@@ -121,13 +120,21 @@ impl Subtitles {
     /// length in ms
     pub fn post_init(&mut self,duration:u32) {
         self.adjust_sentences_row();
+        let mut options = &mut self.subtitles_options;
+        let credits_time = 8000;
+        if (options.credits_time == 0) {
+            options.credits_time = credits_time;
+        }
+        if (options.start_credits_time == 0) {
+            options.start_credits_time = 4000;
+        }
+        if (options.end_credits_time == 0) {
+            options.end_credits_time = 
+                duration.saturating_sub(4000 + credits_time);
+        }
     }
 
     fn adjust_sentences_row(&mut self) {
-        let default_sentence_options: SentenceOptions = self.subtitles_options
-            .as_ref()
-            .map(|ref sub_opts| sub_opts.sentence_options.unwrap_or(SentenceOptions::default()))
-            .unwrap_or(SentenceOptions::default());
         for i in 0..self.sentences.len() {
             let (first_half, mut last_half) = self.sentences.split_at_mut(i);
             let (mut middle, last_half) = last_half.split_first_mut().unwrap();
@@ -255,6 +262,12 @@ impl Deref for SubtitlesOptions {
 pub struct SubtitlesOptions {
     /// Global SentenceOptions
     pub sentence_options: Option<SentenceOptions>,
+    #[serde(default)]
+    pub start_credits_time: u32,
+    #[serde(default)]
+    pub end_credits_time: u32,
+    #[serde(default)]
+    pub credits_time:u32
 }
 
 fn add_syllable(mut text_subunits: &mut Vec<TextSubUnit>,
