@@ -188,9 +188,10 @@ impl<'a> SDLDisplayer<'a> {
                                             delta_outline as i32,
                                             dest_w - (delta_outline * 2),
                                             dest_h - (delta_outline * 2));
-            let font_surface = font.render(text)
+            let mut font_surface = font.render(text)
                 .blended(color)
                 .unwrap();
+            let _ = font_surface.set_blend_mode(BlendMode::Blend);
             font_surface.blit(None,dest.deref_mut(),Some(subdest_rect))
                 .expect("Failed to blit surface, Display error ?");
         };
@@ -208,6 +209,7 @@ impl<'a> SDLDisplayer<'a> {
                                        regular_h + outline_width * 2,
                                        ARGB8888)
             .expect("Failed to create new Surface");
+        let _ = surface.set_blend_mode(BlendMode::Blend);
         match text_subunit.outline {
             Outline::None => {},
             Outline::Light(color) => {
@@ -232,7 +234,7 @@ impl<'a> SDLDisplayer<'a> {
                        outline_width);
         let mut texture = self.renderer.create_texture_from_surface(surface)
             .expect("Failed to create Texture from Surface");
-        texture.set_blend_mode(BlendMode::Blend);
+        let _ = texture.set_blend_mode(BlendMode::Blend);
         texture.set_alpha_mod(text_subunit.color.alpha);
         let text_rect = SdlRect::new(origin.0,
                                      origin.1,

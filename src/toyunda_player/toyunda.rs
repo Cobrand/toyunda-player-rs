@@ -3,7 +3,7 @@ extern crate serde_json;
 use super::*;
 use mpv::{MpvHandlerWithGl, Event as MpvEvent};
 use std::path::PathBuf;
-use ::subtitles::{Subtitles,Load};
+use ::subtitles::{Subtitles,Load,AsSyllableOptions};
 use ::overlay::pos::*;
 use ::overlay::{Display,OverlayFrame,TextUnit,TextSubUnit,Outline,Color,AlphaColor};
 use ::sdl_displayer::{SDLDisplayer,SDLDisplayParameters as DisplayParams};
@@ -304,7 +304,10 @@ impl<'a> ToyundaPlayer<'a> {
         // we SHOULD have checked that subtitles arent none beforehand
         if let Some((first_sentence,second_sentence_opt)) = subs.credit_sentences() {
             let mut string = String::new();
-            let mut color = AlphaColor::new(128,255,128);
+            let color : Option<Color> = subs.as_syllable_options()
+                                            .and_then(|o| o.alive_color.map(|c| c.into()));
+            let color : Color = color.unwrap_or(Color::new(128,255,128));
+            let mut color = AlphaColor::from(color);
             if percent >= 1.0 - CREDITS_TRANSITION_TIME {
                 // second credits end transition
                 if let Some(second_sentence) = second_sentence_opt {
