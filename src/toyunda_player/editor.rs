@@ -59,6 +59,37 @@ impl EditorState {
         }
     }
 
+    pub fn shift_cur_syllable_end(&self,subs:&mut Subtitles,shift:i32) {
+        if let Some(mut syllable) = self.get_syllable_mut(subs) {
+            if let Some(ref mut end) = syllable.end {
+                *end = (*end as i32 + shift) as u32;
+            }
+        }
+    }
+
+    pub fn shift_cur_syllable_begin(&self,subs:&mut Subtitles,shift:i32) {
+        if let Some(mut syllable) = self.get_syllable_mut(subs) {
+            syllable.begin = (syllable.begin as i32 + shift) as u32;
+        }
+    }
+
+    pub fn shift_cur_syllable(&self,subs:&mut Subtitles,shift:i32) {
+        self.shift_cur_syllable_begin(subs,shift);
+        self.shift_cur_syllable_end(subs,shift);
+    }
+
+    pub fn shift_subtitles_time(&self,subs:&mut Subtitles,shift:i32) {
+        let mut all_syllables =
+            subs.sentences.iter_mut()
+                          .flat_map(|sen| sen.syllables.iter_mut());
+        for mut syl in all_syllables {
+            syl.begin = (syl.begin as i32 + shift) as u32;
+            if let Some(ref mut end) = syl.end {
+                *end = (*end as i32 + shift) as u32;
+            };
+        };
+    }
+    
     fn reset(&mut self) {
         self.current_sentence = 0 ;
         self.current_syllable = 0 ;
