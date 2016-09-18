@@ -24,17 +24,6 @@ pub struct SyllableOptions {
     pub outline: Option<Outline>,
 }
 
-impl SyllableOptions {
-    pub fn or(&self, other: &SyllableOptions) -> SyllableOptions {
-        SyllableOptions {
-            alive_color: self.alive_color.or(other.alive_color),
-            transition_color: self.transition_color.or(other.transition_color),
-            dead_color: self.dead_color.or(other.dead_color),
-            outline: self.outline.or(other.outline),
-        }
-    }
-}
-
 pub trait AsSyllableOptions {
     fn as_syllable_options(&self) -> Option<&SyllableOptions>;
     fn or_syllable_options(&self,other:Option<&SyllableOptions>) -> Option<SyllableOptions> {

@@ -75,15 +75,6 @@ impl<'a> SDLDisplayer<'a> {
         Ok(displayer)
     }
 
-    pub fn copy_lyrics_logo(&mut self, rect: SdlRect) {
-        match self.lyrics_logo {
-            Some(ref texture) => {
-                self.renderer.copy(texture, None, Some(rect));
-            }
-            None => {}
-        };
-    }
-
     // TODO use this somewhere ?
     #[allow(dead_code)]
     pub fn fatal_error_message(&self, title: &str, info: &str) {

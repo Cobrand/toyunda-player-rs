@@ -6,11 +6,6 @@ pub struct OverlayFrame {
 }
 
 impl OverlayFrame {
-    pub fn merge(mut self,mut other:Self) -> Self {
-        self.text_units.append(&mut other.text_units);
-        self
-    }
-
     pub fn new() -> Self {
         OverlayFrame {
             text_units:vec!()

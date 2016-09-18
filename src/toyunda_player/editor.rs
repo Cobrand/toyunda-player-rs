@@ -39,14 +39,6 @@ impl EditorState {
        subs.sentences.get(self.current_sentence as usize)
     }
 
-    pub fn get_syllable<'a>(&'a self,subs:&'a Subtitles) -> Option<&Syllable> {
-        if let Some(sentence) = self.get_sentence(subs) {
-            sentence.syllables.get(self.current_syllable as usize)
-        } else {
-            None
-        }
-    }
-
     pub fn get_sentence_mut<'a>(&'a self,subs:&'a mut Subtitles) -> Option<&mut Sentence> {
        subs.sentences.get_mut(self.current_sentence as usize)
     }
@@ -79,7 +71,7 @@ impl EditorState {
     }
 
     pub fn shift_subtitles_time(&self,subs:&mut Subtitles,shift:i32) {
-        let mut all_syllables =
+        let all_syllables =
             subs.sentences.iter_mut()
                           .flat_map(|sen| sen.syllables.iter_mut());
         for mut syl in all_syllables {

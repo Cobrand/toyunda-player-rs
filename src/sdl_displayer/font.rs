@@ -97,15 +97,6 @@ impl FontList {
         self.fonts.get(index)
     }
 
-    pub fn get_fittest_font_set(&self,
-                                string: &str,
-                                max_dims: (Option<u32>,Option<u32>),
-                                outline: bool)
-                                -> Result<&FontSet,String> {
-        self.get_fittest_font_set_id(string,max_dims,outline)
-            .map(|i| self.get_font_set(i).unwrap())
-    }
-
     /// Given a string and a maximum width, get the fittest font from the FontList
     pub fn get_fittest_font_set_id(&self,
                                    string: &str,

@@ -56,7 +56,7 @@ impl Manager {
         let file = file.as_ref();
 
         match VideoMeta::from_yaml(file) {
-            Ok(mut video_meta) => {
+            Ok(video_meta) => {
                 yaml_files.push(video_meta.fix_paths(file));
                 Ok(())
             }

@@ -1,7 +1,6 @@
 extern crate serde_json;
 
 use super::*;
-use super::subtitle_loader::*;
 use mpv::{MpvHandlerWithGl, Event as MpvEvent};
 use std::path::PathBuf;
 use ::subtitles::{Subtitles,Load};
@@ -299,20 +298,20 @@ impl<'a> ToyundaPlayer<'a> {
         fn inner_percent(global_percent:f64,lower_bound:f64,higher_bound:f64)->f64 {
             (global_percent - lower_bound) / (higher_bound - lower_bound)
         };
-        const credits_transition_time : f64 = 0.04;
+        const CREDITS_TRANSITION_TIME : f64 = 0.04;
         let mut overlay_frame = OverlayFrame::new();
         let subs = self.subtitles.as_ref().unwrap();
         // we SHOULD have checked that subtitles arent none beforehand
         if let Some((first_sentence,second_sentence_opt)) = subs.credit_sentences() {
             let mut string = String::new();
             let mut color = AlphaColor::new(128,255,128);
-            if percent >= 1.0 - credits_transition_time {
+            if percent >= 1.0 - CREDITS_TRANSITION_TIME {
                 // second credits end transition
                 if let Some(second_sentence) = second_sentence_opt {
                     string = second_sentence;
-                    color.alpha = (inner_percent(percent,1.0,1.0-credits_transition_time) * 192.0) as u8;
+                    color.alpha = (inner_percent(percent,1.0,1.0-CREDITS_TRANSITION_TIME) * 192.0) as u8;
                 }
-            } else if percent >= 0.5 + credits_transition_time {
+            } else if percent >= 0.5 + CREDITS_TRANSITION_TIME {
                 // second credits
                 if let Some(second_sentence) = second_sentence_opt {
                     string = second_sentence;
@@ -322,20 +321,20 @@ impl<'a> ToyundaPlayer<'a> {
                 // second credits begin transition
                 if let Some(second_sentence) = second_sentence_opt {
                     string = second_sentence;
-                    color.alpha = (inner_percent(percent,0.5,0.5+credits_transition_time) * 192.0) as u8;
+                    color.alpha = (inner_percent(percent,0.5,0.5+CREDITS_TRANSITION_TIME) * 192.0) as u8;
                 }
-            } else if percent >= 0.5 - credits_transition_time {
+            } else if percent >= 0.5 - CREDITS_TRANSITION_TIME {
                 // first credits end transition
                 string = first_sentence;
-                color.alpha = (inner_percent(percent,0.5,0.5-credits_transition_time) * 192.0) as u8;
-            } else if percent >= credits_transition_time {
+                color.alpha = (inner_percent(percent,0.5,0.5-CREDITS_TRANSITION_TIME) * 192.0) as u8;
+            } else if percent >= CREDITS_TRANSITION_TIME {
                 // first credits
                 string = first_sentence;
                 color.alpha = 192;
             } else {
                 // first credits begin transition
                 string = first_sentence;
-                color.alpha = (inner_percent(percent,0.0,credits_transition_time) * 192.0) as u8;
+                color.alpha = (inner_percent(percent,0.0,CREDITS_TRANSITION_TIME) * 192.0) as u8;
             }
             if !string.is_empty() {
                 let text_sub_unit = TextSubUnit {
@@ -422,8 +421,8 @@ impl<'a> ToyundaPlayer<'a> {
             match (self.mpv.get_property::<i64>("width"),
                    self.mpv.get_property::<i64>("height")) {
                 (Ok(w),Ok(h)) => {
-                    let (mut final_w, mut final_h);
-                    let (mut offset_x, mut offset_y);
+                    let (final_w, final_h);
+                    let (offset_x, offset_y);
                     let mpv_aspect_ratio : f64 = (w as f64) / (h as f64) ;
                     let screen_aspect_ratio : f64 = (width as f64)/(height as f64);
                     if mpv_aspect_ratio < screen_aspect_ratio {
@@ -538,6 +537,8 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn main_loop(&mut self, sdl_context: &Sdl) -> Result<()> {
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
+        // TODO : Add a single queue of `Command` so the result can
+        // be processed in the place only.
         'main: loop {
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
             for event in event_pump.poll_iter() {
@@ -567,7 +568,15 @@ impl<'a> ToyundaPlayer<'a> {
                         }
                     },
                     MpvEvent::FileLoaded => {
-                        self.on_load_media();
+                        match self.on_load_media() {
+                            Ok(_) => {},
+                            Err(e) => {
+                                error!("Error when loading subtitles : {}",e);
+                                if self.options.mode == ToyundaMode::KaraokeMode {
+                                    let _ = self.execute_command(Command::PlayNext);
+                                }
+                            }
+                        }
                     }
                     _ => {}
                 };

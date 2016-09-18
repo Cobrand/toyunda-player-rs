@@ -65,6 +65,8 @@ impl<T:AsSentenceOptions> AsSentenceOptions for Option<T> {
 }
 
 impl Sentence {
+    /// used mainly for debugging purposes
+    #[allow(dead_code)]
     pub fn text(&self) -> String {
         self.syllables.iter().fold(String::new(),|mut string,syllable| {
             string.push_str(&*syllable.text);

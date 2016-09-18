@@ -8,8 +8,6 @@ use ::overlay::pos::*;
 use std::ops::Deref;
 use ::utils::*;
 
-use sdl2::render::Texture;
-
 #[derive(Debug,Default,Serialize,Deserialize,Clone)]
 pub struct Subtitles {
     pub sentences: Vec<Sentence>,
@@ -44,7 +42,8 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
                     let sentence_candidate_options : Option<SentenceOptions> =
                         sentence_candidate.sentence_options.or_sentence_options(default_sentence_options);
                     let sentence_candidate_parameters =
-                        SentenceParameters::from(SentenceOptions::default());
+                        SentenceParameters::from(
+                            sentence_candidate_options.unwrap_or(SentenceOptions::default()));
                     let first_frame = first_syllable.begin
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
                     let last_frame = last_syllable.end.expect("last syllable has no end")
