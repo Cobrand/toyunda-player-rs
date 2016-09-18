@@ -111,12 +111,12 @@ impl EditorState {
     pub fn start_timing_syllable(&mut self,subs:&mut Subtitles,time:u32,key:u8) {
         if key == 0 {
             if let Some(_) = self.start_frame_key_2 {
-                self.end_timing_syllable(subs,time,1);
+                self.end_timing_syllable(subs,time - 1,1);
             };
             self.start_frame_key_1 = Some(time);
         } else {
             if let Some(_) = self.start_frame_key_1 {
-                self.end_timing_syllable(subs,time,0);
+                self.end_timing_syllable(subs,time - 1,0);
             };
             self.start_frame_key_2 = Some(time);
         };
@@ -277,6 +277,23 @@ impl EditorState {
                 pos : (PosX::Centered,
                        PosY::FromTopPercent(0.15)),
                 anchor: (0.5, 0.5)
+            });
+
+            // info about the timing for the frame
+            text_units.push( TextUnit {
+                text: vec![TextSubUnit {
+                    text : match current.end {
+                        Some(end) => format!("{} - {}",current.begin,end),
+                        None => format!("{}",current.begin)
+                    },
+                    color:AlphaColor::new_rgba(128,255,128,192),
+                    shadow:None,
+                    attach_logo:false,
+                    outline:Outline::Light(Color::new(0,0,0))
+                }],
+                size:Size::Fit(None,Some(22)),
+                pos: (PosX::FromRight(2),PosY::FromBottom(2)),
+                anchor:(1.0,1.0)
             });
         };
         Ok(OverlayFrame {

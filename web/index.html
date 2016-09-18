@@ -48,9 +48,9 @@
 				<tbody>
 					<tr v-for="entry in filtered_list" v-on:click="add_to_draft(entry)">
 						<td>{{entry.formatted_name}}</td>
-						<td>{{entry.meta_info.artist}}</td>
-						<td>{{entry.meta_info.media_type}}</td>
-						<td>{{entry.meta_info.year}}</td>
+						<td>{{entry.song_info.artist}}</td>
+						<td>{{entry.song_info.media_type}}</td>
+						<td>{{entry.song_info.year}}</td>
 						<td class="entry_actions">
 							<input class="button playlist_entry_button" type="button" v-on:click.stop="add_to_queue(entry)" value="+Playlist"><input class="button playlist_entry_button" type="button" v-on:click.stop="add_to_draft(entry)" value="+Brouillon">
 						</td>
