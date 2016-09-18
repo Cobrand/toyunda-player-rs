@@ -43,12 +43,12 @@ function special_trim(s) {
 	// TODO remove trailing "-"
 	return s.trim();
 }
-function format_meta2name(meta_info) {
+function format_info2name(song_info) {
 	var s = "" ;
-	if (meta_info.media_title) {
-		s += meta_info.media_title + " " ;
-		if (meta_info.music_type) {
-			var music_t = meta_info.music_type ;
+	if (song_info.media_title) {
+		s += song_info.media_title + " " ;
+		if (song_info.music_type) {
+			var music_t = song_info.music_type ;
 			if (music_t.toLowerCase() == "ending") {
 				s += "ED" ;
 			} else if (music_t.toLowerCase() == "opening") {
@@ -58,35 +58,35 @@ function format_meta2name(meta_info) {
 			} else {
 				s += music_t.toUpperCase();
 			}
-			if (meta_info.music_number) {
-				s += meta_info.music_number ;
+			if (song_info.music_number) {
+				s += song_info.music_number ;
 			}
-			if (meta_info.version) {
-				if (isNaN(meta_info.version)) {
-					s += " ("+meta_info.version+")"
+			if (song_info.version) {
+				if (isNaN(song_info.version)) {
+					s += " ("+song_info.version+")"
 				} else {
-					s += "v" + meta_info.version ;
+					s += "v" + song_info.version ;
 				}
 			}
 		}
 	}
-	if (meta_info.song_name) {
+	if (song_info.song_name) {
 		if (s == "") {
-			s = meta_info.song_name ;
+			s = song_info.song_name ;
 		} else {
-			s += " - " + meta_info.song_name ;
+			s += " - " + song_info.song_name ;
 		}
 	}
 	if (s.length != 0) {
-		if (meta_info.language) {
-			if (meta_info.language == "Jp") {
+		if (song_info.language) {
+			if (song_info.language == "Jp") {
 				s = "[JAP] " + s;
-			} else if (meta_info.language == "Eng") {
+			} else if (song_info.language == "Eng") {
 				s = "[ENG] " + s;
-			} else if (meta_info.language == "Fr") {
+			} else if (song_info.language == "Fr") {
 				s = "[FR] " + s;
 			} else {
-				s = "[" + meta_info.language.uppercase() + "] " + s ;
+				s = "[" + song_info.language.uppercase() + "] " + s ;
 			}
 		}
 	} else {
@@ -107,8 +107,8 @@ function toyunda_command(command_type,id,response_fun,error_fun) {
 	},error_fun);
 }
 
-function format_name(meta_info,video_path) {
-	var candidate = format_meta2name(meta_info);
+function format_name(song_info,video_path) {
+	var candidate = format_info2name(song_info);
 	if (candidate == null) {
 		candidate = video_path.replace(/^.*[\\\/]/, '');
 		candidate = candidate.split('.')[0];
@@ -137,7 +137,7 @@ var vue = new Vue({
 			return listing ;
 		},
 		now_playing: function() {
-			return format_name(this.currently_playing.meta_info,this.currently_playing.video_path);
+			return format_name(this.currently_playing.song_info,this.currently_playing.video_path);
 		},
 		play_next_value: function() {
 			if (this.currently_playing == null) {
@@ -169,7 +169,7 @@ var vue = new Vue({
 	},
 	methods : {
 		format_name:format_name,
-		format_meta2name:format_meta2name,
+		format_info2name:format_info2name,
 		add_to_queue:function(entry) {
 			toyunda_command("add_to_queue",entry.index);
 		},
@@ -192,7 +192,7 @@ function update() {
 			}
 			var playlist = answer.playlist ;
 			playlist = playlist.map(function(e,i) {
-				e.formatted_name = format_name(e.meta_info,e.video_path);
+				e.formatted_name = format_name(e.song_info,e.video_path);
 				e.index = i ;
 				return e;
 			});
@@ -210,14 +210,12 @@ AJAX.get("/api/listing",function(status,answer) {
 	} else {
 		if (Array.isArray(answer)) {
 			var len = answer.length ;
-			vue.listing = answer.map(function(e) {
-				return e.video_meta ;
-			});
 			for (var i = 0 ; i < len ; i++ ) {
-				var entry = vue.listing[i] ;
-				entry.formatted_name = format_name(entry.meta_info,entry.video_path);
-				entry.index = i ;
+				var entry = answer[i] ;
+				entry.formatted_name = format_name(entry.song_info,entry.video_path);
+				entry.index = i;
 			}
+			vue.listing = answer
 		} else {
 			console.error("Error when updating listing ; answer is not an Array");
 			console.error(answer);
