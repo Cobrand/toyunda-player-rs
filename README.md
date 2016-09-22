@@ -67,3 +67,7 @@ For linux packages libmpv, libsdl2 and libsdl2\_ttf are required for this to wor
 ## OS X 
 
 ?
+
+# License
+
+MIT / Apache-2.0 at your option
