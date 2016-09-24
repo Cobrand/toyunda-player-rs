@@ -29,6 +29,7 @@ mod sdl_displayer;
 mod init;
 mod subtitles;
 mod toyunda_player;
+mod mpv_plug;
 
 use toyunda_player::ToyundaPlayer;
 use sdl_displayer::SDLDisplayer;

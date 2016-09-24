@@ -19,6 +19,7 @@ use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
 use ::toyunda_player::editor::*;
 use ::utils::RGB;
+use ::mpv_plug::MpvCache;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
 use mpv::Error::MPV_ERROR_PROPERTY_UNAVAILABLE;
 use clap::ArgMatches;
@@ -31,7 +32,8 @@ pub struct ToyundaPlayer<'a> {
     pub state: Arc<RwLock<State>>,
     pub graphic_messages: Vec<graphic_message::GraphicMessage>,
     pub manager: Option<Manager>,
-    pub editor_state: Option<EditorState>
+    pub editor_state: Option<EditorState>,
+    mpv_cache : MpvCache
 }
 
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
@@ -64,7 +66,8 @@ impl<'a> ToyundaPlayer<'a> {
             })),
             graphic_messages: Vec::with_capacity(2),
             manager: None,
-            editor_state:None
+            editor_state:None,
+            mpv_cache:MpvCache::new()
         }
     }
 
@@ -421,9 +424,9 @@ impl<'a> ToyundaPlayer<'a> {
         let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
         let time_pos = self.get_media_current_time();
         let display_params : DisplayParams = 
-            match (self.mpv.get_property::<i64>("width"),
-                   self.mpv.get_property::<i64>("height")) {
-                (Ok(w),Ok(h)) => {
+            match (self.mpv_cache.cached_width(),
+                   self.mpv_cache.cached_height()) {
+                (Some(w),Some(h)) => {
                     let (final_w, final_h);
                     let (offset_x, offset_y);
                     let mpv_aspect_ratio : f64 = (w as f64) / (h as f64) ;
@@ -451,7 +454,6 @@ impl<'a> ToyundaPlayer<'a> {
                     offset:None
                 }
         };
-        self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw video frame with mpv");
         if let Some(ref subtitles) = self.subtitles {
             if self.options.display_subtitles {
                 let overlay_frame = if let Some(ref editor_state) = self.editor_state {
@@ -471,10 +473,7 @@ impl<'a> ToyundaPlayer<'a> {
         }
         if (self.options.mode == ToyundaMode::EditMode ) {
             let percent_pos : f64 =
-                self.mpv.get_property("percent-pos").unwrap_or_else(|e|{
-                    warn!("error when trying to retrieve percent-pos from mpv : {}",e);
-                    0.0
-                });
+                self.mpv_cache.cached_percent_pos().unwrap_or(0.0);
             let (window_width, window_height) =
                 self.displayer.sdl_renderer().window().unwrap().size();
             let rect_width = window_width * 5 / 1000 ;
@@ -543,7 +542,10 @@ impl<'a> ToyundaPlayer<'a> {
         // TODO : Add a single queue of `Command` so the result can
         // be processed in the place only.
         'main: loop {
+            let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
+            self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw video frame with mpv");
+            self.mpv_cache.update(&self.mpv);
             for event in event_pump.poll_iter() {
                 match self.handle_event(event, alt_keys) {
                     Ok(ToyundaAction::Nothing) => {}
@@ -592,8 +594,8 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn get_media_current_time(&self) -> u32 {
-        if let Ok(t) = self.mpv.get_property::<f64>("time-pos") {
-            (t * 1000.0) as u32
+        if let Some(t) = self.mpv_cache.cached_time_pos() {
+            (t.max(0.0) * 1000.0) as u32
         } else {
             0u32
         }
