@@ -33,7 +33,8 @@ pub struct ToyundaPlayer<'a> {
     pub graphic_messages: Vec<graphic_message::GraphicMessage>,
     pub manager: Option<Manager>,
     pub editor_state: Option<EditorState>,
-    mpv_cache : MpvCache
+    mpv_cache : MpvCache,
+    unsaved_changes : bool,
 }
 
 /// returns 3 boolean : (AltPressed,CtrlPressed,ShiftPressed)
@@ -67,7 +68,34 @@ impl<'a> ToyundaPlayer<'a> {
             graphic_messages: Vec::with_capacity(2),
             manager: None,
             editor_state:None,
-            mpv_cache:MpvCache::new()
+            mpv_cache:MpvCache::new(),
+            unsaved_changes:false
+        }
+    }
+
+    pub fn save_subtitles(&mut self) {
+        match &self.state.read().unwrap().playing_state {
+            &PlayingState::Playing(ref video_meta) => {
+                if let Some(ref sub) = self.subtitles {
+                    let json_file_path = video_meta.json_path();
+                    let sub: Subtitles = sub.clone();
+                    self.unsaved_changes = false;
+                    ::std::thread::spawn(move || {
+                        match ::std::fs::File::create(&json_file_path) {
+                            Ok(mut file) => {
+                                serde_json::to_writer_pretty(&mut file, &sub).unwrap();
+                                info!("Saved file {}", json_file_path.display());
+                            },
+                            Err(e) => {
+                                error!("Failed to write-open subtitles file {} : {:?}",&json_file_path.display(),e);
+                            }
+                        }
+                    });
+                };
+            }
+            _ => {
+                error!("Could not save file, no video is playing !");
+            }
         }
     }
 
@@ -496,28 +524,14 @@ impl<'a> ToyundaPlayer<'a> {
         Ok(())
     }
 
-    // true : break
-    // false : dont break
-    fn handle_manager_commands(&mut self) -> Result<bool> {
+    fn get_manager_commands(&mut self) -> Vec<Command> {
         let mut commands: Vec<Command> = Vec::new();
         if let &Some(ref manager) = &self.manager {
             for command in manager.receiver.try_recv() {
                 commands.push(command);
             }
         }
-        for command in commands {
-            let res = self.execute_command(command);
-            match res {
-                Ok(ToyundaAction::Nothing) => {}
-                Ok(ToyundaAction::Terminate) => {
-                    return Ok(true);
-                }
-                Err(e) => {
-                    error!("An error '{0}' occured ({0:?})", e);
-                }
-            }
-        }
-        Ok(false)
+        commands
     }
 
     pub fn on_end_file(&mut self) -> Result<ToyundaAction> {
@@ -537,30 +551,77 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
+    /// true : confirm terminate
+    /// false : nope
+    pub fn on_terminate(&mut self,is_error:bool) -> bool {
+        if is_error {
+            true
+        } else {
+            if self.unsaved_changes {
+                use sdl2::messagebox::*;
+                let buttons : Vec<_> = vec![
+                    ButtonData {
+                        flags:MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT,
+                        button_id:1,
+                        text:"Yes"
+                    },
+                    ButtonData {
+                        flags:MESSAGEBOX_BUTTON_NOTHING,
+                        button_id:2,
+                        text:"No"
+                    },
+                    ButtonData {
+                        flags:MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT,
+                        button_id:3,
+                        text:"Cancel"
+                    },
+                ];
+                let res = show_message_box(MESSAGEBOX_WARNING,
+                    buttons.as_slice(), "Save ?",
+                    "You are about to discard unsaved changes, save now ?",
+                    None, None);
+                match res {
+                    Ok(1) => {
+                        true
+                    },
+                    Ok(2) => true,
+                    Ok(3) => false,
+                    Ok(i) => {
+                        warn!("Unexpected {} when received answer from message_box",i);
+                        false
+                    },
+                    Err(e) => {
+                        error!("Error {:?} when trying to show message_box",e);
+                        false
+                    }
+                }
+            } else {
+                true
+            }
+        }
+    }
+
+    pub fn on_error(&mut self,error: Error) {
+        use ::toyunda_player::graphic_message::Category;
+        self.add_graphic_message(Category::Warn,&format!("Error : {}",error));
+        error!("An error '{}' occured", error);
+    }
+
     pub fn main_loop(&mut self, sdl_context: &Sdl) -> Result<()> {
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
         // TODO : Add a single queue of `Command` so the result can
         // be processed in the place only.
+        let mut command_results : Vec<Result<ToyundaAction>> = Vec::with_capacity(16);
         'main: loop {
             let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
             self.mpv.draw(0, width as i32, -(height as i32)).expect("failed to draw video frame with mpv");
             self.mpv_cache.update(&self.mpv);
             for event in event_pump.poll_iter() {
-                match self.handle_event(event, alt_keys) {
-                    Ok(ToyundaAction::Nothing) => {}
-                    Ok(ToyundaAction::Terminate) => break 'main,
-                    Err(e) => {
-                        use ::toyunda_player::graphic_message::Category;
-                        self.add_graphic_message(Category::Warn,&format!("Error : {}",e));
-                        error!("An error '{}' occured", e);
-                    }
-                };
+                command_results.push(self.handle_event(event, alt_keys));
             }
-            match self.handle_manager_commands() {
-                Ok(true) => break 'main,
-                _ => {}
-                // TODO print/return errors (even though there are none now)
+            for command in self.get_manager_commands() {
+                command_results.push(self.execute_command(command));
             };
             while let Some(event) = self.mpv.wait_event(0.0) {
                 match event {
@@ -578,7 +639,7 @@ impl<'a> ToyundaPlayer<'a> {
                             Err(e) => {
                                 error!("Error when loading subtitles : {}",e);
                                 if self.options.mode == ToyundaMode::KaraokeMode {
-                                    let _ = self.execute_command(Command::PlayNext);
+                                    command_results.push(self.execute_command(Command::PlayNext));
                                 }
                             }
                         }
@@ -586,11 +647,44 @@ impl<'a> ToyundaPlayer<'a> {
                     _ => {}
                 };
             }
+            for r in command_results.drain(0..) {
+                match r {
+                    Ok(ToyundaAction::Nothing) => {}
+                    Ok(ToyundaAction::Terminate) => {
+                        if self.on_terminate(false) {
+                            break 'main
+                        };
+                    },
+                    Err(e) => {
+                        self.on_error(e);
+                    } 
+                }
+            }
             // TODO change this try into something else,
             // would be bad to crash if we cant render once ...
             try!(self.render_overlay());
         }
         Ok(())
+    }
+
+    pub fn start_timing(&mut self,key_id:u8) {
+        self.unsaved_changes = true;
+        let time : u32 = self.mpv_cache.cached_time_pos().unwrap_or(0.0).max(0.0) as u32;
+        if let Some(ref mut editor_state) = self.editor_state {
+            if let Some(ref mut subtitles) = self.subtitles {
+                editor_state.start_timing_syllable(subtitles,time,key_id);
+            }
+        };
+    }
+
+    pub fn end_timing(&mut self,key_id:u8) {
+        self.unsaved_changes = true;
+        let time : u32 = self.mpv_cache.cached_time_pos().unwrap_or(0.0).max(0.0) as u32;
+        if let Some(ref mut editor_state) = self.editor_state {
+            if let Some(ref mut subtitles) = self.subtitles {
+                editor_state.end_timing_syllable(subtitles,time,key_id);
+            }
+        };
     }
 
     pub fn get_media_current_time(&self) -> u32 {
@@ -633,6 +727,7 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyDown { keycode: Some(Keycode::J), ..} => {
+                self.unsaved_changes = true;
                 let delta = -10i32;
                 if let Some(ref editor) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
@@ -650,6 +745,7 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyDown { keycode: Some(Keycode::K), ..} => {
+                self.unsaved_changes = true;
                 let delta = 10i32; // 10 ms shift
                 if let Some(ref editor) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
@@ -668,35 +764,19 @@ impl<'a> ToyundaPlayer<'a> {
             },
             // TODO refactor this utter SHIT
             Event::KeyDown {keycode: Some(Keycode::X), repeat:false, .. } => {
-                if let Some(ref mut editor_state) = self.editor_state {
-                    if let Some(ref mut subtitles) = self.subtitles {
-                        editor_state.start_timing_syllable(subtitles,time,0);
-                    }
-                };
+                self.start_timing(0);
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyDown {keycode: Some(Keycode::C), repeat:false, .. } => {
-                if let Some(ref mut editor_state) = self.editor_state {
-                    if let Some(ref mut subtitles) = self.subtitles {
-                        editor_state.start_timing_syllable(subtitles,time,1);
-                    }
-                };
+                self.start_timing(1);
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyUp {keycode: Some(Keycode::X), .. } => {
-                if let Some(ref mut editor_state) = self.editor_state {
-                    if let Some(ref mut subtitles) = self.subtitles {
-                        editor_state.end_timing_syllable(subtitles,time,0);
-                    }
-                };
+                self.end_timing(0);
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyUp {keycode: Some(Keycode::C), .. } => {
-                if let Some(ref mut editor_state) = self.editor_state {
-                    if let Some(ref mut subtitles) = self.subtitles {
-                        editor_state.end_timing_syllable(subtitles,time,1);
-                    }
-                };
+                self.end_timing(1);
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyDown { keycode: Some(Keycode::Kp9), repeat: false, .. }
@@ -859,7 +939,9 @@ impl<'a> ToyundaPlayer<'a> {
                             }
                         };
                     }
-                };
+                } else {
+                    // time
+                }
                 Ok(ToyundaAction::Nothing)
             },
             Event::DropFile { filename, .. } => {
@@ -870,23 +952,7 @@ impl<'a> ToyundaPlayer<'a> {
             }
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false, .. } if mode !=
                                                                                KaraokeMode => {
-                match &self.state.read().unwrap().playing_state {
-                    &PlayingState::Playing(ref video_meta) => {
-                        if let Some(ref sub) = self.subtitles {
-                            let json_file_path = video_meta.json_path();
-                            let sub: Subtitles = sub.clone();
-                            ::std::thread::spawn(move || {
-                                let mut file = ::std::fs::File::create(&json_file_path)
-                                    .expect("Failed to create subtitles file");
-                                serde_json::to_writer_pretty(&mut file, &sub).unwrap();
-                                info!("Saved file {}", json_file_path.display());
-                            });
-                        };
-                    }
-                    _ => {
-                        error!("Could not save file, no video is playing !");
-                    }
-                }
+                self.save_subtitles();
                 Ok(ToyundaAction::Nothing)
             }
             Event::KeyDown { keycode: Some(Keycode::V), repeat: false, .. } => {
