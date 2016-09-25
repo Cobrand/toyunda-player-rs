@@ -669,7 +669,7 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn start_timing(&mut self,key_id:u8) {
         self.unsaved_changes = true;
-        let time : u32 = self.mpv_cache.cached_time_pos().unwrap_or(0.0).max(0.0) as u32;
+        let time : u32 = self.get_media_current_time();
         if let Some(ref mut editor_state) = self.editor_state {
             if let Some(ref mut subtitles) = self.subtitles {
                 editor_state.start_timing_syllable(subtitles,time,key_id);
@@ -679,7 +679,7 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn end_timing(&mut self,key_id:u8) {
         self.unsaved_changes = true;
-        let time : u32 = self.mpv_cache.cached_time_pos().unwrap_or(0.0).max(0.0) as u32;
+        let time : u32 = self.get_media_current_time();
         if let Some(ref mut editor_state) = self.editor_state {
             if let Some(ref mut subtitles) = self.subtitles {
                 editor_state.end_timing_syllable(subtitles,time,key_id);
@@ -925,7 +925,7 @@ impl<'a> ToyundaPlayer<'a> {
                                                                                KaraokeMode => {
                 self.execute_command(Command::ReloadSubtitles)
             }
-            Event::MouseButtonDown {x, y, .. } if mode != KaraokeMode => {
+            Event::MouseButtonDown {x, y, mouse_btn, .. } if mode != KaraokeMode => {
                 let (win_width,win_height) = self.displayer.sdl_renderer().window().unwrap().size();
                 if ( y as u32 > win_height * 96 / 100 ) {
                     // bottom 4% : low enough to move
@@ -939,9 +939,34 @@ impl<'a> ToyundaPlayer<'a> {
                             }
                         };
                     }
-                } else {
-                    // time
-                }
+                } else if mode == EditMode {
+                    use sdl2::mouse::Mouse::*;
+                    let key_id = match mouse_btn {
+                        Left => Some(2),
+                        Right => Some(3),
+                        _ => None
+                    };
+                    if let Some(key_id) = key_id {
+                        self.start_timing(key_id);
+                    };
+                };
+                Ok(ToyundaAction::Nothing)
+            },
+            Event::MouseButtonUp {y, mouse_btn, .. } if mode != KaraokeMode => {
+                let (_,win_height) = self.displayer.sdl_renderer().window().unwrap().size();
+                if ( y as u32 > win_height * 96 / 100 ) {
+                    // do nothing
+                } else if mode == EditMode {
+                    use sdl2::mouse::Mouse::*;
+                    let key_id = match mouse_btn {
+                        Left => Some(2),
+                        Right => Some(3),
+                        _ => None
+                    };
+                    if let Some(key_id) = key_id {
+                        self.end_timing(key_id);
+                    };
+                };
                 Ok(ToyundaAction::Nothing)
             },
             Event::DropFile { filename, .. } => {

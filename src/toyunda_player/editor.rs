@@ -8,8 +8,7 @@ pub struct EditorState {
     pub current_syllable : u16,
     /// if this is `Some(t)`, key is being held since
     /// `t`, otherwise it isn't being held.
-    pub start_frame_key_1 : Option<u32>,
-    pub start_frame_key_2 : Option<u32>
+    pub start_frames : [Option<u32>;4]
 }
 
 impl EditorState {
@@ -26,13 +25,12 @@ impl EditorState {
         EditorState {
             current_sentence:i,
             current_syllable:0,
-            start_frame_key_1:None,
-            start_frame_key_2:None,
+            start_frames:[None;4],
         }
     }
 
     pub fn holding(&self) -> bool {
-        self.start_frame_key_1.is_some() || self.start_frame_key_2.is_some()
+        self.start_frames.iter().any(|f| f.is_some())
     }
 
     pub fn get_sentence<'a>(&'a self,subs:&'a Subtitles) -> Option<&Sentence> {
@@ -132,48 +130,35 @@ impl EditorState {
 
     /// time in ms
     pub fn start_timing_syllable(&mut self,subs:&mut Subtitles,time:u32,key:u8) {
-        if key == 0 {
-            if let Some(_) = self.start_frame_key_2 {
-                self.end_timing_syllable(subs,time - 1,1);
+        let key = key as usize;
+        if key <= 3 {
+            if let Some(other_key) = self.start_frames.iter().position(|s| s.is_some()) {
+                self.end_timing_syllable(subs,time - 1,other_key as u8);
             };
-            self.start_frame_key_1 = Some(time);
-        } else {
-            if let Some(_) = self.start_frame_key_1 {
-                self.end_timing_syllable(subs,time - 1,0);
-            };
-            self.start_frame_key_2 = Some(time);
-        };
+            self.start_frames[key] = Some(time);
+        }
     }
 
     /// time in ms
     pub fn end_timing_syllable(&mut self,subs:&mut Subtitles,time:u32,key:u8) {
+        let key = key as usize;
         let b : bool = if let Some(syllable) = self.get_syllable_mut(subs) {
-            if key == 0 {
-                if let Some(begin_time) = self.start_frame_key_1 {
-                    syllable.begin = begin_time ;
-                    syllable.end = Some(time) ;
+            if key <= 3 {
+                if let Some(begin_time) = (&self.start_frames)[key] {
+                    syllable.begin = begin_time;
+                    syllable.end = Some(time);
                     true
                 } else {
                     false
                 }
             } else {
-                if let Some(begin_time) = self.start_frame_key_2 {
-                    syllable.begin = begin_time ;
-                    syllable.end = Some(time) ;
-                    true
-                } else {
-                    false
-                }
+                false
             }
         } else {
             false
         };
         if b {
-            if key == 0 {
-                self.start_frame_key_1 = None;
-            } else {
-                self.start_frame_key_2 = None;
-            }
+            self.start_frames[key] = None;
             self.next_syllable(subs);
         };
     }
@@ -210,7 +195,6 @@ impl EditorState {
         };
         let outline = Outline::Light(Color::new(0,0,0));
         let text_size = Size::FitPercent(Some(0.95),Some(0.09));
-        // let mut cur_sentence_text_elts = vec!();
         if let Some(s) = prev_s {
             let mut syll_text : String = String::new();
             for syll in &s.syllables {
