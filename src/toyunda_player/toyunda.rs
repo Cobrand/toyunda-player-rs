@@ -668,20 +668,20 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn start_timing(&mut self,key_id:u8) {
-        self.unsaved_changes = true;
         let time : u32 = self.get_media_current_time();
         if let Some(ref mut editor_state) = self.editor_state {
             if let Some(ref mut subtitles) = self.subtitles {
+                self.unsaved_changes = true;
                 editor_state.start_timing_syllable(subtitles,time,key_id);
             }
         };
     }
 
     pub fn end_timing(&mut self,key_id:u8) {
-        self.unsaved_changes = true;
         let time : u32 = self.get_media_current_time();
         if let Some(ref mut editor_state) = self.editor_state {
             if let Some(ref mut subtitles) = self.subtitles {
+                self.unsaved_changes = true;
                 editor_state.end_timing_syllable(subtitles,time,key_id);
             }
         };
@@ -727,10 +727,10 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyDown { keycode: Some(Keycode::J), ..} => {
-                self.unsaved_changes = true;
                 let delta = -10i32;
                 if let Some(ref editor) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
+                        self.unsaved_changes = true;
                         if is_alt_pressed && is_shift_pressed {
                             editor.shift_subtitles_time(subtitles,delta);
                         }else if is_alt_pressed {
@@ -745,10 +745,10 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyDown { keycode: Some(Keycode::K), ..} => {
-                self.unsaved_changes = true;
                 let delta = 10i32; // 10 ms shift
                 if let Some(ref editor) = self.editor_state {
                     if let Some(ref mut subtitles) = self.subtitles {
+                        self.unsaved_changes = true;
                         if is_alt_pressed && is_shift_pressed {
                             editor.shift_subtitles_time(subtitles,delta);
                         }else if is_alt_pressed {
