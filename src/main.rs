@@ -48,6 +48,7 @@ fn player_start(matches:ArgMatches) {
     mpv_builder.set_option("sid", "no").unwrap(); // disables subtitles if any
     mpv_builder.set_option("softvol", "yes").unwrap(); // enables softvol so it can go higher than 100%
     mpv_builder.set_option("softvol-max", 250.0).unwrap(); // makes the max volume at 250%
+    mpv_builder.set_option("aid",2i64).unwrap(); // aid to 2; normalized audio if there is one
     mpv_builder.try_hardware_decoding().unwrap(); // try hardware decoding instead of software decoding
     let mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
         .expect("Error while initializing MPV");
