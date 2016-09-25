@@ -1,19 +1,34 @@
-use std::env;
-use std::path::PathBuf;
-use std::process::Command;
+use std::io::Write;
+use std::fs::OpenOptions;
+use std::process::{Command,Output};
+
 fn main() {
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap()).join("../../..");
-
-    let _ = Command::new("cp")
-                    .arg("logo_toyunda.png")
-                    .arg(out_dir.with_file_name("logo_toyunda.png"))
-                    .output()
-                    .expect("failed to execute process");
-
-    let _ = Command::new("cp")
-                    .arg("-R")
-                    .arg("web/")
-                    .arg(out_dir)
-                    .output()
-                    .expect("failed to execute process");
+    let mut log_file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open("build.log")
+        .expect("Failed to open build.log");
+    let _r = match Command::new("python3").arg("build.py").output() {
+        Ok(Output {
+            status: exit_status,
+            stdout,
+            stderr
+        }) => {
+            let _r = writeln!(&mut log_file,"STDERR:\n{}\n\nSTDOUT:\n{}\n",
+                            String::from_utf8_lossy(stderr.as_slice()),
+                            String::from_utf8_lossy(stdout.as_slice()));
+            if !exit_status.success() {
+                if let Some(code) = exit_status.code() {
+                    writeln!(&mut log_file,"error when running build.py : process returned code {}",code)
+                } else {
+                    writeln!(&mut log_file,"build.py was interrupted")
+                    // it's an interruption, no need to print an error here
+                }
+            } else {
+               writeln!(&mut log_file,"build.py terminated successfully")
+            }
+        },
+        Err(e) => writeln!(&mut log_file,"An unknown error happened : {:?}",e)
+    };
 }
