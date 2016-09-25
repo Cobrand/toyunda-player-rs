@@ -21,7 +21,7 @@ extern crate log;
 extern crate env_logger;
 #[macro_use]
 extern crate clap;
-use clap::{Arg, App};
+use clap::{Arg, ArgMatches, App, SubCommand};
 
 mod utils;
 mod overlay;
@@ -30,10 +30,60 @@ mod init;
 mod subtitles;
 mod toyunda_player;
 mod mpv_plug;
+mod update_json;
 
+use update_json::update_json;
 use toyunda_player::ToyundaPlayer;
 use sdl_displayer::SDLDisplayer;
 use std::os::raw::c_void;
+
+fn player_start(matches:ArgMatches) {
+    // INIT SDL
+    let sdl_context = sdl2::init().unwrap();
+    let mut video_subsystem = sdl_context.video().unwrap();
+    let renderer = init::init_sdl(&mut video_subsystem, &matches);
+    let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
+    // INIT MPV
+    let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
+    mpv_builder.set_option("sid", "no").unwrap(); // disables subtitles if any
+    mpv_builder.set_option("softvol", "yes").unwrap(); // enables softvol so it can go higher than 100%
+    mpv_builder.set_option("softvol-max", 250.0).unwrap(); // makes the max volume at 250%
+    mpv_builder.try_hardware_decoding().unwrap(); // try hardware decoding instead of software decoding
+    let mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
+        .expect("Error while initializing MPV");
+    // BIND MPV WITH SDL
+
+    let displayer = SDLDisplayer::new(renderer).expect("Failed to init displayer");
+
+    if matches.is_present("karaoke_mode") {
+        let mouse_utils = sdl_context.mouse();
+        mouse_utils.show_cursor(false);
+        // dont show cursor on top of player in karaoke mode
+    }
+    // Create a new displayer for the toyunda_player
+
+    let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
+    match toyunda_player.start(matches) {
+        Err(e) => {
+            error!("Failed to start player with given arguments, expect default parameters !\n\
+                    '{}' ({:?})",
+                   e,
+                   e);
+        }
+        Ok(_) => {
+            info!("Parsed arguments successfully");
+        }
+    };
+    let res = toyunda_player.main_loop(&sdl_context);
+    match res {
+        Ok(_) => {
+            info!("Toyunda Player finished gracefully");
+        }
+        Err(e) => {
+            error!("An uncoverable error occured : {}", e);
+        }
+    };
+}
 
 fn main() {
     // init the logger
@@ -94,51 +144,19 @@ fn main() {
             .help("Sets the video file(s) to play")
             .use_delimiter(false)
             .multiple(true))
+        .subcommand(SubCommand::with_name("update")
+                    .about("updates a json file from .yaml data")
+                    .arg(Arg::with_name("JSON_FILE")
+                         .use_delimiter(false)
+                         .required(true)))
         .get_matches();
 
-    // INIT SDL
-    let sdl_context = sdl2::init().unwrap();
-    let mut video_subsystem = sdl_context.video().unwrap();
-    let renderer = init::init_sdl(&mut video_subsystem, &matches);
-    let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
-    // INIT MPV
-    let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
-    mpv_builder.set_option("sid", "no").unwrap(); // disables subtitles if any
-    mpv_builder.set_option("softvol", "yes").unwrap(); // enables softvol so it can go higher than 100%
-    mpv_builder.set_option("softvol-max", 250.0).unwrap(); // makes the max volume at 250%
-    mpv_builder.try_hardware_decoding().unwrap(); // try hardware decoding instead of software decoding
-    let mpv = mpv_builder.build_with_gl(Some(init::get_proc_address), video_subsystem_ptr)
-        .expect("Error while initializing MPV");
-    // BIND MPV WITH SDL
-
-    let displayer = SDLDisplayer::new(renderer).expect("Failed to init displayer");
-
-    if matches.is_present("karaoke_mode") {
-        let mouse_utils = sdl_context.mouse();
-        mouse_utils.show_cursor(false);
-        // dont show cursor on top of player in karaoke mode
+    if let Some(sub_matches) = matches.subcommand_matches("update") {
+        if update_json(sub_matches) {
+            ::std::process::exit(0);
+        } else {
+            ::std::process::exit(-1);
+        }
     }
-    // Create a new displayer for the toyunda_player
-
-    let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
-    match toyunda_player.start(matches) {
-        Err(e) => {
-            error!("Failed to start player with given arguments, expect default parameters !\n\
-                    '{}' ({:?})",
-                   e,
-                   e);
-        }
-        Ok(_) => {
-            info!("Parsed arguments successfully");
-        }
-    };
-    let res = toyunda_player.main_loop(&sdl_context);
-    match res {
-        Ok(_) => {
-            info!("Toyunda Player finished gracefully");
-        }
-        Err(e) => {
-            error!("An uncoverable error occured : {}", e);
-        }
-    };
+    player_start(matches);
 }

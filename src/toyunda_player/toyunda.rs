@@ -241,7 +241,6 @@ impl<'a> ToyundaPlayer<'a> {
                                 Skiping file ...",video_path,e);
                         self.execute_command(Command::PlayNext)
                     },
-                        
                 }
             }
         }
