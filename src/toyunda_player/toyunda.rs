@@ -123,12 +123,12 @@ impl<'a> ToyundaPlayer<'a> {
         let mut enable_manager : bool ;
         if arg_matches.is_present("karaoke_mode") {
             self.options.mode = ToyundaMode::KaraokeMode;
-            info!("Enabling karaoke mode");
+            debug!("Enabling karaoke mode");
             enable_manager = true ;
         } else if arg_matches.is_present("edit_mode") {
             self.options.mode = ToyundaMode::EditMode;
             self.editor_state = None;
-            info!("Enabling edit mode");
+            debug!("Enabling edit mode");
             enable_manager = false;
         } else {
             self.options.mode = ToyundaMode::NormalMode;
@@ -164,7 +164,7 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(volume) => {
                     match self.mpv.set_property("volume", volume) {
                         Ok(_) => {
-                            info!("Successfully override initial volume");
+                            debug!("Successfully override initial volume");
                         }
                         Err(e) => {
                             error!("Could not change initial volume of mpv,\
@@ -289,7 +289,7 @@ impl<'a> ToyundaPlayer<'a> {
         } else {
             debug!("Failed to load json file, trying lyr and frm files");
             if (lyr_path.is_file() && frm_path.is_file()) {
-                info!("Loading subtitles with lyr and frm ...");
+                debug!("Loading subtitles with lyr and frm ...");
                 self.add_graphic_message(graphic_message::Category::Info,
                                          "Failed to load json subtitle file, loading lyr and frm");
                 (Some(&*frm_path), &*lyr_path, fps).into_subtitles()
@@ -300,7 +300,7 @@ impl<'a> ToyundaPlayer<'a> {
                     })
                     .map_err(|s| Error::Text(s))
             } else if lyr_path.is_file() {
-                info!("Loading subtitles with lyr and frm ...");
+                debug!("Loading subtitles with lyr only ...");
                 self.add_graphic_message(graphic_message::Category::Info,
                                          "Failed to load json subtitle file, loading lyr and frm");
                 self.add_graphic_message(graphic_message::Category::Warn,

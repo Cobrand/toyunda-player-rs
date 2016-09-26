@@ -77,7 +77,7 @@ fn player_start(matches:ArgMatches) {
                    e);
         }
         Ok(_) => {
-            info!("Parsed arguments successfully");
+            debug!("Parsed arguments successfully");
         }
     };
     let res = toyunda_player.main_loop(&sdl_context);
@@ -86,7 +86,7 @@ fn player_start(matches:ArgMatches) {
             info!("Toyunda Player finished gracefully");
         }
         Err(e) => {
-            error!("An uncoverable error occured : {}", e);
+            error!("FATAL : {}", e);
         }
     };
 }
