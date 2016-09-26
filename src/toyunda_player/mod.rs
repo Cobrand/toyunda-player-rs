@@ -9,6 +9,7 @@ mod state;
 mod video_meta;
 mod editor;
 mod subtitle_loader;
+pub mod log_messages;
 pub mod graphic_message;
 pub mod time_info;
 
