@@ -64,6 +64,9 @@ impl<'a> ToyundaPlayer<'a> {
             state: Arc::new(RwLock::new(State {
                 playlist: Playlist::new(),
                 playing_state: PlayingState::Idle,
+                display_subtitles: true,
+                quit_when_finished: None,
+                pause_before_next: false
             })),
             graphic_messages: Vec::with_capacity(2),
             manager: None,
@@ -116,9 +119,9 @@ impl<'a> ToyundaPlayer<'a> {
             }
         }
         if arg_matches.is_present("quit") {
-            self.options.quit_when_finished = Some(true);
+            self.state.write().unwrap().quit_when_finished = Some(true);
         } else if arg_matches.is_present("no-quit") {
-            self.options.quit_when_finished = Some(false);
+            self.state.write().unwrap().quit_when_finished = Some(false);
         }
         let mut enable_manager : bool ;
         if arg_matches.is_present("karaoke_mode") {
@@ -482,7 +485,7 @@ impl<'a> ToyundaPlayer<'a> {
                 }
         };
         if let Some(ref subtitles) = self.subtitles {
-            if self.options.display_subtitles {
+            if self.state.read().unwrap().display_subtitles {
                 let overlay_frame = if let Some(ref editor_state) = self.editor_state {
                     editor_state.to_overlay_frame(subtitles)
                 } else {

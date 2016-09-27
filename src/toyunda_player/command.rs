@@ -12,6 +12,8 @@ pub enum Command {
     TogglePause,
     ToggleFullscreen,
     ToggleDisplaySubtitles,
+    ToggleQuitOnFinish,
+    PauseBeforeNext,
     AddToQueue(VideoMeta),
     ReloadSubtitles,
     /// Stops the queue, but doesnt empty it
@@ -19,6 +21,7 @@ pub enum Command {
     Stop,
     PlayNext,
     ClearQueue,
+    Quit
 }
 
 impl<'a> ToyundaPlayer<'a> {
@@ -90,15 +93,19 @@ impl<'a> ToyundaPlayer<'a> {
                     .map(|_| ToyundaAction::Nothing)
             }
             Command::ToggleDisplaySubtitles => {
-                let current_value = self.options.display_subtitles;
-                self.options.display_subtitles = !current_value;
+                let current_value = self.state.read().unwrap().display_subtitles;
+                self.state.write().unwrap().display_subtitles = !current_value;
                 Ok(ToyundaAction::Nothing)
             }
             Command::PlayNext => {
+                if self.state.read().unwrap().pause_before_next == true {
+                    self.state.write().unwrap().pause_before_next = false;
+                    return self.execute_command(Command::Stop);
+                }
                 let video_meta = self.state.write().unwrap().playlist.pop_front();
                 match video_meta {
                     None => {
-                        match self.options.quit_when_finished {
+                        match self.state.read().unwrap().quit_when_finished {
                             None => {
                                 match self.options.mode {
                                     ToyundaMode::KaraokeMode | ToyundaMode::EditMode => {
@@ -142,6 +149,18 @@ impl<'a> ToyundaPlayer<'a> {
             }
             Command::ReloadSubtitles => {
                 try!(self.import_cur_file_subtitles());
+                Ok(ToyundaAction::Nothing)
+            }
+            Command::Quit => {
+                Ok(ToyundaAction::Terminate)
+            }
+            Command::PauseBeforeNext => {
+                self.state.write().unwrap().pause_before_next = true;
+                Ok(ToyundaAction::Nothing)
+            }
+            Command::ToggleQuitOnFinish => {
+                let b : bool = self.state.read().unwrap().quit_when_finished.unwrap_or(false);
+                self.state.write().unwrap().quit_when_finished = Some(!b);
                 Ok(ToyundaAction::Nothing)
             }
         }

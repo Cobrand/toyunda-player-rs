@@ -23,6 +23,8 @@ enum WebCommandType {
     PlayNext,
     #[serde(rename = "add_to_queue")]
     AddToQueue,
+    #[serde(rename = "add_multiple_to_queue")]
+    AddMultipleToQueue,
     #[serde(rename = "clear_queue")]
     ClearQueue,
     #[serde(rename = "pause")]
@@ -33,6 +35,8 @@ enum WebCommandType {
     Stop,
     #[serde(rename = "quit_on_finish")]
     QuitOnFinish,
+    #[serde(rename = "pause_before_next")]
+    PauseBeforeNext,
     #[serde(rename = "toggle_subtitles")]
     ToggleSubtitles,
 }
@@ -41,6 +45,7 @@ enum WebCommandType {
 struct WebCommand {
     command: WebCommandType,
     id: Option<u32>,
+    list: Option<Vec<u32>>
 }
 
 pub struct Manager {
@@ -123,16 +128,16 @@ impl Manager {
         let web_command = request.get_ref::<bodyparser::Struct<WebCommand>>();
         match web_command {
             Ok(&Some(ref web_command)) => {
-                let command: Result<Command, String> = match web_command.command {
-                    WebCommandType::PlayNext => Ok(Command::PlayNext),
-                    WebCommandType::ClearQueue => Ok(Command::ClearQueue),
-                    WebCommandType::Stop => Ok(Command::Stop),
-                    WebCommandType::Pause => Ok(Command::TogglePause),
+                let commands: Result<Vec<Command>, String> = match web_command.command {
+                    WebCommandType::PlayNext => Ok(vec![Command::PlayNext]),
+                    WebCommandType::ClearQueue => Ok(vec![Command::ClearQueue]),
+                    WebCommandType::Stop => Ok(vec![Command::Stop]),
+                    WebCommandType::Pause => Ok(vec![Command::TogglePause]),
                     WebCommandType::AddToQueue => {
                         if let Some(id) = web_command.id {
                             if let Some(list) = list.upgrade() {
                                 if let Some(video_meta) = list.get(id as usize) {
-                                    Ok(Command::AddToQueue(video_meta.clone()))
+                                    Ok(vec![Command::AddToQueue(video_meta.clone())])
                                 } else {
                                     Err(format!("Bad Index {}", id))
                                 }
@@ -142,18 +147,44 @@ impl Manager {
                         } else {
                             Err(String::from("'id' field is needed"))
                         }
+                    },
+                    WebCommandType::AddMultipleToQueue => {
+                        if let Some(ref ids) = web_command.list {
+                            if let Some(list) = list.upgrade() {
+                                let commands = ids.iter().filter_map(|id|{
+                                    list.get(*id as usize)
+                                        .map(|video_meta| Command::AddToQueue(video_meta.clone()))
+                                }).collect::<Vec<_>>();
+                                Ok(commands)
+                            } else {
+                                Err(String::from("Gone"))
+                            }
+                        } else {
+                            Err(String::from("'list' field is needed"))
+                        }
+                    },
+                    WebCommandType::PauseBeforeNext => {
+                        Ok(vec![Command::PauseBeforeNext])
                     }
-                    _ => unimplemented!(),
+                    WebCommandType::QuitOnFinish => {
+                        Ok(vec![Command::ToggleQuitOnFinish])
+                    },
+                    WebCommandType::Quit => {
+                        Ok(vec![Command::Quit])
+                    },
+                    WebCommandType::ToggleSubtitles =>
+                        Ok(vec![Command::ToggleDisplaySubtitles]),
+
                 };
-                if let Ok(command) = command {
-                    if let Err(e) = tx.send(command) {
-                        error!("An error happened when trying\
-                        to send a command to the other thread : {}",e);
-                        // TODO make it Err(_) intstead
-                        Ok(Response::with(status::InternalServerError))
-                    } else {
-                        Ok(Response::with(status::NoContent))
+                if let Ok(commands) = commands {
+                    for command in commands {
+                        if let Err(e) = tx.send(command) {
+                            error!("An error happened when trying\
+                            to send a command to the other thread : {}",e);
+                            return Ok(Response::with(status::InternalServerError));
+                        }
                     }
+                    Ok(Response::with(status::NoContent))
                 } else {
                     Ok(Response::with(status::BadRequest))
                 }
