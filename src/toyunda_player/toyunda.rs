@@ -30,7 +30,6 @@ pub struct ToyundaPlayer<'a> {
     pub displayer: SDLDisplayer<'a>,
     pub options: ToyundaOptions,
     pub state: Arc<RwLock<State>>,
-    pub graphic_messages: Vec<graphic_message::GraphicMessage>,
     pub manager: Option<Manager>,
     pub editor_state: Option<EditorState>,
     mpv_cache : MpvCache,
@@ -68,7 +67,6 @@ impl<'a> ToyundaPlayer<'a> {
                 quit_when_finished: None,
                 pause_before_next: false
             })),
-            graphic_messages: Vec::with_capacity(2),
             manager: None,
             editor_state:None,
             mpv_cache:MpvCache::new(),
@@ -167,7 +165,7 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(volume) => {
                     match self.mpv.set_property("volume", volume) {
                         Ok(_) => {
-                            debug!("Successfully override initial volume");
+                            debug!("Successfully overridden initial volume");
                         }
                         Err(e) => {
                             error!("Could not change initial volume of mpv,\
@@ -176,7 +174,7 @@ impl<'a> ToyundaPlayer<'a> {
                     };
                 }
                 Err(e) => {
-                    error!("Error when parsing volume, expected some float, got '{}'; (error \
+                    error!("Error when parsing volume param, expected float, got '{}'; (error \
                             {:?})",volume,e);
                 }
             }
@@ -198,19 +196,14 @@ impl<'a> ToyundaPlayer<'a> {
             if self.options.mode == ToyundaMode::KaraokeMode {
                 if let &PlayingState::Playing(ref video_meta) =
                     &self.state.write().unwrap().playing_state {
-                        error!("Error was received when importing \
-                        subtitles : {} , file {} will be skipped",
+                        error!("Subtitles import error: {} , file {} will be skipped",
                         e,video_meta.video_path.display());
                     } else {
-                        error!("Error was received when importing subtitles : {},\
-                               file will be skipped",e);
+                        error!("Subtitles import error: {} , file will be skipped",e);
                     }
                     self.execute_command(Command::PlayNext)
             } else {
-                let string = format!("Error was received \
-                    when importing subtitles : {}",e);
-                error!("{}", string.as_str());
-                self.add_graphic_message(graphic_message::Category::Error, string.as_str());
+                error!("Subtitles import error: {}",e);
                 Ok(ToyundaAction::Nothing)
             }
         } else {
@@ -253,17 +246,6 @@ impl<'a> ToyundaPlayer<'a> {
         self.mpv.get_property::<f64>("fps").unwrap_or(0.0)
     }
 
-    /// adds a graphic message on the screen
-    /// note that errors and warnings wont be shown in KaraokeMode
-    pub fn add_graphic_message(&mut self, category: graphic_message::Category, message: &str) {
-        use std::time::{Instant, Duration};
-        self.graphic_messages.push(graphic_message::GraphicMessage {
-            category: category,
-            text: String::from(message),
-            up_until: Instant::now() + Duration::from_secs(4),
-        });
-    }
-
     /// if video_meta is None, reload the current subtitles
     /// otherwise load from video_meta
     pub fn import_cur_file_subtitles(&mut self) -> Result<()> {
@@ -284,17 +266,22 @@ impl<'a> ToyundaPlayer<'a> {
         if (json_path.is_file()) {
             debug!("Loading file {}", json_path.display());
             let json_file = ::std::fs::File::open(json_path).expect("Failed to open JSON file");
-            let mut subtitles: Subtitles = serde_json::from_reader(json_file)
-                .expect("Failed to load json file");
-            subtitles.post_init(duration);
-            self.subtitles = Some(subtitles);
-            Ok(())
+            let read_result : ::std::result::Result<Subtitles,_>
+                = serde_json::from_reader(json_file);
+            match read_result {
+                Ok(mut subtitles) => {
+                    subtitles.post_init(duration);
+                    self.subtitles = Some(subtitles);
+                    Ok(())
+                },
+                Err(e) => {
+                    Err(e.into())
+                }
+            }
         } else {
             debug!("Failed to load json file, trying lyr and frm files");
             if (lyr_path.is_file() && frm_path.is_file()) {
-                debug!("Loading subtitles with lyr and frm ...");
-                self.add_graphic_message(graphic_message::Category::Info,
-                                         "Failed to load json subtitle file, loading lyr and frm");
+                warn!("Failed to load json subtitle file, loading lyr and frm");
                 (Some(&*frm_path), &*lyr_path, fps).into_subtitles()
                     .map(|mut subtitles| {
                         subtitles.post_init(duration);
@@ -303,11 +290,8 @@ impl<'a> ToyundaPlayer<'a> {
                     })
                     .map_err(|s| Error::Text(s))
             } else if lyr_path.is_file() {
-                debug!("Loading subtitles with lyr only ...");
-                self.add_graphic_message(graphic_message::Category::Info,
-                                         "Failed to load json subtitle file, loading lyr and frm");
-                self.add_graphic_message(graphic_message::Category::Warn,
-                                         "Failed to load .frm file; Subtitles file won't have timings");
+                warn!("Failed to load json subtitle file, loading lyr");
+                warn!("Failed to load .frm file; Subtitles won't have timings");
                 (None, &*lyr_path, fps).into_subtitles()
                     .map(|mut subtitles| {
                         subtitles.post_init(duration);
@@ -316,10 +300,8 @@ impl<'a> ToyundaPlayer<'a> {
                     })
                     .map_err(|s| Error::Text(s))
             } else if frm_path.is_file() {
-                error!("Could not find .lyr file");
                 Err(Error::FileNotFound(frm_path.display().to_string()))
             } else {
-                error!("Could not find .lyr and .frm file");
                 Err(Error::FileNotFound(lyr_path.display().to_string()))
             }
         }
@@ -414,24 +396,22 @@ impl<'a> ToyundaPlayer<'a> {
 
     pub fn messages_as_overlay_frame(&mut self) -> OverlayFrame {
         use ::toyunda_player::graphic_message::*;
-        use std::time::Instant;
         let is_karaoke_mode = self.options.mode == ToyundaMode::KaraokeMode;
-        self.graphic_messages.retain(|ref message| {
-            message.up_until > Instant::now() &&
-            (!is_karaoke_mode || message.category == graphic_message::Category::Announcement)
+        let graphic_messages = get_graphic_messages();
+        let graphic_messages = graphic_messages.iter().filter(|m|{
+            !is_karaoke_mode || m.category == Category::Announcement 
         });
         let message_height = 0.06;
         let mut overlay_frame = OverlayFrame {
             text_units:vec![]
         };
-        for (n, ref message) in self.graphic_messages.iter().enumerate() {
+        for (n, message) in graphic_messages.enumerate() {
             let text_elt: TextSubUnit = TextSubUnit {
                 text: message.text.clone(),
                 attach_logo: false,
                 color: match message.category {
                     Category::Error => AlphaColor::new(255, 0, 0),
                     Category::Warn => AlphaColor::new(255, 140, 0),
-                    Category::Info => AlphaColor::new(0, 255, 255),
                     Category::Announcement => AlphaColor::new(255, 255, 255),
                 },
                 outline: Outline::Light(Color::new(0,0,0)),
@@ -603,12 +583,6 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
-    pub fn on_error(&mut self,error: Error) {
-        use ::toyunda_player::graphic_message::Category;
-        self.add_graphic_message(Category::Warn,&format!("Error : {}",error));
-        error!("An error '{}' occured", error);
-    }
-
     pub fn main_loop(&mut self, sdl_context: &Sdl) -> Result<()> {
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event_pump");
         // TODO : Add a single queue of `Command` so the result can
@@ -639,7 +613,7 @@ impl<'a> ToyundaPlayer<'a> {
                         match self.on_load_media() {
                             Ok(_) => {},
                             Err(e) => {
-                                error!("Error when loading subtitles : {}",e);
+                                error!("{}",e);
                                 if self.options.mode == ToyundaMode::KaraokeMode {
                                     command_results.push(self.execute_command(Command::PlayNext));
                                 }
@@ -658,7 +632,7 @@ impl<'a> ToyundaPlayer<'a> {
                         };
                     },
                     Err(e) => {
-                        self.on_error(e);
+                        error!("{}",e);
                     } 
                 }
             }
@@ -937,7 +911,7 @@ impl<'a> ToyundaPlayer<'a> {
                             MPV_ERROR_PROPERTY_UNAVAILABLE => {},
                             // happens when video is paused
                             _ => {
-                                error!("Unexpected error : `{}` when trying to move",e);
+                                error!("Unexpected error: `{}` when trying to move",e);
                             }
                         };
                     }

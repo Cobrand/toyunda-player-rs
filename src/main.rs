@@ -1,5 +1,6 @@
 #![allow(unused_parens)]
 #![feature(custom_derive, plugin)] // necessary for serde
+#![feature(conservative_impl_trait)]
 #![plugin(serde_macros)]
 extern crate serde;
 extern crate serde_json;
@@ -110,28 +111,34 @@ fn main() {
             Ok(())
         }
     }
-
+    let fileout_config = fern::DispatchConfig {
+        format: Box::new(|msg:&str, level: &log::LogLevel, _:&log::LogLocation|{
+            format!("[{}][{}] {}",chrono::Local::now().format("%F %T"),level,msg)
+        }),
+        output: vec![fern::OutputConfig::file("toyunda.log")],
+        level: log::LogLevelFilter::Info
+    };
     // init the logger
     let stdout_config = fern::DispatchConfig {
         format: Box::new(|msg:&str, level: &log::LogLevel, _:&log::LogLocation|{
-            format!("[{}] {} : {}",chrono::Local::now().format("%F %T"),level,msg)
+            format!("[{}][{}] {}",chrono::Local::now().format("%F %T"),level,msg)
         }),
         output: vec![fern::OutputConfig::stdout()],
         level: log::LogLevelFilter::Warn
     };
     let logger_config = fern::DispatchConfig {
-        format: Box::new(|msg:&str, level: &log::LogLevel, _:&log::LogLocation|{
-            format!("[{}] {} : {}",chrono::Local::now().format("%F %T"),level,msg)
+        format: Box::new(|msg:&str, _level: &log::LogLevel, _:&log::LogLocation|{
+            String::from(msg)
         }),
         output: vec![
             fern::OutputConfig::child(stdout_config),
-            fern::OutputConfig::file("toyunda.log"),
+            fern::OutputConfig::child(fileout_config),
             fern::OutputConfig::custom(Box::new(_DummyLog{}))
         ],
         level: log::LogLevelFilter::Info
     };
     if let Err(e) = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace) {
-        println!("Failed to initialize logger, no messages will be shown ! Error : {}",e);
+        println!("Failed to initialize logger, no messages will be shown ! Error: {}",e);
     };
     let matches = App::new("Toyunda Player")
         .version(crate_version!())
