@@ -39,13 +39,16 @@ enum WebCommandType {
     PauseBeforeNext,
     #[serde(rename = "toggle_subtitles")]
     ToggleSubtitles,
+    #[serde(rename = "announcement")]
+    Announcement,
 }
 
 #[derive(Debug,Deserialize)]
 struct WebCommand {
     command: WebCommandType,
     id: Option<u32>,
-    list: Option<Vec<u32>>
+    list: Option<Vec<u32>>,
+    text: Option<String>
 }
 
 pub struct Manager {
@@ -80,16 +83,13 @@ impl Manager {
                                                 }
                                             });
         for err in errs {
-            let _tmp_str = format!("IoError '{}' when parsing yaml dir", err);
-            error!("{}", _tmp_str);
-            // self.log(_tmp_str.as_str());
+            error!("IoError '{}' when parsing yaml dir", err);
         }
         for path in paths {
             match Self::add_yaml_file(&mut yaml_files, &path) {
                 Ok(()) => {}
                 Err(err_string) => {
                     error!("{}", err_string);
-                    // self.log(err_string.as_str());
                 }
             }
         }
@@ -174,7 +174,14 @@ impl Manager {
                     },
                     WebCommandType::ToggleSubtitles =>
                         Ok(vec![Command::ToggleDisplaySubtitles]),
-
+                    WebCommandType::Announcement => {
+                        if let Some(ref s) = web_command.text {
+                            use chrono::Local;
+                            Ok(vec![Command::Announcement(s.clone(),Local::now())])
+                        } else {
+                            Err(String::from("'text' field is required"))
+                        }
+                    }
                 };
                 if let Ok(commands) = commands {
                     for command in commands {

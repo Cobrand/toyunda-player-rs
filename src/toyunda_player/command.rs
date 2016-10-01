@@ -2,6 +2,7 @@ use ::toyunda_player::*;
 use ::toyunda_player::error::{Result, Error};
 use std::cmp::{min, max};
 use ::toyunda_player::playing_state::*;
+use chrono::{DateTime,Local};
 
 #[derive(Debug)]
 pub enum Command {
@@ -21,7 +22,8 @@ pub enum Command {
     Stop,
     PlayNext,
     ClearQueue,
-    Quit
+    Quit,
+    Announcement(String,DateTime<Local>)
 }
 
 impl<'a> ToyundaPlayer<'a> {
@@ -161,6 +163,10 @@ impl<'a> ToyundaPlayer<'a> {
             Command::ToggleQuitOnFinish => {
                 let b : bool = self.state.read().unwrap().quit_when_finished.unwrap_or(false);
                 self.state.write().unwrap().quit_when_finished = Some(!b);
+                Ok(ToyundaAction::Nothing)
+            },
+            Command::Announcement(text,datetime) => {
+                self.announcements.push((text,datetime));
                 Ok(ToyundaAction::Nothing)
             }
         }

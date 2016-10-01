@@ -23,6 +23,7 @@ use ::mpv_plug::MpvCache;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
 use mpv::Error::MPV_ERROR_PROPERTY_UNAVAILABLE;
 use clap::ArgMatches;
+use chrono::{DateTime,Local};
 
 pub struct ToyundaPlayer<'a> {
     pub subtitles: Option<Subtitles>,
@@ -32,6 +33,7 @@ pub struct ToyundaPlayer<'a> {
     pub state: Arc<RwLock<State>>,
     pub manager: Option<Manager>,
     pub editor_state: Option<EditorState>,
+    pub announcements: Vec<(String,DateTime<Local>)>,
     mpv_cache : MpvCache,
     unsaved_changes : bool,
 }
@@ -69,6 +71,7 @@ impl<'a> ToyundaPlayer<'a> {
             })),
             manager: None,
             editor_state:None,
+            announcements: vec![],
             mpv_cache:MpvCache::new(),
             unsaved_changes:false
         }
@@ -395,12 +398,24 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn messages_as_overlay_frame(&mut self) -> OverlayFrame {
+        use chrono::Duration;
         use ::toyunda_player::graphic_message::*;
         let is_karaoke_mode = self.options.mode == ToyundaMode::KaraokeMode;
         let graphic_messages = get_graphic_messages();
-        let graphic_messages = graphic_messages.iter().filter(|m|{
+        let graphic_messages = graphic_messages.into_iter().filter(|m|{
             !is_karaoke_mode || m.category == Category::Announcement 
         });
+        let graphic_messages = 
+            graphic_messages.chain(self.announcements.iter().filter_map(|&(ref s,ref t)|{
+                if *t + Duration::seconds(8) > Local::now() {
+                    Some(GraphicMessage {
+                        category: Category::Announcement,
+                        text: s.clone()
+                    })
+                } else {
+                    None
+                }
+            }));
         let message_height = 0.06;
         let mut overlay_frame = OverlayFrame {
             text_units:vec![]
