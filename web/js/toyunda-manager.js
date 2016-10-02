@@ -1,48 +1,3 @@
-
-function is_status_error(status) {
-	return status < 200 || status >= 400 ;
-}
-var AJAX = {
-	get : function(url,response_fun,error_fun) {
-		var request = new XMLHttpRequest();
-		request.open('GET',url, true);
-		request.onload = function() {
-			let responseText = JSON.parse(request.responseText) ;
-			if (responseText == null) {
-				responseText = request.responseText ;
-			}
-			response_fun(request.status,responseText);
-		};
-		request.onerror = function() {
-			if (error_fun) {
-				error_fun();
-			}
-		};
-		request.send();
-	},
-	// parameters must be an object
-	post : function(url,parameters,response_fun,error_fun) {
-		var request = new XMLHttpRequest();
-		request.open('POST',url, true);
-		request.setRequestHeader("Content-Type", "application/json");
-		request.onload = function() {
-			if (response_fun) {
-				response_fun(request.status,request.responseText);
-			}
-		};
-		request.onerror = function() {
-			if (error_fun) {
-				error_fun();
-			}
-		};
-		request.send(JSON.stringify(parameters));
-	}
-}
-
-function special_trim(s) {
-	// TODO remove trailing "-"
-	return s.trim();
-}
 function format_info2name(song_info) {
 	var s = "" ;
 	if (song_info.media_title) {
@@ -141,24 +96,19 @@ var vue = new Vue({
 		},
 		play_next_value: function() {
 			if (this.currently_playing == null) {
-				return "Commencer" ;
+				return "Commencer";
 			} else {
-				return "Suivant" ;
+				return "Suivant";
 			}
+		},
+		draft_panel_disabled : function(){
+			return this.draft_indexes < 1
 		},
 		play_next_disabled : function() {
-			if (this.currently_playing == null && this.playlist.length == 0 ) {
-				return true;
-			} else {
-				return false;
-			}
+			return (this.currently_playing == null && this.playlist.length == 0);
 		},
 		stop_button_disabled : function() {
-			if (this.currently_playing == null) {
-				return true ;
-			} else {
-				return false ;
-			}
+			return this.currently_playing == null;
 		},
 		draft : function() {
 			var listing = this.listing ;
@@ -175,6 +125,35 @@ var vue = new Vue({
 		},
 		add_to_draft:function(entry) {
 			this.draft_indexes.push(entry.index);
+		},
+		play_next:function() {
+			toyunda_command("play_next");
+		},
+		stop_current:function() {
+			toyunda_command("stop");
+		},
+		clear_queue:function() {
+			toyunda_command("clear_queue");
+		},
+		quit_on_finish:function() {
+			toyunda_command("quit_on_finish");
+		},
+		pause_after_next:function() {
+			toyunda_command("quit_on_finish");
+		},
+		draft_shuffle:function() {
+			shuffle(this.draft_indexes);
+			this.draft_indexes.push(-1);
+			this.draft_indexes.pop(); // <^notify Vue of a change
+		},
+		draft_transfer:function(){
+			var i;
+			AJAX.post("/api/command",{
+				command:"add_multiple_to_queue",
+				list:this.draft_indexes
+			},function(){
+				this.draft_indexes.splice(0);
+			}.bind(this));
 		}
 	}
 });
