@@ -9,6 +9,7 @@ use std::sync::{Weak, RwLock, Arc, Mutex};
 use super::state::State as ToyundaState;
 use super::command::*;
 use super::video_meta::*;
+use iron::mime::Mime;
 
 use ::utils::for_each_in_dir;
 use std::path::{Path, PathBuf};
@@ -97,7 +98,6 @@ impl Manager {
     }
 
     fn state_request(toyunda_state: Weak<RwLock<ToyundaState>>) -> IronResult<Response> {
-        use iron::mime::Mime;
         match toyunda_state.upgrade() {
             Some(arc_t) => {
                 let json_mime: Mime = "application/json".parse().unwrap();
@@ -110,7 +110,6 @@ impl Manager {
     }
 
     fn list_request(list: Weak<Vec<VideoMeta>>) -> IronResult<Response> {
-        use iron::mime::Mime;
         let json_mime: Mime = "application/json".parse().unwrap();
         match list.upgrade() {
             Some(list) => {
@@ -201,6 +200,30 @@ impl Manager {
         }
     }
 
+    fn logs() -> IronResult<Response> {
+        use ::toyunda_player::log_messages::LOG_MESSAGES;
+        let json_mime: Mime = "application/json".parse().unwrap();
+        if let Ok(ref messages) = LOG_MESSAGES.read() {
+            let messages = messages.iter()
+                                   .map(|m| {
+                format!("[{}] {}: {}",m.time.format("%F %T"),m.level,m.msg)
+            })
+                                   .collect::<Vec<_>>();
+            match serde_json::to_string(&messages) {
+                Ok(string) => {
+                    Ok(Response::with((status::Ok, string, json_mime)))
+                },
+                Err(e) => {
+                    error!("Error when displaying logs : {}",e);
+                    // TODO replace this with an Error and handle Iron errors better
+                    Ok(Response::with(status::InternalServerError))
+                }
+            }
+        } else {
+            Ok(Response::with((status::Gone, "{}", json_mime)))
+        }
+    }
+
     pub fn new<A: ToSocketAddrs>(address: A,
                                  toyunda_state: Weak<RwLock<ToyundaState>>,
                                  yaml_directories: Vec<PathBuf>)
@@ -230,6 +253,9 @@ impl Manager {
         api_handler.get("listing", move |_r: &mut Request| {
             Self::list_request(weak_list.clone())
         }, "get_listing");
+        api_handler.get("logs", move |_r: &mut Request| {
+            Self::logs()
+        }, "get_logs");
         let mut mount = Mount::new();
         mount.mount("/", Static::new("web/"));
         mount.mount("/api", api_handler);
