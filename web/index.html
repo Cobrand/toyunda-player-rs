@@ -40,6 +40,14 @@
 					<h2> COMMANDES </h2>
 					<input class="button" type="button" v-on:click="play_next()" v-bind:value="play_next_value" v-bind:disabled="play_next_disabled">
 					<input class="button" type="button" v-on:click="stop_current()" value="Stop" v-bind:disabled="stop_button_disabled">
+					<br />
+					<input v-model="announcement_message" placeholder="Annonce"> 
+					<input class="button" type="button" v-on:click="send_announcement()" value="Envoyer" v-bind:disabled="announcement_button_disabled">
+					<br />
+					<input class="button" type="button" v-on:click="pause_after_next()" value="Pause avant prochain">
+					<br />
+					<input class="button bg_red" type="button" v-on:click="quit()" value="Quitter">
+					<input class="button bg_red" type="button" v-on:click="quit_on_finish()" value="Quitter à la fin de la liste">
 				</div>
 			</div>
 			<input placeholder="Recherche" v-model.trim="search" type="text" class="mainsearch">

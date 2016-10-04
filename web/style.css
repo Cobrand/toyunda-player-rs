@@ -31,9 +31,14 @@ input[type="text"] {
 	border-color:1px ;
 }
 
-input[type="button"]:hover {
+.button:hover:enabled {
 	border-color:black;
 	background-color:black;
+}
+
+.button:disabled {
+	background-color:#adbfd2;
+	cursor:not-allowed;
 }
 
 input.mainsearch {
@@ -165,7 +170,7 @@ table.listing tbody tr:last-child td {
 	overflow-y:auto;
 }
 
-#draft > p {
+#draft_list > p {
 	background-color: #d2b4de;
 	border:1px solid #a569bd;
 	border-radius:5px;
@@ -187,4 +192,8 @@ table.listing td.entry_actions {
 	font-size:12px;
 	margin:0;
 	border-radius:0;
+}
+
+.bg_red {
+	background-color:#D00;
 }

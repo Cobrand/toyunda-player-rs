@@ -176,7 +176,11 @@ impl Manager {
                     WebCommandType::Announcement => {
                         if let Some(ref s) = web_command.text {
                             use chrono::Local;
-                            Ok(vec![Command::Announcement(s.clone(),Local::now())])
+                            if s.len() != 0 {
+                                Ok(vec![Command::Announcement(s.clone(),Local::now())])
+                            } else {
+                                Err(String::from("field 'text' is present but empty"))
+                            }
                         } else {
                             Err(String::from("'text' field is required"))
                         }

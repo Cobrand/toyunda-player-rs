@@ -78,7 +78,8 @@ var vue = new Vue({
 		playlist : [],
 		listing : [],
 		currently_playing : null,
-		draft_indexes : []
+		draft_indexes : [],
+		announcement_message: ""
 	},
 	computed :{
 		filtered_list: function() {
@@ -110,6 +111,9 @@ var vue = new Vue({
 		stop_button_disabled : function() {
 			return this.currently_playing == null;
 		},
+		announcement_button_disabled : function(){
+			return this.announcement_message.length <= 0;
+		},
 		draft : function() {
 			var listing = this.listing ;
 			return this.draft_indexes.map(function(e) {
@@ -135,6 +139,19 @@ var vue = new Vue({
 		clear_queue:function() {
 			toyunda_command("clear_queue");
 		},
+		quit:function() {
+			swal({
+				title: 'Quitter ?',
+				text: "Le lecteur se fermera",
+				type: 'warning',
+				showCancelButton: true,
+				confirmButtonColor: '#3085d6',
+				cancelButtonColor: '#d33',
+				confirmButtonText: 'Oui, '
+			}).then(function() {
+				toyunda_command("quit");
+			})
+		},
 		quit_on_finish:function() {
 			toyunda_command("quit_on_finish");
 		},
@@ -147,13 +164,20 @@ var vue = new Vue({
 			this.draft_indexes.pop(); // <^notify Vue of a change
 		},
 		draft_transfer:function(){
-			var i;
 			AJAX.post("/api/command",{
 				command:"add_multiple_to_queue",
 				list:this.draft_indexes
 			},function(){
 				this.draft_indexes.splice(0);
 			}.bind(this));
+		},
+		send_announcement:function(){
+			AJAX.post("/api/command",{
+				command:"announcement",
+				text:this.announcement_message
+			},function(){
+				this.announcement = "";
+			}.bind(this))
 		}
 	}
 });
