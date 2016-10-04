@@ -65,7 +65,7 @@ pub struct FontList {
     fonts: Vec<FontSet>,
 }
 
-const DEJAVUSANS_MONO_BYTES: &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold.ttf");
+const DEJAVUSANS_MONO_BYTES: &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold-WithJap.ttf");
 
 impl FontList {
     pub fn new(ttf_context: &sdl2_ttf::Sdl2TtfContext) -> Result<FontList, String> {
