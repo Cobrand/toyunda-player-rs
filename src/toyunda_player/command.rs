@@ -107,6 +107,7 @@ impl<'a> ToyundaPlayer<'a> {
                 let video_meta = self.state.write().unwrap().playlist.pop_front();
                 match video_meta {
                     None => {
+                        try!(self.execute_command(Command::Stop));
                         match self.state.read().unwrap().quit_when_finished {
                             None => {
                                 match self.options.mode {
