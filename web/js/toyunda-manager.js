@@ -139,6 +139,9 @@ var vue = new Vue({
 		clear_queue:function() {
 			toyunda_command("clear_queue");
 		},
+		toggle_subtitles:function() {
+			toyunda_command("toggle_subtitles");
+		},
 		quit:function() {
 			swal({
 				title: 'Quitter ?',

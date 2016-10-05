@@ -45,6 +45,7 @@
 					<input class="button" type="button" v-on:click="send_announcement()" value="Envoyer" v-bind:disabled="announcement_button_disabled">
 					<br />
 					<input class="button" type="button" v-on:click="pause_after_next()" value="Pause avant prochain">
+					<input class="button" type="button" v-on:click="toggle_subtitles()" value="Basculer sous-titres">
 					<br />
 					<input class="button bg_red" type="button" v-on:click="quit()" value="Quitter">
 					<input class="button bg_red" type="button" v-on:click="quit_on_finish()" value="Quitter à la fin de la liste">
