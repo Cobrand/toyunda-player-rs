@@ -16,6 +16,7 @@ pub enum Command {
     ToggleQuitOnFinish,
     PauseBeforeNext,
     AddToQueue(VideoMeta),
+    AddToQueueWithPos(VideoMeta,usize),
     ReloadSubtitles,
     /// Stops the queue, but doesnt empty it
     /// Use PlayNext to play the queue again
@@ -149,6 +150,18 @@ impl<'a> ToyundaPlayer<'a> {
             Command::AddToQueue(video_meta) => {
                 self.state.write().unwrap().playlist.push_back(video_meta);
                 Ok(ToyundaAction::Nothing)
+            }
+            Command::AddToQueueWithPos(video_meta,pos) => {
+                if let Ok(mut state) = self.state.write() {
+                    if state.playlist.len() >= pos {
+                        state.playlist.insert(pos,video_meta);
+                        Ok(ToyundaAction::Nothing)
+                    } else {
+                        Err(format!("Trying to insert element at {} while playlist is of size {}",pos,state.playlist.len()).into())
+                    }
+                } else {
+                    Err(format!("Unable to get state object, is the lock poisoned ?").into())
+                }
             }
             Command::ReloadSubtitles => {
                 try!(self.import_cur_file_subtitles());
