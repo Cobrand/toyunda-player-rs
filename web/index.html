@@ -15,9 +15,18 @@
 					<input class="button" type="button" v-on:click="draft_shuffle()" value="Mélanger" v-bind:disabled="draft_panel_disabled">
 					<input class="button" type="button" v-on:click="draft_transfer()" value="Transférer >" v-bind:disabled="draft_panel_disabled">
 					<div id="draft_list">
-						<p v-for="(entry,index) in draft">
-							{{ entry.formatted_name }}
-						</p>
+						<div v-for="(entry,index) in draft">
+							<p>
+								{{ entry.formatted_name }}
+							</p>
+							<div class="draft_command_panel_single">
+								<input type="button" v-on:click="draft_transfer_beginning(index)" value="Transférer au début">
+								<input type="button" v-on:click="draft_transfer_single(index)" value="Transférer">
+								<input type="button" v-on:click="draft_delete(index)" value="✖">
+								<input type="button" v-on:click="draft_el_up(index)" value="▴">
+								<input type="button" v-on:click="draft_el_down(index)" value="▾">
+							</div>
+						</div>
 					</div>
 				</div>
 				<div id="playlist_panel">

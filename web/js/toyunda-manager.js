@@ -124,6 +124,33 @@ var vue = new Vue({
 	methods : {
 		format_name:format_name,
 		format_info2name:format_info2name,
+		draft_el_up:function(index) {
+			if (index > 0) {
+				var to_be_replaced = this.draft_indexes[index - 1];
+				Vue.set(this.draft_indexes, index - 1, this.draft_indexes[index]);
+				Vue.set(this.draft_indexes, index, to_be_replaced);
+			}
+		},
+		draft_el_down:function(index) {
+			if (index < this.draft_indexes.length - 1) {
+				var to_be_replaced = this.draft_indexes[index + 1];
+				Vue.set(this.draft_indexes, index + 1, this.draft_indexes[index]);
+				Vue.set(this.draft_indexes, index, to_be_replaced);
+			}
+		},
+		draft_transfer_beginning:function(index) {
+			toyunda_command("add_to_queue",this.draft_indexes[index],function(){
+				this.draft_indexes.splice(index,1);
+			}.bind(this))
+		},
+		draft_transfer_single:function(index) {
+			toyunda_command("add_to_queue",this.draft_indexes[index],function(){
+				this.draft_indexes.splice(index,1);
+			}.bind(this))
+		},
+		draft_delete:function(index){
+			this.draft_indexes.splice(index,1);
+		},
 		add_to_queue:function(entry) {
 			toyunda_command("add_to_queue",entry.index);
 		},
@@ -150,7 +177,7 @@ var vue = new Vue({
 				showCancelButton: true,
 				confirmButtonColor: '#3085d6',
 				cancelButtonColor: '#d33',
-				confirmButtonText: 'Oui, '
+				confirmButtonText: 'Oui'
 			}).then(function() {
 				toyunda_command("quit");
 			})

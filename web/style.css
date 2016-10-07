@@ -170,16 +170,24 @@ table.listing tbody tr:last-child td {
 	overflow-y:auto;
 }
 
-#draft_list > p {
+#draft_list > div {
 	background-color: #d2b4de;
 	border:1px solid #a569bd;
 	border-radius:5px;
+}
+
+#draft_list p {
+	width: calc(100% - 10px);
+	display: inline-block;
+	word-wrap: break-word;
+	box-sizing:border-block;
 }
 
 #playlist > p {
 	background-color: #f9e79f;
 	border:1px solid #f4d03f;
 	border-radius:5px;
+	width:calc( 100% - 30px);
 }
 
 table.listing td.entry_actions {
@@ -192,6 +200,11 @@ table.listing td.entry_actions {
 	font-size:12px;
 	margin:0;
 	border-radius:0;
+}
+
+.draft_up_down_arrows > div {
+	line-height:0.8;
+	width:20px;
 }
 
 .bg_red {
