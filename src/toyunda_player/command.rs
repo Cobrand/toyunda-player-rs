@@ -17,6 +17,7 @@ pub enum Command {
     PauseBeforeNext,
     AddToQueue(VideoMeta),
     AddToQueueWithPos(VideoMeta,usize),
+    DeleteFromQueue(usize),
     ReloadSubtitles,
     /// Stops the queue, but doesnt empty it
     /// Use PlayNext to play the queue again
@@ -181,6 +182,16 @@ impl<'a> ToyundaPlayer<'a> {
             },
             Command::Announcement(text,datetime) => {
                 self.announcements.push((text,datetime));
+                Ok(ToyundaAction::Nothing)
+            },
+            Command::DeleteFromQueue(p) => {
+                if let Ok(mut state) = self.state.write() {
+                    if p < state.playlist.len() {
+                        state.playlist.remove(p);
+                    } else {
+                        warn!("Trying to remove {}th element from playlist, but is out of bounds",p);
+                    }
+                }
                 Ok(ToyundaAction::Nothing)
             }
         }

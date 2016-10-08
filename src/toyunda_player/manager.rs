@@ -26,6 +26,8 @@ enum WebCommandType {
     AddToQueue,
     #[serde(rename = "add_multiple_to_queue")]
     AddMultipleToQueue,
+    #[serde(rename = "delete_from_queue")]
+    DeleteFromQueue,
     #[serde(rename = "clear_queue")]
     ClearQueue,
     #[serde(rename = "pause")]
@@ -49,7 +51,8 @@ struct WebCommand {
     command: WebCommandType,
     id: Option<u32>,
     list: Option<Vec<u32>>,
-    text: Option<String>
+    text: Option<String>,
+    pos: Option<u32>
 }
 
 pub struct Manager {
@@ -136,7 +139,10 @@ impl Manager {
                         if let Some(id) = web_command.id {
                             if let Some(list) = list.upgrade() {
                                 if let Some(video_meta) = list.get(id as usize) {
-                                    Ok(vec![Command::AddToQueue(video_meta.clone())])
+                                    match web_command.pos {
+                                        None => Ok(vec![Command::AddToQueue(video_meta.clone())]),
+                                        Some(pos) => Ok(vec![Command::AddToQueueWithPos(video_meta.clone(),pos as usize)])
+                                    }
                                 } else {
                                     Err(format!("Bad Index {}", id))
                                 }
@@ -160,6 +166,13 @@ impl Manager {
                             }
                         } else {
                             Err(String::from("'list' field is needed"))
+                        }
+                    },
+                    WebCommandType::DeleteFromQueue => {
+                        if let Some(pos) = web_command.pos {
+                            Ok(vec![Command::DeleteFromQueue(pos as usize)])
+                        } else {
+                            Err(format!("'pos' field is needed"))
                         }
                     },
                     WebCommandType::PauseBeforeNext => {
