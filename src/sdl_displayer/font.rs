@@ -136,7 +136,7 @@ impl FontList {
                     match search_result {
                         Ok(index) => Ok(index),
                         Err(0) => Ok(0),
-                        Err(index) if index == self.fonts.len() => Ok(self.fonts.len()),
+                        Err(index) if index == self.fonts.len() => Ok(self.fonts.len() - 1),
                         Err(index) => Ok(index - 1),
                         // it should fit, meaning that if we can't find something exactly we should
                         // take the first that fits
