@@ -183,11 +183,21 @@ table.listing tbody tr:last-child td {
 	box-sizing:border-block;
 }
 
-#playlist > p {
+#playlist > div {
+	margin:0 4px;
+	padding:0;
 	background-color: #f9e79f;
 	border:1px solid #f4d03f;
 	border-radius:5px;
-	width:calc( 100% - 30px);
+}
+
+#playlist > div > p {
+	margin: 
+}
+
+#playlist > div > div {
+	float: right;
+	cursor: pointer;
 }
 
 table.listing td.entry_actions {

@@ -68,7 +68,7 @@ function format_name(song_info,video_path) {
 		candidate = video_path.replace(/^.*[\\\/]/, '');
 		candidate = candidate.split('.')[0];
 	}
-	return candidate ;
+	return candidate;
 }
 
 var vue = new Vue({
@@ -139,9 +139,13 @@ var vue = new Vue({
 			}
 		},
 		draft_transfer_beginning:function(index) {
-			toyunda_command("add_to_queue",this.draft_indexes[index],function(){
-				this.draft_indexes.splice(index,1);
-			}.bind(this))
+			AJAX.post("/api/command",{
+				command:"add_to_queue",
+				id:this.draft_indexes[index],
+				pos:index
+			},function(){
+				this.draft_indexes.splice(0);
+			}.bind(this));
 		},
 		draft_transfer_single:function(index) {
 			toyunda_command("add_to_queue",this.draft_indexes[index],function(){
@@ -156,6 +160,12 @@ var vue = new Vue({
 		},
 		add_to_draft:function(entry) {
 			this.draft_indexes.push(entry.index);
+		},
+		queue_delete_at:function(index) {
+			AJAX.post("/api/command",{
+				command:"delete_from_queue",
+				pos:index
+			});
 		},
 		play_next:function() {
 			toyunda_command("play_next");
@@ -226,7 +236,7 @@ function update() {
 			var playlist = answer.playlist ;
 			playlist = playlist.map(function(e,i) {
 				e.formatted_name = format_name(e.song_info,e.video_path);
-				e.index = i ;
+				e.index = i;
 				return e;
 			});
 			vue.playlist = playlist ;

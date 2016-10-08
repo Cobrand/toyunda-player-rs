@@ -39,9 +39,10 @@
 							<b>Aucune musique en cours</b>
 						</p>
 						<div id="playlist">
-							<p v-for="(entry,index) in playlist">
-								{{ entry.formatted_name }}
-							</p>
+							<div v-for="(entry,index) in playlist">
+								<div v-on:click="queue_delete_at(index)">✖</div>
+								<p>{{ entry.formatted_name }}</p>
+							</div>
 						</div>
 					</div>
 				</div>
