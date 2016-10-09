@@ -151,7 +151,7 @@ table.listing tbody tr:last-child td {
 	flex: 0 1 auto;
 }
 
-.panel > div > h2 {
+#draft_panel > h2, #playlist_panel > h2 {
 	color : white ;
 	background-color : black;
 	border-top-left-radius : 2px;
@@ -218,6 +218,13 @@ table.listing td.entry_actions {
 
 .draft_element_panel {
 	float:right;
+}
+
+#disconnected {
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
+	text-align: center;
 }
 
 .bg_red {

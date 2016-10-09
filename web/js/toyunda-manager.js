@@ -79,7 +79,8 @@ var vue = new Vue({
 		listing : [],
 		currently_playing : null,
 		draft_indexes : [],
-		announcement_message: ""
+		announcement_message: "",
+		connected:true
 	},
 	computed :{
 		filtered_list: function() {
@@ -241,6 +242,9 @@ function update() {
 			});
 			vue.playlist = playlist ;
 		}
+		vue.connected = true;
+	},function(){
+		vue.connected = false;
 	});
 }
 
