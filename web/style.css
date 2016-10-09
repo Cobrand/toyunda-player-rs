@@ -10,7 +10,6 @@ input[type="text"] {
 	display: inline-block;
 	padding: 2px 5px;
 	margin: 2px;
-	margin-bottom: 0;
 	font-size: 16px;
 	font-weight: bold;
 	text-align: center;
@@ -29,6 +28,12 @@ input[type="text"] {
 	border-radius: 4px;
 	text-transform:uppercase;
 	border-color:1px ;
+}
+
+.small.button {
+	font-size:12px;
+	margin:1px;
+	padding:1px 2px;
 }
 
 .button:hover:enabled {
@@ -63,7 +68,7 @@ p {
 
 h1,h2 {
 	text-align:center;
-	margin:2px;
+	margin:0;
 }
 
 table.listing {
@@ -114,7 +119,7 @@ table.listing tbody tr:last-child td {
 }
 
 .panel {
-	height: 360px;
+	height: 475px;
 	display: -ms-flexbox;
 	display: -webkit-flex;
 	display: flex;
@@ -136,7 +141,7 @@ table.listing tbody tr:last-child td {
 }
 
 .panel > div {
-	width:30%;
+	width:50%;
 	margin: 2px;
 	padding:0;
 	border-radius : 5px;
@@ -144,10 +149,6 @@ table.listing tbody tr:last-child td {
 	-webkit-flex: 0 1 auto;
 	-ms-flex: 0 1 auto;
 	flex: 0 1 auto;
-}
-
-#playlist_panel {
-	width:40%;
 }
 
 .panel > div > h2 {
@@ -166,7 +167,12 @@ table.listing tbody tr:last-child td {
 }
 
 #current_plus_playlist {
-	max-height:320px;
+	max-height:405px;
+	overflow-y:auto;
+}
+
+#draft_list {
+	max-height:405px;
 	overflow-y:auto;
 }
 
@@ -183,19 +189,17 @@ table.listing tbody tr:last-child td {
 	box-sizing:border-block;
 }
 
-#playlist > div {
+.queue_element {
+	font-size:14px;
 	margin:0 4px;
-	padding:0;
+	padding:0 4px;
 	background-color: #f9e79f;
 	border:1px solid #f4d03f;
 	border-radius:5px;
+	min-height:22px;
 }
 
-#playlist > div > p {
-	margin: 
-}
-
-#playlist > div > div {
+.closebtn {
 	float: right;
 	cursor: pointer;
 }
@@ -212,9 +216,8 @@ table.listing td.entry_actions {
 	border-radius:0;
 }
 
-.draft_up_down_arrows > div {
-	line-height:0.8;
-	width:20px;
+.draft_element_panel {
+	float:right;
 }
 
 .bg_red {
