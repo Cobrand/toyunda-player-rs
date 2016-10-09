@@ -1,3 +1,10 @@
+function human_duration(time) {
+	var minutes = Math.floor(time / 1000  / 60);
+	var seconds = Math.floor(time / 1000) % 60;
+	seconds = (seconds > 9) ? seconds : "0"+seconds;
+	return minutes + "m" + seconds;
+}
+
 function is_status_error(status) {
 	return status < 200 || status >= 400 ;
 }

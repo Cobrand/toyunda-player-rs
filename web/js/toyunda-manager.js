@@ -261,6 +261,7 @@ AJAX.get("/api/listing",function(status,answer) {
 				var entry = answer[i] ;
 				entry.formatted_name = format_name(entry.song_info,entry.video_path);
 				entry.index = i;
+				entry.human_duration = human_duration(entry.video_length);
 			}
 			vue.listing = answer
 		} else {
