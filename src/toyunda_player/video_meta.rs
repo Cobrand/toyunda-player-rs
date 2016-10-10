@@ -3,7 +3,6 @@ extern crate serde_yaml;
 use ::subtitles::song_info::SongInfo;
 use super::time_info::TimeInfo;
 use std::path::{Path, PathBuf};
-use ::mpv_plug::video_duration;
 
 #[derive(Debug,Deserialize,Serialize,Clone)]
 pub struct VideoMeta {
@@ -51,23 +50,16 @@ impl VideoMeta {
                 if yaml_file.exists() {
                     VideoMeta::from_yaml(yaml_file).map(|v_m| v_m.fix_paths(path))
                 } else {
-                    if let Some(path_str) = path.to_str() {
-                        let video_length = video_duration(path_str);
-                        video_length.map(|l|
-                            VideoMeta {
-                                    video_path: PathBuf::from(path),
-                                    lyr_path: None,
-                                    frm_path: None,
-                                    json_path: None,
-                                    yaml_path: None,
-                                    song_info: SongInfo::default(),
-                                    time_info: TimeInfo::default(),
-                                    video_length: l
-                            }
-                        )
-                    } else {
-                        Err(format!("Filename {} is not valid UTF8",path.display()))
-                    }
+                    Ok(VideoMeta {
+                        video_path: PathBuf::from(path),
+                        lyr_path: None,
+                        frm_path: None,
+                        json_path: None,
+                        yaml_path: None,
+                        song_info: SongInfo::default(),
+                        time_info: TimeInfo::default(),
+                        video_length: 0
+                    })
                 }
             }
             Some(ext) => {
@@ -99,19 +91,6 @@ impl VideoMeta {
         fix_option_path(&original, &mut self.json_path);
         fix_option_path(&original, &mut self.frm_path);
         fix_option_path(&original, &mut self.lyr_path);
-        if let Some(s) = self.video_path.to_str() {
-            match video_duration(s) {
-                Ok(l) => {
-                    debug!("video length for {} is {}",s,l);
-                    self.video_length = l;
-                },
-                Err(e) => {
-                    error!("{}",e);
-                }
-            }
-        } else {
-            warn!("{} is not a valid UTF filename, can't open it with ffmpeg for video length",self.video_path.display());
-        };
         self
     }
 

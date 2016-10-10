@@ -6,8 +6,6 @@ extern crate serde;
 extern crate serde_json;
 extern crate serde_yaml;
 
-extern crate ffmpeg;
-
 extern crate iron ;
 extern crate staticfile;
 extern crate mount;
@@ -46,9 +44,6 @@ use std::os::raw::c_void;
 use toyunda_player::log_messages::{LOG_MESSAGES,LogMessage as ToyundaLogMessage};
 
 fn player_start(matches:ArgMatches) {
-    // INIT FFMPEG (used for video duration)
-    ffmpeg::init().unwrap();
-
     // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
