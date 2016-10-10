@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import sys
+import fileinput
+from yaml import load, dump
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
@@ -10,11 +13,23 @@ if __name__=="__main__":
     for file in args.files:
         yamlfilename = os.path.splitext(file)[0] + ".yaml"
         try:
-            f = open(yamlfilename,'x');
-            f.write("video_path: \""+os.path.split(file)[1]+"\"")
-            f.close()
-        except FileExistsError:
-            print("file '"+yamlfilename+"' already exists")
-        except:
+            f = open(yamlfilename,'ab+');
+            yaml_contents_str = f.read();
+            yaml_contents = load(yaml_contents_str);
+            if yaml_contents is None:
+                yaml_contents = {};
+            yaml_contents['video_path'] = os.path.split(file)[1]
+            try:
+                video_duration = input("Longueur en secondes de la vidéo : ");
+                yaml_contents['video_duration'] = int(1000.0 * float(video_duration))
+            except KeyboardInterrupt:
+                f.close();
+                sys.exit(0);
+            except EOFError:
+                pass 
+            f.truncate(0);
+            f.write(dump(yaml_contents, encoding='utf-8', default_flow_style=False));
+            f.close();
+        except IOError:
             print("file '"+yamlfilename+"' couldnt be opened")
 

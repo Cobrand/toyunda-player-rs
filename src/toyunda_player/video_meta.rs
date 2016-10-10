@@ -16,8 +16,8 @@ pub struct VideoMeta {
     pub song_info: SongInfo,
     #[serde(default)]
     pub time_info: TimeInfo,
-    #[serde(skip_deserializing)]
-    pub video_length: u32
+    #[serde(default)]
+    pub video_duration: u32
 }
 
 impl VideoMeta {
@@ -58,7 +58,7 @@ impl VideoMeta {
                         yaml_path: None,
                         song_info: SongInfo::default(),
                         time_info: TimeInfo::default(),
-                        video_length: 0
+                        video_duration: 0
                     })
                 }
             }
