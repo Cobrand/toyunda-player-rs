@@ -23,13 +23,14 @@
 					<h2> BROUILLON </h2>
 					<input class="button" type="button" v-on:click="draft_shuffle()" value="Mélanger" v-bind:disabled="draft_panel_disabled">
 					<input class="button" type="button" v-on:click="draft_transfer()" value="Transférer >" v-bind:disabled="draft_panel_disabled || !connected">
+					<span v-if="draft_duration != null" style="float:right;padding-right:4px">Durée : <b>{{ draft_duration }}</b></span>
 					<div id="draft_list">
 						<div v-for="(entry,index) in draft" class="queue_element">
 							<div class="draft_element_panel">
 								<input type="button" class="button small" v-on:click="draft_transfer_beginning(index)" value="Transférer au début" v-bind:disabled="!connected"><input type="button" class="button small" v-on:click="draft_transfer_single(index)" value="Transférer" v-bind:disabled="!connected"><input type="button" class="button small" v-on:click="draft_delete(index)" value="✖"><input type="button" class="button small" v-on:click="draft_el_up(index)" value="▴"><input type="button" class="button small" v-on:click="draft_el_down(index)" value="▾">
 							</div>
 							<span>
-								{{ entry.formatted_name }}
+								{{ entry.formatted_fullinfo }}
 							</span>
 						</div>
 					</div>
@@ -38,6 +39,7 @@
 					<div v-if="connected" id="playlist_panel">
 						<h2> EN COURS </h2>
 						<input class="button" type="button" v-on:click="clear_queue()" value="Vider la liste" v-bind:disabled="play_next_disabled">
+						<span v-if="playlist_duration != null" style="float:right;padding-right:4px">Durée : <b>{{ playlist_duration }}</b></span>
 						<div id="current_plus_playlist">
 							<div v-if="currently_playing" id="currently_playing" class="queue_element">
 								<span>
@@ -51,7 +53,7 @@
 								<div v-for="(entry,index) in playlist" class="queue_element">
 									<div class="closebtn" v-on:click="queue_delete_at(index)">✖</div>
 									<span>
-										{{ entry.formatted_name }}
+										{{ entry.formatted_fullinfo }}
 									</span>
 								</div>
 							</div>

@@ -1,4 +1,7 @@
 function human_duration(time) {
+	if (time == null || time == 0){
+		return "?";
+	}
 	var minutes = Math.floor(time / 1000  / 60);
 	var seconds = Math.floor(time / 1000) % 60;
 	seconds = (seconds > 9) ? seconds : "0"+seconds;

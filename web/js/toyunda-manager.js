@@ -1,3 +1,19 @@
+function sum_duration_to_string(list) {
+	var i = 0;
+	var len = list.length;
+	var total_duration = 0;
+	var unsure = false;
+	for (i = 0; i < list.length; i++){
+		var el = list[i];
+		if (el.video_duration == 0) {
+			unsure = true;
+		} else {
+			total_duration += el.video_duration;
+		}
+	};
+	return (unsure ? ">" : "") + human_duration(total_duration);
+}
+
 function format_info2name(song_info) {
 	var s = "" ;
 	if (song_info.media_title) {
@@ -71,6 +87,11 @@ function format_name(song_info,video_path) {
 	return candidate;
 }
 
+function format_fullinfo(video_meta){
+	return format_name(video_meta.song_info,video_meta.video_path)
+		+ " ["+ (video_meta.video_duration == 0 ? "Durée inconnue":human_duration(video_meta.video_duration))+"]"
+}
+
 var vue = new Vue({
 	el: '#app',
 	data : {
@@ -94,7 +115,7 @@ var vue = new Vue({
 			return listing ;
 		},
 		now_playing: function() {
-			return format_name(this.currently_playing.song_info,this.currently_playing.video_path);
+			return format_fullinfo(this.currently_playing);
 		},
 		play_next_value: function() {
 			if (this.currently_playing == null) {
@@ -120,6 +141,19 @@ var vue = new Vue({
 			return this.draft_indexes.map(function(e) {
 				return listing[e];
 			});
+		},
+		draft_duration : function() {
+			if (this.draft_indexes.length == 0){
+				return null;
+			} else {
+				return sum_duration_to_string(this.draft);
+			}
+		},
+		playlist_duration : function() {
+			if (this.playlist.length == 0){
+				return null;
+			}
+			return sum_duration_to_string(this.playlist);
 		}
 	},
 	methods : {
@@ -237,6 +271,8 @@ function update() {
 			var playlist = answer.playlist ;
 			playlist = playlist.map(function(e,i) {
 				e.formatted_name = format_name(e.song_info,e.video_path);
+				e.formatted_fullinfo = format_fullinfo(e);
+				e.human_duration = human_duration(e.video_duration);
 				e.index = i;
 				return e;
 			});
@@ -261,7 +297,8 @@ AJAX.get("/api/listing",function(status,answer) {
 				var entry = answer[i] ;
 				entry.formatted_name = format_name(entry.song_info,entry.video_path);
 				entry.index = i;
-				entry.human_duration = human_duration(entry.video_length);
+				entry.human_duration = human_duration(entry.video_duration);
+				entry.formatted_fullinfo = format_fullinfo(entry);
 			}
 			vue.listing = answer
 		} else {
