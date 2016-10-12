@@ -120,14 +120,17 @@ impl<'a> SDLDisplayer<'a> {
             Size::Fit(x, y) => (x, y),
         };
 
-        let is_outline_enabled = text_unit.text
+        let max_outline = text_unit.text
             .iter()
-            .any(|text_element| text_element.outline != Outline::None);
+            .map(|text_element| text_element.outline)
+            .max()
+            .map(|max_outline| max_outline.to_size())
+            .unwrap_or(0);
         let all_text = text_unit.to_string();
         let font_set_id = self.fonts
             .get_fittest_font_set_id(all_text.as_str(),
                                      (fit_width, fit_height),
-                                     is_outline_enabled)
+                                     max_outline)
             .unwrap();
         let (text_width, text_height) = self.fonts.get_font_set(font_set_id).unwrap()
             .get_outline_font()
@@ -196,10 +199,10 @@ impl<'a> SDLDisplayer<'a> {
                 .expect("Failed to blit surface, Display error ?");
         };
 
-        let outline_width = 2u32 ;
         let font_set = self.fonts.get_font_set(font_set_id).unwrap();
+        let outline_width = FontSet::get_outline_width(font_set.get_font_size(),2) as u32;
         let regular_font = font_set.get_regular_font();
-        let light_bold_font = font_set.get_outline_font();
+        let light_bold_font = font_set.get_light_outline_font();
         let bold_font = font_set.get_outline_font();
         let regular_surface = regular_font.render(text_subunit.text.as_str())
             .blended(text_subunit.color)
@@ -213,11 +216,12 @@ impl<'a> SDLDisplayer<'a> {
         match text_subunit.outline {
             Outline::None => {},
             Outline::Light(color) => {
+                let light_outline_width = FontSet::get_outline_width(font_set.get_font_size(),1) as u32;
                 blit_font_text(&mut surface,
                                light_bold_font,
                                &text_subunit.text,
                                color.to_sdl_color(),
-                               0);
+                               outline_width.saturating_sub(light_outline_width));
             }
             Outline::Bold(color) => {
                 blit_font_text(&mut surface,

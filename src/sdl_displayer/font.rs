@@ -2,7 +2,6 @@ extern crate sdl2_ttf;
 use std::ops::Index;
 use std::cmp::Ordering;
 use sdl2::rwops::RWops;
-pub const OUTLINE_WIDTH: u16 = 2;
 
 pub struct FontSet {
     // rwops needs to live with the font itself
@@ -16,6 +15,8 @@ pub struct FontSet {
     font_size: u16,
     /// Font object without outline
     font_regular: sdl2_ttf::Font,
+    /// Font object with light outline
+    font_lightbold: sdl2_ttf::Font,
     /// Font object with outline
     font_bold: sdl2_ttf::Font,
 }
@@ -57,6 +58,24 @@ impl FontSet {
     pub fn get_outline_font(&self) -> &sdl2_ttf::Font {
         &self.font_bold
     }
+
+    #[inline]
+    pub fn get_light_outline_font(&self) -> &sdl2_ttf::Font {
+        &self.font_lightbold
+    }
+
+    pub fn get_outline_width(font_size:u16,width:usize) -> u16 {
+        match width {
+            0 => 0,
+            1 => (font_size / 30) + 1,
+            2 => (font_size / 20) + 2,
+            _ => 0
+        }
+    }
+
+    pub fn get_font_size(&self) -> u16 {
+        self.font_size
+    }
 }
 
 // MADE PUBLIC FOR TESTS, MAKE PRIVATE WHEN NOT NECESSARY ANYMORE
@@ -77,16 +96,20 @@ impl FontList {
         'fontlist: while (font_size < font_size_max) {
             let mut rwops_regular = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
             let mut rwops_bold = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let mut rwops_lbold = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
             let font_regular =
                 try!(ttf_context.load_font_from_rwops(&mut rwops_regular, font_size));
             let mut font_bold = try!(ttf_context.load_font_from_rwops(&mut rwops_bold, font_size));
-            font_bold.set_outline_width(OUTLINE_WIDTH);
+            let mut font_lbold = try!(ttf_context.load_font_from_rwops(&mut rwops_lbold, font_size));
+            font_lbold.set_outline_width(FontSet::get_outline_width(font_size,1));
+            font_bold.set_outline_width(FontSet::get_outline_width(font_size,2));
             result.fonts.push(FontSet {
                 rwops_regular: rwops_regular,
                 rwops_bold: rwops_bold,
                 font_size: font_size,
                 font_regular: font_regular,
                 font_bold: font_bold,
+                font_lightbold: font_lbold,
             });
             font_size += font_size_increment;
         }
@@ -101,7 +124,7 @@ impl FontList {
     pub fn get_fittest_font_set_id(&self,
                                    string: &str,
                                    max_dims: (Option<u32>, Option<u32>),
-                                   outline: bool)
+                                   outline: usize)
                                    -> Result<usize, String> {
         if max_dims == (None, None) {
             Err(String::from("can't get fittiest font if both dims are None")) // cant get the fittiest if both are None !
@@ -111,10 +134,11 @@ impl FontList {
                 1 => Ok(0),
                 _ => {
                     let search_result = self.fonts.binary_search_by(|fontset| {
-                        let search_font = if outline {
-                            &fontset.font_bold
-                        } else {
-                            &fontset.font_regular
+                        let search_font = match outline {
+                            0 => &fontset.font_regular,
+                            1 => &fontset.font_lightbold,
+                            2 => &fontset.font_bold,
+                            _ => {warn!("wrong font_set size set");&fontset.font_regular},
                         };
                         let string_dims = search_font.size_of(string)
                             .expect("Failed to get dimensions");
