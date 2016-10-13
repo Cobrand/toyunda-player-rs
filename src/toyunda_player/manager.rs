@@ -9,7 +9,9 @@ use std::sync::{Weak, RwLock, Arc, Mutex};
 use super::state::State as ToyundaState;
 use super::command::*;
 use super::video_meta::*;
+use super::toyunda_history::*;
 use iron::mime::Mime;
+
 
 use ::utils::for_each_in_dir;
 use std::path::{Path, PathBuf};
@@ -63,6 +65,7 @@ pub struct Manager {
 
 impl Manager {
     fn add_yaml_file<P: AsRef<Path>>(yaml_files: &mut Vec<VideoMeta>,
+
                                      file: P)
                                      -> Result<(), String> {
         let file = file.as_ref();
@@ -243,7 +246,8 @@ impl Manager {
 
     pub fn new<A: ToSocketAddrs>(address: A,
                                  toyunda_state: Weak<RwLock<ToyundaState>>,
-                                 yaml_directories: Vec<PathBuf>)
+                                 yaml_directories: Vec<PathBuf>,
+                                 songs_history: Option<&SongsHistory>)
                                  -> IronResult<Manager> {
         let mut yaml_files: Vec<VideoMeta> = Vec::new();
         for dir in yaml_directories {
@@ -251,6 +255,11 @@ impl Manager {
                 yaml_files = Self::parse_yaml_directory(&dir).unwrap();
             } else {
                 yaml_files.extend(Self::parse_yaml_directory(&dir).unwrap());
+            }
+        }
+        if let Some(ref songs_history) = songs_history {
+            for video_meta in &mut yaml_files {
+                video_meta.set_last_played(songs_history);
             }
         }
         let yaml_files = Arc::new(yaml_files);

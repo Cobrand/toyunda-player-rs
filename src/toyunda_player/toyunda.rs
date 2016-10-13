@@ -141,6 +141,16 @@ impl<'a> ToyundaPlayer<'a> {
             self.options.mode = ToyundaMode::NormalMode;
             enable_manager = true ;
         }
+        if let Some(songs_history) = arg_matches.value_of("songs_history") {
+            match SongsHistory::new(songs_history) {
+                Ok(songs_history) => {
+                    self.songs_history = Some(songs_history);
+                },
+                Err(e) => {
+                    error!("songs_history parsing : {}",e);
+                }
+            }
+        };
         if arg_matches.is_present("no_manager") {
             enable_manager = false ;
         }
@@ -159,7 +169,7 @@ impl<'a> ToyundaPlayer<'a> {
             } else {
                 vec![]
             };
-            let manager = Manager::new(&*format!("{}:{}",listen_address,port), Arc::downgrade(&self.state), yaml_dir);
+            let manager = Manager::new(&*format!("{}:{}",listen_address,port), Arc::downgrade(&self.state), yaml_dir, self.songs_history.as_ref());
             match manager {
                 Ok(manager) => {self.manager = Some(manager);},
                 Err(e) => {error!("Error when initializing manager : '{}'",e);}
@@ -185,16 +195,6 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             }
         }
-        if let Some(songs_history) = arg_matches.value_of("songs_history") {
-            match SongsHistory::new(songs_history) {
-                Ok(songs_history) => {
-                    self.songs_history = Some(songs_history);
-                },
-                Err(e) => {
-                    error!("songs_history parsing : {}",e);
-                }
-            }
-        };
         if (is_playlist_empty == false) {
             if let Err(e) = self.execute_command(Command::PlayNext) {
                 error!("Error trying to play first file : '{}'",e);

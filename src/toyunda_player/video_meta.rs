@@ -4,6 +4,7 @@ use ::subtitles::song_info::SongInfo;
 use super::time_info::TimeInfo;
 use std::path::{Path, PathBuf};
 use std::fmt;
+use ::toyunda_player::toyunda_history::SongsHistory;
 
 #[derive(Debug,Deserialize,Serialize,Clone)]
 pub struct VideoMeta {
@@ -18,7 +19,10 @@ pub struct VideoMeta {
     #[serde(default)]
     pub time_info: TimeInfo,
     #[serde(default)]
-    pub video_duration: u32
+    pub video_duration: u32,
+    /// UNIX TIMESTAMP
+    #[serde(skip_deserializing)]
+    pub last_played: Option<i64>
 }
 
 impl VideoMeta {
@@ -59,13 +63,22 @@ impl VideoMeta {
                         yaml_path: None,
                         song_info: SongInfo::default(),
                         time_info: TimeInfo::default(),
-                        video_duration: 0
+                        video_duration: 0,
+                        last_played: None
                     })
                 }
             }
             Some(ext) => {
                 Err(format!("Unrecognized extension '{}'",
                             ext.to_str().unwrap_or("[NON-UTF-8 SEQ]")))
+            }
+        }
+    }
+
+    pub fn set_last_played(&mut self, songs_history: &SongsHistory) {
+        if let Some(ref vec) = songs_history.get(&*format!("{}",self)) {
+            if let Some(last) = vec.last() {
+                self.last_played = Some(last.timestamp());
             }
         }
     }
