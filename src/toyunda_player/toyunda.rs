@@ -18,6 +18,7 @@ use ::toyunda_player::state::*;
 use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
 use ::toyunda_player::editor::*;
+use ::toyunda_player::toyunda_history::*;
 use ::utils::RGB;
 use ::mpv_plug::MpvCache;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
@@ -34,6 +35,7 @@ pub struct ToyundaPlayer<'a> {
     pub manager: Option<Manager>,
     pub editor_state: Option<EditorState>,
     pub announcements: Vec<(String,DateTime<Local>)>,
+    pub songs_history: Option<SongsHistory>,
     mpv_cache : MpvCache,
     unsaved_changes : bool,
 }
@@ -70,7 +72,8 @@ impl<'a> ToyundaPlayer<'a> {
                 pause_before_next: false
             })),
             manager: None,
-            editor_state:None,
+            editor_state: None,
+            songs_history: None,
             announcements: vec![],
             mpv_cache:MpvCache::new(),
             unsaved_changes:false
@@ -182,6 +185,16 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             }
         }
+        if let Some(songs_history) = arg_matches.value_of("songs_history") {
+            match SongsHistory::new(songs_history) {
+                Ok(songs_history) => {
+                    self.songs_history = Some(songs_history);
+                },
+                Err(e) => {
+                    error!("songs_history parsing : {}",e);
+                }
+            }
+        };
         if (is_playlist_empty == false) {
             if let Err(e) = self.execute_command(Command::PlayNext) {
                 error!("Error trying to play first file : '{}'",e);
@@ -230,6 +243,9 @@ impl<'a> ToyundaPlayer<'a> {
             Some(video_path) => {
                 match self.mpv.command(&["loadfile", video_path.as_str()]) {
                     Ok(_) => {
+                        if let Some(ref mut songs_history) = self.songs_history {
+                            songs_history.insert_song_history_entry(&*format!("{}",&video_meta));
+                        };
                         self.state.write().unwrap().playing_state =
                             PlayingState::Playing(video_meta);
                         info!("Now playing : '{}'", &video_path);

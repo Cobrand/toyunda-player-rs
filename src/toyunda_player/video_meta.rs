@@ -3,6 +3,7 @@ extern crate serde_yaml;
 use ::subtitles::song_info::SongInfo;
 use super::time_info::TimeInfo;
 use std::path::{Path, PathBuf};
+use std::fmt;
 
 #[derive(Debug,Deserialize,Serialize,Clone)]
 pub struct VideoMeta {
@@ -114,6 +115,17 @@ impl VideoMeta {
         match self.frm_path {
             None => self.video_path.with_extension("frm"),
             Some(ref path) => path.clone(),
+        }
+    }
+}
+
+impl fmt::Display for VideoMeta {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use std::ffi::OsStr;
+        if let Some((string,_)) = self.song_info.credit_sentences() {
+            write!(f, "{}", string)
+        } else {
+            write!(f, "{}", self.video_path.file_name().unwrap_or(OsStr::new("[UNKNOWN FILE]")).to_string_lossy())
         }
     }
 }
