@@ -65,7 +65,6 @@ pub struct Manager {
 
 impl Manager {
     fn add_yaml_file<P: AsRef<Path>>(yaml_files: &mut Vec<VideoMeta>,
-
                                      file: P)
                                      -> Result<(), String> {
         let file = file.as_ref();
@@ -283,7 +282,8 @@ impl Manager {
             Self::logs()
         }, "get_logs");
         let mut mount = Mount::new();
-        mount.mount("/", Static::new("web/"));
+        let web_directory = ::std::env::current_exe().unwrap().parent().unwrap().join("web/");
+        mount.mount("/", Static::new(&web_directory));
         mount.mount("/api", api_handler);
         let listening = Iron::new(mount).http(address).unwrap();
         Ok(Manager {

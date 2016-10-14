@@ -111,11 +111,12 @@ fn main() {
             Ok(())
         }
     }
+    let toyunda_log_path = ::std::env::current_exe().unwrap().with_file_name("toyunda.log");
     let fileout_config = fern::DispatchConfig {
         format: Box::new(|msg:&str, level: &log::LogLevel, _:&log::LogLocation|{
             format!("[{}][{}] {}",chrono::Local::now().format("%F %T"),level,msg)
         }),
-        output: vec![fern::OutputConfig::file("toyunda.log")],
+        output: vec![fern::OutputConfig::file(&toyunda_log_path)],
         level: log::LogLevelFilter::Info
     };
     // init the logger

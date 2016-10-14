@@ -9,7 +9,7 @@ fn main() {
         .truncate(true)
         .open("build.log")
         .expect("Failed to open build.log");
-    let _r = match Command::new("python3").arg("build.py").output() {
+    let _r = match Command::new("python").arg("build.py").output() {
         Ok(Output {
             status: exit_status,
             stdout,
