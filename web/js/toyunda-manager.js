@@ -1,3 +1,18 @@
+function human_since(timestamp){
+	if (timestamp == null) {
+		return "Jamais";
+	}
+	var cur_timestamp = Date.now() / 1000;
+	var delta = (cur_timestamp - timestamp) / 3600;
+	if (delta < 1) {
+		return "< 1h";
+	} else if (delta < 48) {
+		return Math.floor(delta)+"h";
+	} else {
+		return Math.floor(delta / 24) + "j";
+	}
+}
+
 function sum_duration_to_string(list) {
 	var i = 0;
 	var len = list.length;
@@ -273,6 +288,7 @@ function update() {
 				e.formatted_name = format_name(e.song_info,e.video_path);
 				e.formatted_fullinfo = format_fullinfo(e);
 				e.human_duration = human_duration(e.video_duration);
+				e.human_last_played = human_since(e.last_played);
 				e.index = i;
 				return e;
 			});
@@ -299,6 +315,7 @@ AJAX.get("/api/listing",function(status,answer) {
 				entry.index = i;
 				entry.human_duration = human_duration(entry.video_duration);
 				entry.formatted_fullinfo = format_fullinfo(entry);
+				entry.human_last_played = human_since(entry.last_played);
 			}
 			vue.listing = answer
 		} else {

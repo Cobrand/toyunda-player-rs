@@ -138,7 +138,7 @@ impl fmt::Display for VideoMeta {
         if let Some((string,_)) = self.song_info.credit_sentences() {
             write!(f, "{}", string)
         } else {
-            write!(f, "{}", self.video_path.file_name().unwrap_or(OsStr::new("[UNKNOWN FILE]")).to_string_lossy())
+            write!(f, "{}", self.video_path.file_stem().unwrap_or(OsStr::new("[UNKNOWN FILE]")).to_string_lossy())
         }
     }
 }

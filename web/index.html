@@ -68,7 +68,7 @@
 			<input placeholder="Recherche" v-model.trim="search" type="text" class="mainsearch">
 			<table class="listing">
 				<thead>
-					<th>Musique</th><th>Artiste</th><th>Média</th><th>Année</th><th>Durée</th><th>Actions</th>
+					<th>Musique</th><th>Artiste</th><th>Média</th><th>Année</th><th>Durée</th><th>Actions</th><th>Dernière<br />Lecture</th>
 				</thead>
 				<tbody>
 					<tr v-for="entry in filtered_list" v-on:click="add_to_draft(entry)">
@@ -80,6 +80,7 @@
 						<td class="entry_actions">
 							<input class="button playlist_entry_button" type="button" v-on:click.stop="add_to_queue(entry)" value="+Playlist">
 						</td>
+						<td>{{entry.human_last_played}}</td>
 					</tr>
 				</tbody>
 			</table>
