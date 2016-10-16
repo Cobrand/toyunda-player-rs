@@ -23,6 +23,7 @@
 					<h2> BROUILLON </h2>
 					<input class="button" type="button" v-on:click="draft_shuffle()" value="Mélanger" v-bind:disabled="draft_panel_disabled">
 					<input class="button" type="button" v-on:click="draft_transfer()" value="Transférer >" v-bind:disabled="draft_panel_disabled || !connected">
+					<input class="button" type="button" v-on:click="draft_add_random()" value="Aléatoire">
 					<span v-if="draft_duration != null" style="float:right;padding-right:4px">Durée : <b>{{ draft_duration }}</b></span>
 					<div id="draft_list">
 						<div v-for="(entry,index) in draft" class="queue_element">

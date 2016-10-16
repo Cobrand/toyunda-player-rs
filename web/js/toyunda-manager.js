@@ -268,9 +268,26 @@ var vue = new Vue({
 			},function(){
 				this.announcement = "";
 			}.bind(this))
+		},
+		draft_add_random:function(){
+			var index = Math.floor(Math.random() * this.listing.length);
+			this.draft_indexes.push(index);
+		},
+		draft_remove_last:function(){
+			if (this.draft_indexes.length > 0) {
+				this.draft_indexes.pop()
+			}
 		}
 	}
 });
+
+document.addEventListener("keypress",function(event){
+	if (event.charCode == 97) {
+		vue.draft_add_random();
+	} else if (event.charCode == 120) {
+		vue.draft_remove_last();
+	}
+})
 
 function update() {
 	AJAX.get("/api/state",function(status,answer) {
