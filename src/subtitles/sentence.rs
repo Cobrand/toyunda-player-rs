@@ -127,3 +127,26 @@ impl From<SentenceOptions> for SentenceParameters {
         }
     }
 }
+
+#[test]
+fn test_sentence_options_propagation(){
+    use super::*;
+    use utils::RGB;
+    let default_options = SentenceOptions {
+        syllable_options: Some(SyllableOptions {
+            alive_color: Some(Color::new(128,0,0)),
+            dead_color: Some(Color::new(0,128,0)),
+            transition_color: None,
+            outline: None
+        }),
+        ..SentenceOptions::default()
+    };
+    let syllable_options = SyllableOptions {
+        alive_color: Some(Color::new(172,172,172)),
+        ..SyllableOptions::default()
+    };
+    let syllable_parameters = SyllableParameters::from(syllable_options.or_syllable_options(default_options.as_syllable_options()).unwrap());
+    assert_eq!(syllable_parameters.alive_color,Color::new(172,172,172));
+    assert_eq!(syllable_parameters.dead_color,Color::new(0,128,0));
+    assert_eq!(syllable_parameters.transition_color,Color::new(255,0,0));
+}
