@@ -386,8 +386,8 @@ impl<'a> ToyundaPlayer<'a> {
                 };
                 overlay_frame.text_units.push(TextUnit {
                     text: vec![text_sub_unit],
-                    size: Size::FitPercent(Some(0.98), Some(0.065)),
-                    pos: (PosX::FromLeftPercent(0.03),
+                    size: Size::FitPercent(Some(0.96), Some(0.065)),
+                    pos: (PosX::FromLeftPercent(0.02),
                           PosY::FromBottomPercent(0.03)),
                     anchor: (0.0, 1.0),
                 });
