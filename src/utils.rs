@@ -1,4 +1,3 @@
-extern crate sdl2;
 use std::cmp::{max, min};
 
 use std::path::{Path, PathBuf};
@@ -111,8 +110,9 @@ pub fn for_each_in_dir<P: AsRef<Path>, F: Fn(&Path) -> bool>(directory: P,
 
 #[test]
 fn test_bgr() {
+    use ::overlay::Color;
     let sample_bgr = "FF0000";
-    assert_eq!(parse_bgr(sample_bgr).unwrap(), Color::RGB(0, 0, 255));
+    assert_eq!(parse_bgr::<Color>(sample_bgr).unwrap(), Color::new(0, 0, 255));
 }
 
 #[test]
