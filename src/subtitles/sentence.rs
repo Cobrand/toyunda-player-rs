@@ -1,4 +1,4 @@
-use super::{Syllable,SyllableOptions,Subtitles,SubtitlesOptions};
+use super::{Syllable,SyllableOptions,Subtitles,SubtitlesOptions,AsSyllableOptions};
 use super::pos::RowPosition;
 use std::ops::Deref;
 
@@ -16,7 +16,7 @@ pub trait AsSentenceOptions {
     fn or_sentence_options(&self,other:Option<&SentenceOptions>) -> Option<SentenceOptions> {
         match (self.as_sentence_options(),other) {
             (Some(s),Some(other)) => Some(SentenceOptions {
-                syllable_options: s.syllable_options.or(other.syllable_options),
+                syllable_options: s.syllable_options.or_syllable_options(other.syllable_options.as_ref()),
                 display_logo: s.display_logo.or(other.display_logo),
                 transition_time_after: s.transition_time_after.or(other.transition_time_after),
                 fade_time_after: s.fade_time_after.or(other.fade_time_after),
