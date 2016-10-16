@@ -135,6 +135,9 @@ impl<'a> ToyundaPlayer<'a> {
         } else if arg_matches.is_present("edit_mode") {
             self.options.mode = ToyundaMode::EditMode;
             self.editor_state = None;
+            if let Err(e) = self.mpv.set_option("loop-file","inf") {
+                error!("loop file option failed : {}",e);
+            };
             debug!("Enabling edit mode");
             enable_manager = false;
         } else {
@@ -553,14 +556,7 @@ impl<'a> ToyundaPlayer<'a> {
             self.clear_subtitles();
             self.execute_command(Command::PlayNext)
         } else {
-            let video_path : String = if let &PlayingState::Playing(ref video_meta) =
-                &self.state.read().unwrap().playing_state {
-                String::from(video_meta.video_path.to_str().unwrap())
-            } else {
-                panic!("EditMode should never be in Idle state !!!");
-            };
-            try!(self.mpv.command(&["loadfile",&*video_path]));
-            Ok(ToyundaAction::Nothing)
+            unreachable!()
         }
     }
 
