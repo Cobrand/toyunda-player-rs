@@ -591,6 +591,7 @@ impl<'a> ToyundaPlayer<'a> {
                     None, None);
                 match res {
                     Ok(1) => {
+                        self.save_subtitles();
                         true
                     },
                     Ok(2) => true,
