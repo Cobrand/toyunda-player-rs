@@ -731,12 +731,15 @@ impl<'a> ToyundaPlayer<'a> {
             },
             Event::KeyDown { keycode: Some(Keycode::J), ..} => {
                 let delta = -10i32;
-                if let Some(ref editor) = self.editor_state {
-                    if let Some(ref mut subtitles) = self.subtitles {
+                if let Some(ref mut subtitles) = self.subtitles {
+                    if is_alt_pressed && is_shift_pressed {
                         self.unsaved_changes = true;
-                        if is_alt_pressed && is_shift_pressed {
-                            editor.shift_subtitles_time(subtitles,delta);
-                        }else if is_alt_pressed {
+                        EditorState::shift_subtitles_time(subtitles,delta);
+                        return Ok(ToyundaAction::Nothing);
+                    };
+                    if let Some(ref editor) = self.editor_state {
+                        self.unsaved_changes = true;
+                        if is_alt_pressed {
                             editor.shift_cur_syllable_end(subtitles,delta);
                         } else if is_shift_pressed {
                             editor.shift_cur_syllable(subtitles,delta);
@@ -748,13 +751,16 @@ impl<'a> ToyundaPlayer<'a> {
                 Ok(ToyundaAction::Nothing)
             },
             Event::KeyDown { keycode: Some(Keycode::K), ..} => {
-                let delta = 10i32; // 10 ms shift
-                if let Some(ref editor) = self.editor_state {
-                    if let Some(ref mut subtitles) = self.subtitles {
+                let delta = 10i32;
+                if let Some(ref mut subtitles) = self.subtitles {
+                    if is_alt_pressed && is_shift_pressed {
                         self.unsaved_changes = true;
-                        if is_alt_pressed && is_shift_pressed {
-                            editor.shift_subtitles_time(subtitles,delta);
-                        }else if is_alt_pressed {
+                        EditorState::shift_subtitles_time(subtitles,delta);
+                        return Ok(ToyundaAction::Nothing);
+                    };
+                    if let Some(ref editor) = self.editor_state {
+                        self.unsaved_changes = true;
+                        if is_alt_pressed {
                             editor.shift_cur_syllable_end(subtitles,delta);
                         } else if is_shift_pressed {
                             editor.shift_cur_syllable(subtitles,delta);

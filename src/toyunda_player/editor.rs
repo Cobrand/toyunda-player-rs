@@ -68,7 +68,7 @@ impl EditorState {
         self.shift_cur_syllable_end(subs,shift);
     }
 
-    pub fn shift_subtitles_time(&self,subs:&mut Subtitles,shift:i32) {
+    pub fn shift_subtitles_time(subs:&mut Subtitles,shift:i32) {
         let all_syllables =
             subs.sentences.iter_mut()
                           .flat_map(|sen| sen.syllables.iter_mut());
