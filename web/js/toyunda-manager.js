@@ -123,9 +123,15 @@ var vue = new Vue({
 			var search = this.search ;
 			var listing = this.listing;
 			if (search != "") {
-				listing = listing.filter(function(e) {
-					return e.formatted_name.indexOf(search) !== -1
-				});
+				var searches = search.match(/\S+/g);
+				if (searches != null) {
+					for (var i = 0; i < searches.length ; i++) {
+						var search_regexp = new RegExp(searches[i],'i');
+						listing = listing.filter(function(e) {
+							return search_regexp.test(e.formatted_name);
+						});
+					}
+				}
 			}
 			return listing ;
 		},
@@ -327,7 +333,12 @@ AJAX.get("/api/listing",function(status,answer) {
 		if (Array.isArray(answer)) {
 			var len = answer.length ;
 			for (var i = 0 ; i < len ; i++ ) {
-				var entry = answer[i] ;
+				var entry = answer[i];
+				entry.search_string = "";
+				entry.search_string += (entry.artist || "");
+				entry.search_string += (entry.year || "");
+				entry.search_string += (entry.language || "");
+				entry.search_string += format_name(entry.song_info,entry.video_path);
 				entry.formatted_name = format_name(entry.song_info,entry.video_path);
 				entry.index = i;
 				entry.human_duration = human_duration(entry.video_duration);

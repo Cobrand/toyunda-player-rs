@@ -16,7 +16,7 @@
 			<br />
 			<input class="button" type="button" v-on:click="pause_after_next()" value="Pause avant prochain" v-bind:disabled="!connected">
 			<input class="button" type="button" v-on:click="toggle_subtitles()" value="Basculer sous-titres" v-bind:disabled="!connected">
-			<input v-model="announcement_message" placeholder="Annonce" v-bind:disabled="!connected">
+			<input v-model="announcement_message" v-on:keypress.stop placeholder="Annonce" v-bind:disabled="!connected">
 			<input class="button" type="button" v-on:click="send_announcement()" value="Envoyer" v-bind:disabled="announcement_button_disabled || !connected">
 			<div class="panel">
 				<div id="draft_panel">
@@ -66,7 +66,7 @@
 					</div>
 				</div>
 			</div>
-			<input placeholder="Recherche" v-model.trim="search" type="text" class="mainsearch">
+			<input placeholder="Recherche" v-on:keypress.stop v-model.trim="search" type="text" class="mainsearch">
 			<table class="listing">
 				<thead>
 					<th>Musique</th><th>Artiste</th><th>Média</th><th>Année</th><th>Durée</th><th>Actions</th><th>Dernière<br />Lecture</th>
