@@ -8,7 +8,7 @@
 	</head>
 	<body>
 		<h1>TOYUNDA MANAGER</h1>
-		<div id="app">
+		<div id="app" v-bind:class="panel_class">
 			<div style="float:right;">
 				<input class="button" type="button" v-on:click="set_panel(0)" value="global">
 				<input class="button" type="button" v-on:click="set_panel(1)" value="brouillon">
@@ -19,6 +19,13 @@
 			<input class="button bg_red" type="button" v-on:click="quit()" value="Quitter" v-bind:disabled="!connected">
 			<input class="button bg_red" type="button" v-on:click="quit_on_finish()" value="Quitter à la fin de la liste" v-bind:disabled="!connected">
 			<br />
+			<div style="float:right;">
+				Taille : <select v-model="screen_size">
+					<option value="small" selected="selected">Petit</option>
+					<option value="large">Grand</option>
+					<option value="xlarge">Très grand</option>
+				</select>
+			</div>
 			<input class="button" type="button" v-on:click="pause_after_next()" value="Pause avant prochain" v-bind:disabled="!connected">
 			<input class="button" type="button" v-on:click="toggle_subtitles()" value="Basculer sous-titres" v-bind:disabled="!connected">
 			<input v-model="announcement_message" v-on:keypress.stop placeholder="Annonce" v-bind:disabled="!connected">

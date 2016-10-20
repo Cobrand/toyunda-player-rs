@@ -110,7 +110,7 @@ function format_fullinfo(video_meta){
 var vue = new Vue({
 	el: '#app',
 	data : {
-		screen_size: "S", // S, M, L, XL
+		screen_size: "small", // small, large or xlarge
 		panel: 0,
 		search : "",
 		playlist : [],
@@ -180,6 +180,13 @@ var vue = new Vue({
 		},
 		panel_half : function() {
 			return this.panel == 0;
+		},
+		panel_class : function() {
+			return {
+				size_small:this.screen_size == "small",
+				size_large:this.screen_size == "large",
+				size_xlarge:this.screen_size == "xlarge"
+			}
 		}
 	},
 	methods : {
@@ -348,7 +355,7 @@ AJAX.get("/api/listing",function(status,answer) {
 				entry.search_string += (entry.language || "") + " ";
 				if (entry.alt_media_titles) {
 					entry.alt_media_titles.forEach(function(e) {
-						entry.search_string += e + " "; 
+						entry.search_string += e + " ";
 					});
 				}
 				entry.search_string += format_name(entry.song_info,entry.video_path);

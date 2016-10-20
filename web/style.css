@@ -119,7 +119,6 @@ table.listing tbody tr:last-child td {
 }
 
 .panel {
-	height: 475px;
 	display: -ms-flexbox;
 	display: -webkit-flex;
 	display: flex;
@@ -171,13 +170,35 @@ table.listing tbody tr:last-child td {
 }
 
 #current_plus_playlist {
-	max-height:405px;
 	overflow-y:auto;
 }
 
 #draft_list {
-	max-height:405px;
 	overflow-y:auto;
+}
+
+.size_small .panel {
+	height: 475px;
+}
+
+.size_small #draft_list, .size_small #current_plus_playlist {
+	max-height:405px
+}
+
+.size_large .panel {
+	height: 720px;
+}
+
+.size_large #draft_list, .size_small #current_plus_playlist {
+	max-height:650px
+}
+
+.size_xlarge .panel {
+	height: 1070px;
+}
+
+.size_xlarge #draft_list, .size_small #current_plus_playlist {
+	max-height:1000px
 }
 
 #draft_list > div {
