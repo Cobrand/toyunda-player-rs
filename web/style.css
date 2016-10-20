@@ -141,7 +141,7 @@ table.listing tbody tr:last-child td {
 }
 
 .panel > div {
-	width:50%;
+	width:100%;
 	margin: 2px;
 	padding:0;
 	border-radius : 5px;
@@ -149,6 +149,10 @@ table.listing tbody tr:last-child td {
 	-webkit-flex: 0 1 auto;
 	-ms-flex: 0 1 auto;
 	flex: 0 1 auto;
+}
+
+.panel.panel_half > div {
+	width:50%;
 }
 
 #draft_panel > h2, #playlist_panel > h2 {

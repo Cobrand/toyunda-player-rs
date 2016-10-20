@@ -9,6 +9,11 @@
 	<body>
 		<h1>TOYUNDA MANAGER</h1>
 		<div id="app">
+			<div style="float:right;">
+				<input class="button" type="button" v-on:click="set_panel(0)" value="global">
+				<input class="button" type="button" v-on:click="set_panel(1)" value="brouillon">
+				<input class="button" type="button" v-on:click="set_panel(2)" value="playlist">
+			</div>
 			<input class="button" type="button" v-on:click="play_next()" v-bind:value="play_next_value" v-bind:disabled="play_next_disabled || !connected">
 			<input class="button" type="button" v-on:click="stop_current()" value="Stop" v-bind:disabled="stop_button_disabled || !connected">
 			<input class="button bg_red" type="button" v-on:click="quit()" value="Quitter" v-bind:disabled="!connected">
@@ -18,8 +23,8 @@
 			<input class="button" type="button" v-on:click="toggle_subtitles()" value="Basculer sous-titres" v-bind:disabled="!connected">
 			<input v-model="announcement_message" v-on:keypress.stop placeholder="Annonce" v-bind:disabled="!connected">
 			<input class="button" type="button" v-on:click="send_announcement()" value="Envoyer" v-bind:disabled="announcement_button_disabled || !connected">
-			<div class="panel">
-				<div id="draft_panel">
+			<div class="panel" v-bind:class="{panel_half:panel_half}">
+				<div v-if="panel == 0 || panel == 1" id="draft_panel" >
 					<h2> BROUILLON </h2>
 					<input class="button" type="button" v-on:click="draft_shuffle()" value="Mélanger" v-bind:disabled="draft_panel_disabled">
 					<input class="button" type="button" v-on:click="draft_transfer()" value="Transférer >" v-bind:disabled="draft_panel_disabled || !connected">
@@ -36,8 +41,8 @@
 						</div>
 					</div>
 				</div>
-				<div>
-					<div v-if="connected" id="playlist_panel">
+				<template v-if="panel == 0 || panel == 2">
+					<div v-if="connected" id="playlist_panel" v-bind:class="{half_panel : panel_half}">
 						<h2> EN COURS </h2>
 						<input class="button" type="button" v-on:click="clear_queue()" value="Vider la liste" v-bind:disabled="play_next_disabled">
 						<span v-if="playlist_duration != null" style="float:right;padding-right:4px">Durée : <b>{{ playlist_duration }}</b></span>
@@ -64,7 +69,7 @@
 						<h1>Déconnecté</h1>
 						Connexion au Player interrompue
 					</div>
-				</div>
+				</template>
 			</div>
 			<input placeholder="Recherche" v-on:keypress.stop v-model.trim="search" type="text" class="mainsearch">
 			<table class="listing">

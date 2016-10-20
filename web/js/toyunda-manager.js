@@ -110,6 +110,8 @@ function format_fullinfo(video_meta){
 var vue = new Vue({
 	el: '#app',
 	data : {
+		screen_size: "S", // S, M, L, XL
+		panel: 0,
 		search : "",
 		playlist : [],
 		listing : [],
@@ -175,6 +177,9 @@ var vue = new Vue({
 				return null;
 			}
 			return sum_duration_to_string(this.playlist);
+		},
+		panel_half : function() {
+			return this.panel == 0;
 		}
 	},
 	methods : {
@@ -283,6 +288,9 @@ var vue = new Vue({
 			if (this.draft_indexes.length > 0) {
 				this.draft_indexes.pop()
 			}
+		},
+		set_panel:function(i){
+			this.panel = i;
 		}
 	}
 });
@@ -335,9 +343,14 @@ AJAX.get("/api/listing",function(status,answer) {
 			for (var i = 0 ; i < len ; i++ ) {
 				var entry = answer[i];
 				entry.search_string = "";
-				entry.search_string += (entry.artist || "");
-				entry.search_string += (entry.year || "");
-				entry.search_string += (entry.language || "");
+				entry.search_string += (entry.artist || "") + " ";
+				entry.search_string += (entry.year || "") + " ";
+				entry.search_string += (entry.language || "") + " ";
+				if (entry.alt_media_titles) {
+					entry.alt_media_titles.forEach(function(e) {
+						entry.search_string += e + " "; 
+					});
+				}
 				entry.search_string += format_name(entry.song_info,entry.video_path);
 				entry.formatted_name = format_name(entry.song_info,entry.video_path);
 				entry.index = i;
