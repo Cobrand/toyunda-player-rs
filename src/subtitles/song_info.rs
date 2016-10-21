@@ -14,6 +14,7 @@ pub enum Language {
 #[allow(dead_code)]
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub enum MusicType {
+    AMV,
     Opening,
     Ending,
     Insert,
@@ -25,6 +26,7 @@ pub enum MusicType {
 impl MusicType {
     pub fn short(&self) -> &str {
         match *self {
+            MusicType::AMV => "AMV",
             MusicType::Opening => "OP",
             MusicType::Ending => "ED",
             MusicType::Insert => "INS",
@@ -35,6 +37,7 @@ impl MusicType {
 
     pub fn long(&self) -> &str {
         match *self {
+            MusicType::AMV => "AMV",
             MusicType::Opening => "Opening",
             MusicType::Ending => "Ending",
             MusicType::Insert => "Insert",
@@ -44,6 +47,7 @@ impl MusicType {
     }
 }
 
+/// Case of an AMV, please tell the source of the visual material
 #[allow(dead_code)]
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub enum MediaType {

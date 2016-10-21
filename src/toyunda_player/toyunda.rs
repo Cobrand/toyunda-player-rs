@@ -80,14 +80,14 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
-    pub fn save_subtitles(&mut self) {
+    pub fn save_subtitles(&mut self,wait:bool) {
         match &self.state.read().unwrap().playing_state {
             &PlayingState::Playing(ref video_meta) => {
                 if let Some(ref sub) = self.subtitles {
                     let json_file_path = video_meta.json_path();
                     let sub: Subtitles = sub.clone();
                     self.unsaved_changes = false;
-                    ::std::thread::spawn(move || {
+                    let thread = ::std::thread::spawn(move || {
                         match ::std::fs::File::create(&json_file_path) {
                             Ok(mut file) => {
                                 serde_json::to_writer_pretty(&mut file, &sub).unwrap();
@@ -98,6 +98,11 @@ impl<'a> ToyundaPlayer<'a> {
                             }
                         }
                     });
+                    if wait {
+                        if let Err(_) = thread.join() {
+                            error!("Some error happened in the save json thread");
+                        }
+                    }
                 };
             }
             _ => {
@@ -591,7 +596,7 @@ impl<'a> ToyundaPlayer<'a> {
                     None, None);
                 match res {
                     Ok(1) => {
-                        self.save_subtitles();
+                        self.save_subtitles(true);
                         true
                     },
                     Ok(2) => true,
@@ -987,7 +992,7 @@ impl<'a> ToyundaPlayer<'a> {
             }
             Event::KeyDown { keycode: Some(Keycode::S), repeat: false, .. } if mode !=
                                                                                KaraokeMode => {
-                self.save_subtitles();
+                self.save_subtitles(false);
                 Ok(ToyundaAction::Nothing)
             }
             Event::KeyDown { keycode: Some(Keycode::V), repeat: false, .. } => {
