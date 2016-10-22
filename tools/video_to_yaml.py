@@ -17,7 +17,6 @@ if __name__=="__main__":
             f.seek(0);
             yaml_contents_str = f.read();
             yaml_contents = load(yaml_contents_str);
-            print(yaml_contents)
             if yaml_contents is None:
                 yaml_contents = {};
             yaml_contents['video_path'] = os.path.split(file)[1]

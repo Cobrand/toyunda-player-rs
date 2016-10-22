@@ -254,6 +254,9 @@ impl<'a> ToyundaPlayer<'a> {
                         if let Some(ref mut songs_history) = self.songs_history {
                             songs_history.insert_song_history_entry(&*format!("{}",&video_meta));
                         };
+                        if let Err(e) = self.displayer.renderer.window_mut().unwrap().set_title(&*format!("Toyunda Player - {}",video_meta)) {
+                            warn!("Unexpected error when setting title : {}",e);
+                        };
                         self.state.write().unwrap().playing_state =
                             PlayingState::Playing(video_meta);
                         info!("Now playing : '{}'", &video_path);
@@ -556,13 +559,12 @@ impl<'a> ToyundaPlayer<'a> {
     }
 
     pub fn on_end_file(&mut self) -> Result<ToyundaAction> {
-        if self.options.mode != ToyundaMode::EditMode {
-            self.state.write().unwrap().playing_state = PlayingState::Idle;
-            self.clear_subtitles();
-            self.execute_command(Command::PlayNext)
-        } else {
-            unreachable!()
-        }
+        self.state.write().unwrap().playing_state = PlayingState::Idle;
+        if let Err(e) = self.displayer.renderer.window_mut().unwrap().set_title("Toyunda Player") {
+            warn!("Unexpected error when setting title : {}",e);
+        };
+        self.clear_subtitles();
+        self.execute_command(Command::PlayNext)
     }
 
     /// true : confirm terminate
