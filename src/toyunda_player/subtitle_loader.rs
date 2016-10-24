@@ -20,6 +20,7 @@ impl<'a> Load for (Option<&'a Path>,&'a Path,f64) {
         let lyr_file = try!(File::open(lyr).map_err(|e| e.description().to_string()));
         let lyr_file = BufReader::new(&lyr_file);
         let mut subtitles_options : SubtitlesOptions = Default::default();
+        let mut current_sentence_options : Option<SentenceOptions> = None;
         for (line_number, lyr_line) in lyr_file.lines().enumerate() {
             let lyr_line = try!(lyr_line.map_err(|e| {
                 format!("IoError when reading {} at line {} : '{}'",
@@ -27,7 +28,7 @@ impl<'a> Load for (Option<&'a Path>,&'a Path,f64) {
                         line_number,
                         e.description())
             }));
-            if (!lyr_line.starts_with("%") && !lyr_line.is_empty()) {
+            if (!lyr_line.starts_with("%") && !lyr_line.starts_with("#") && !lyr_line.is_empty()) {
                 let mut syllables: Vec<_> = lyr_line.split('&')
                     .map(|s| {
                         Syllable {
@@ -44,7 +45,7 @@ impl<'a> Load for (Option<&'a Path>,&'a Path,f64) {
                 let sentence = Sentence {
                     syllables: syllables,
                     position: RowPosition::default(),
-                    sentence_options: None,
+                    sentence_options: current_sentence_options,
                 };
                 subtitles.sentences.push(sentence);
             } else if lyr_line.starts_with("%color") {
@@ -75,7 +76,10 @@ impl<'a> Load for (Option<&'a Path>,&'a Path,f64) {
                 }
                 let mut sentence_options = SentenceOptions::default();
                 sentence_options.syllable_options = Some(syllable_options);
-                subtitles_options.sentence_options = Some(sentence_options);
+                match subtitles.sentences.len() {
+                    0 => {subtitles_options.sentence_options = Some(sentence_options)}
+                    _ => {current_sentence_options = Some(sentence_options)}
+                };
             };
         }
         if let Some(frm) = frm {
@@ -93,7 +97,7 @@ impl<'a> Load for (Option<&'a Path>,&'a Path,f64) {
                     let line_frames: Result<Vec<_>, _> = frm_line.split(' ')
                         .map(|s| s.parse::<u32>())
                         .collect();
-                    let begin_end = line_frames.map_err(|e| format!("{} at line {}", e, frm_line))
+                    let begin_end = line_frames.map_err(|e| format!("{} at line {}", e, line_number))
                         .and_then(|line_frames| {
                             match (line_frames.get(0), line_frames.get(1), line_frames.get(2)) {
                                 (Some(&begin), Some(&end), None) => Ok((begin, end)),
