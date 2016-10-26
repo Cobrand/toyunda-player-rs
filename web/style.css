@@ -189,7 +189,7 @@ table.listing tbody tr:last-child td {
 	height: 720px;
 }
 
-.size_large #draft_list, .size_small #current_plus_playlist {
+.size_large #draft_list, .size_large #current_plus_playlist {
 	max-height:650px
 }
 
@@ -197,7 +197,7 @@ table.listing tbody tr:last-child td {
 	height: 1070px;
 }
 
-.size_xlarge #draft_list, .size_small #current_plus_playlist {
+.size_xlarge #draft_list, .size_xlarge #current_plus_playlist {
 	max-height:1000px
 }
 
