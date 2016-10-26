@@ -212,7 +212,7 @@ var vue = new Vue({
 				id:this.draft_indexes[index],
 				pos:index
 			},function(){
-				this.draft_indexes.splice(0);
+				this.draft_indexes.splice(index, 1);
 			}.bind(this));
 		},
 		draft_transfer_single:function(index) {
