@@ -11,6 +11,8 @@ pub struct FontSet {
     rwops_regular: RWops<'static>,
     #[allow(dead_code)]
     rwops_bold: RWops<'static>,
+    #[allow(dead_code)]
+    rwops_lbold: RWops<'static>,
     /// size of the loaded font
     font_size: u16,
     /// Font object without outline
@@ -106,6 +108,7 @@ impl FontList {
             result.fonts.push(FontSet {
                 rwops_regular: rwops_regular,
                 rwops_bold: rwops_bold,
+                rwops_lbold: rwops_lbold,
                 font_size: font_size,
                 font_regular: font_regular,
                 font_bold: font_bold,
