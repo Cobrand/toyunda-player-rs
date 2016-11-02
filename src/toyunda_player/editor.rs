@@ -163,7 +163,7 @@ impl EditorState {
         };
     }
 
-    pub fn to_overlay_frame(&self,subs:&Subtitles) -> Result<OverlayFrame,String> {
+    pub fn to_overlay_frame(&self, now: u32, subs:&Subtitles) -> Result<OverlayFrame,String> {
         let mut text_units : Vec<TextUnit> = vec![];
         let cur_syl = self.current_syllable;
         let cur_sen = self.current_sentence;
@@ -290,8 +290,8 @@ impl EditorState {
             text_units.push( TextUnit {
                 text: vec![TextSubUnit {
                     text : match current.end {
-                        Some(end) => format!("{} - {}",current.begin,end),
-                        None => format!("{}",current.begin)
+                        Some(end) => format!("{} - [{} - {}]",now,current.begin,end),
+                        None => format!("{} - [{}",now,current.begin)
                     },
                     color:AlphaColor::new_rgba(128,255,128,192),
                     shadow:None,

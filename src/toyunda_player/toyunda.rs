@@ -509,7 +509,7 @@ impl<'a> ToyundaPlayer<'a> {
         if let Some(ref subtitles) = self.subtitles {
             if self.state.read().unwrap().display_subtitles {
                 let overlay_frame = if let Some(ref editor_state) = self.editor_state {
-                    editor_state.to_overlay_frame(subtitles)
+                    editor_state.to_overlay_frame(time_pos, subtitles)
                 } else {
                     subtitles.to_overlay_frame(time_pos)
                 };
