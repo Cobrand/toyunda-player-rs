@@ -1,5 +1,90 @@
-#[derive(Debug,Clone,Serialize,Deserialize)]
-#[allow(dead_code)]
+extern crate serde;
+use serde::{Serialize,Deserialize,Serializer,Deserializer};
+
+impl Serialize for Language {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error>
+        where S: Serializer
+    {
+        serializer.serialize_str(match *self {
+            Language::Fr => "FR",
+            Language::En => "EN",
+            Language::Jp => "JAP",
+            Language::Ger => "GER",
+            Language::Rus => "RUS",
+            Language::Instrumental => "INSTRUMENTAL",
+            Language::Other(ref string) => string.as_str()
+        })
+    }
+}
+
+impl Deserialize for Language {
+    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error>
+        where D: Deserializer
+    {
+        struct Visitor;
+        impl ::serde::de::Visitor for Visitor {
+            type Value = Language;
+            fn visit_str<E>(&mut self, value: &str) -> Result<Language,E>
+                where E: ::serde::de::Error
+            {
+                Ok(match value {
+                    "JAP" | "Jp" | "JP" | "jp" | "jap" => Language::Jp,
+                    "FRA" | "Fr" | "FR" | "fr" | "fra" => Language::Fr,
+                    "GER" | "Ger" | "ger" => Language::Ger,
+                    "RUS" | "Rus" | "rus" => Language::Rus,
+                    "EN" | "ENG" | "En" | "en" => Language::En,
+                    "INSTRUMENTAL" => Language::Instrumental,
+                    s => Language::Other(String::from(s))
+                })
+            }
+        }
+
+        deserializer.deserialize_str(Visitor)
+    }
+}
+
+impl Serialize for MusicType {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error>
+        where S: Serializer
+    {
+        serializer.serialize_str(match *self {
+            MusicType::AMV => "AMV",
+            MusicType::Opening => "OP",
+            MusicType::Ending => "ED",
+            MusicType::Insert => "INS",
+            /// Original Sound Track
+            MusicType::OST => "OST",
+            MusicType::Other(ref string) => string.as_str(),
+        })
+    }
+}
+
+impl Deserialize for MusicType {
+    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error>
+        where D: Deserializer
+    {
+        struct Visitor;
+        impl ::serde::de::Visitor for Visitor {
+            type Value = MusicType;
+            fn visit_str<E>(&mut self, value: &str) -> Result<MusicType,E>
+                where E: ::serde::de::Error
+            {
+                Ok(match value {
+                    "AMV" | "Amv" | "amv" => MusicType::AMV,
+                    "OP" | "OPENING" | "Op" | "Opening" => MusicType::Opening,
+                    "ED" | "ENDING" | "Ed" | "Ending" => MusicType::Ending,
+                    "INS" | "INSERT" | "Insert" => MusicType::Insert,
+                    "OST" | "Ost" => MusicType::OST,
+                    s => MusicType::Other(String::from(s))
+                })
+            }
+        }
+        
+        deserializer.deserialize_str(Visitor)
+    }
+}
+
+#[derive(Debug,Clone)]
 pub enum Language {
     Fr,
     En,
@@ -11,8 +96,8 @@ pub enum Language {
     Other(String),
 }
 
-#[allow(dead_code)]
-#[derive(Debug,Clone,Serialize,Deserialize)]
+
+#[derive(Debug,Clone)]
 pub enum MusicType {
     AMV,
     Opening,
