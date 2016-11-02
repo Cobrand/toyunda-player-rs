@@ -16,6 +16,15 @@ pub trait AsSentenceOptions {
     fn or_sentence_options(&self,other:Option<&SentenceOptions>) -> Option<SentenceOptions> {
         match (self.as_sentence_options(),other) {
             (Some(s),Some(other)) => Some(SentenceOptions {
+                transitions: {
+                    use std::cmp::Ord;
+                    let mut t = s.transitions.iter()
+                        .chain(other.transitions.iter())
+                        .cloned()
+                        .collect::<Vec<SentenceTransition>>();
+                    t.sort_by(|a,b| Ord::cmp(&a.offset,&b.offset));
+                    t
+                },
                 syllable_options: s.syllable_options.or_syllable_options(other.syllable_options.as_ref()),
                 display_logo: s.display_logo.or(other.display_logo),
                 transition_time_after: s.transition_time_after.or(other.transition_time_after),
@@ -75,11 +84,13 @@ impl Sentence {
     }
 }
 
-#[derive(Debug,Clone,Copy,Default,Serialize,Deserialize)]
+#[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct SentenceOptions {
     /// Global SyllableOptions
     #[serde(skip_serializing_if="Option::is_none")]
     pub syllable_options: Option<SyllableOptions>,
+    #[serde(default,skip_serializing_if="Vec::is_empty")]
+    pub transitions: Vec<SentenceTransition>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub display_logo: Option<bool>,
     /// Total time where subtitles start appearing, before first syllable start playing
@@ -105,8 +116,15 @@ impl Deref for SentenceOptions {
     }
 }
 
+#[derive(Debug,Clone,Default,Serialize,Deserialize)]
+pub struct SentenceTransition {
+    offset: u32,
+    new_options: SentenceOptions
+}
+
 #[derive(Debug,Clone)]
 pub struct SentenceParameters {
+    pub transitions: Vec<SentenceTransition>,
     pub display_logo: bool,
     pub transition_time_before: u16,
     pub fade_time_before: u16,
@@ -118,6 +136,7 @@ pub struct SentenceParameters {
 impl From<SentenceOptions> for SentenceParameters {
     fn from(sentence_options: SentenceOptions) -> Self {
         SentenceParameters {
+            transitions: sentence_options.transitions,
             display_logo: sentence_options.display_logo.unwrap_or(true),
             transition_time_before: sentence_options.transition_time_before.unwrap_or(800),
             fade_time_before: sentence_options.fade_time_before.unwrap_or(200),

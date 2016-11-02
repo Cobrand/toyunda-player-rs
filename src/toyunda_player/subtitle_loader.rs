@@ -45,7 +45,7 @@ impl<'a> Load for (Option<&'a Path>,&'a Path,f64) {
                 let sentence = Sentence {
                     syllables: syllables,
                     position: RowPosition::default(),
-                    sentence_options: current_sentence_options,
+                    sentence_options: current_sentence_options.clone(),
                 };
                 subtitles.sentences.push(sentence);
             } else if lyr_line.starts_with("%color") {

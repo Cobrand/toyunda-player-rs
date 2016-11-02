@@ -22,7 +22,7 @@ pub struct Subtitles {
 fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
                          sentence: &mut Sentence,
                          default_sentence_options: Option<&SentenceOptions>) {
-    if let Some(row_pos) = sentence.sentence_options.and_then(|o|o.row_position) {
+    if let Some(row_pos) = sentence.sentence_options.as_ref().and_then(|o|o.row_position) {
         sentence.position = row_pos ;
         return; // life is meaningless
     }
@@ -68,7 +68,7 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
         // RowPosition::Row(_)
         let sentences_candidate_before = before_sentences.iter().filter(&filter_fun);
         let sentences_candidate_after = after_sentences.iter().filter(|s|{
-            if let Some(sentence_options) = s.sentence_options {
+            if let Some(ref sentence_options) = s.sentence_options {
                 sentence_options.row_position.is_some()
             } else {
                 false
@@ -84,7 +84,7 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
             }
         };
         for sentence in sentences_candidate_after {
-            if let RowPosition::Row(i) = sentence.sentence_options.unwrap().row_position.unwrap() {
+            if let &RowPosition::Row(i) = sentence.sentence_options.as_ref().unwrap().row_position.as_ref().unwrap() {
                 taken.push(i);
             };
         }
@@ -257,7 +257,7 @@ impl Deref for SubtitlesOptions {
     }
 }
 
-#[derive(Debug,Default,Clone,Copy,Serialize,Deserialize)]
+#[derive(Debug,Default,Clone,Serialize,Deserialize)]
 pub struct SubtitlesOptions {
     /// Global SentenceOptions
     pub sentence_options: Option<SentenceOptions>,
