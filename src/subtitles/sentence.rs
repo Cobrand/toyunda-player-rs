@@ -38,6 +38,37 @@ pub trait AsSentenceOptions {
             (None,None) => None
         }
     }
+    fn as_syllable_options(&self, offset: i32) -> Option<SyllableOptions> {
+        match self.as_sentence_options() {
+            None => None,
+            Some(sentence_options) => sentence_options.merge_at(offset).syllable_options
+        }
+    }
+}
+
+impl SentenceOptions {
+    fn bare(&self) -> SentenceOptions {
+        SentenceOptions {
+            transitions: Vec::new(),
+            syllable_options: self.syllable_options,
+            display_logo: self.display_logo,
+            transition_time_after: self.transition_time_after,
+            fade_time_after: self.fade_time_after,
+            transition_time_before: self.fade_time_before,
+            fade_time_before: self.fade_time_before,
+            row_position: self.row_position
+        }
+    }
+
+    pub fn merge_at(&self, offset: i32) -> SentenceOptions {
+        let mut sentence_options = Some(self.bare());
+        let iter = self.transitions.iter()
+            .take_while(|t| t.offset <= offset);
+        for s in iter {
+            sentence_options = s.new_options.or_sentence_options(sentence_options.as_ref());
+        };
+        sentence_options.unwrap()
+    }
 }
 
 impl AsSentenceOptions for Sentence {
@@ -118,13 +149,12 @@ impl Deref for SentenceOptions {
 
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct SentenceTransition {
-    offset: u32,
-    new_options: SentenceOptions
+    pub offset: i32,
+    pub new_options: SentenceOptions
 }
 
 #[derive(Debug,Clone)]
 pub struct SentenceParameters {
-    pub transitions: Vec<SentenceTransition>,
     pub display_logo: bool,
     pub transition_time_before: u16,
     pub fade_time_before: u16,
@@ -133,10 +163,10 @@ pub struct SentenceParameters {
     pub row_position: Option<RowPosition>,
 }
 
-impl From<SentenceOptions> for SentenceParameters {
-    fn from(sentence_options: SentenceOptions) -> Self {
+impl From<(SentenceOptions,i32)> for SentenceParameters {
+    fn from((sentence_options, time_offset): (SentenceOptions,i32)) -> Self {
+        let sentence_options : SentenceOptions = sentence_options.merge_at(time_offset);
         SentenceParameters {
-            transitions: sentence_options.transitions,
             display_logo: sentence_options.display_logo.unwrap_or(true),
             transition_time_before: sentence_options.transition_time_before.unwrap_or(800),
             fade_time_before: sentence_options.fade_time_before.unwrap_or(200),

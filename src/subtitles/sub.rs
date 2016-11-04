@@ -30,7 +30,7 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
     let sentence_options: Option<SentenceOptions> =
         sentence.sentence_options.or_sentence_options(default_sentence_options);
     let sentence_parameters =
-        SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
+        SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()),-10000i32));
     let mut best_row = 0u8;
     {
         let filter_fun = |sentence_candidate:&&Sentence|{
@@ -43,7 +43,7 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
                         sentence_candidate.sentence_options.or_sentence_options(default_sentence_options);
                     let sentence_candidate_parameters =
                         SentenceParameters::from(
-                            sentence_candidate_options.unwrap_or(SentenceOptions::default()));
+                            (sentence_candidate_options.unwrap_or(SentenceOptions::default()),-10000i32));
                     let first_frame = first_syllable.begin
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
                     let last_frame = last_syllable.end.expect("last syllable has no end")
@@ -152,7 +152,7 @@ impl Subtitles {
             let sentence_options: Option<SentenceOptions> =
                 sentence.sentence_options.or_sentence_options(default_sentence_options);
             let sentence_parameters =
-                SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
+                SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()), current_time as i32 - sentence.syllables.first().unwrap().begin as i32));
             match (sentence.syllables.first(), sentence.syllables.last()) {
                 (None, _) | (_, None) => false,
                 (Some(&Syllable { begin: first_syllable_begin, .. }),
@@ -171,21 +171,22 @@ impl Subtitles {
             }
         }); // get all the sentences displayed on screen
         for (_sentence_number, ref sentence) in sentence_iter {
+            let cur_offset : i32 = current_time as i32 - sentence.syllables.first().unwrap().begin as i32;
             let sentence_alpha =
                 compute_sentence_alpha(sentence, default_sentence_options, current_time);
             let mut text_elts = vec![];
             let mut logo_position: Option<u16> = None;
             let sentence_options: Option<SentenceOptions> =
                 sentence.or_sentence_options(default_sentence_options);
-            let default_syllable_options: Option<&SyllableOptions> =
-                sentence_options.as_syllable_options();
+            let default_syllable_options: Option<SyllableOptions> =
+                sentence_options.as_syllable_options(cur_offset);
             {
                 for tmp_syllables in sentence.syllables.windows(2) {
                     let (syllable1, syllable2) = (&tmp_syllables[0], &tmp_syllables[1]);
                     add_syllable(&mut text_elts,
                                  syllable1,
                                  Some(syllable2),
-                                 default_syllable_options,
+                                 default_syllable_options.as_ref(),
                                  current_time,
                                  sentence_alpha);
                 }
@@ -194,7 +195,7 @@ impl Subtitles {
                         add_syllable(&mut text_elts,
                                      last_syllable,
                                      None,
-                                     default_syllable_options,
+                                     default_syllable_options.as_ref(),
                                      current_time,
                                      sentence_alpha);
                     }
@@ -327,7 +328,7 @@ fn compute_sentence_alpha(sentence: &Sentence,
     let sentence_options: Option<SentenceOptions> = sentence.sentence_options
         .or_sentence_options(default_sentence_options);
     let sentence_parameters =
-        SentenceParameters::from(sentence_options.unwrap_or(SentenceOptions::default()));
+        SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()),frame_number as i32 - sentence.syllables.first().unwrap().begin as i32));
     match (sentence.syllables.first(), sentence.syllables.last()) {
         (Some(&Syllable { begin: frame_begin, .. }),
          Some(&Syllable { end: Some(frame_end), .. })) => {

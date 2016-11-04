@@ -41,37 +41,37 @@ pub trait AsSyllableOptions {
     }
 }
 
-impl AsSyllableOptions for Subtitles{
-    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
-        self.subtitles_options.as_syllable_options()
-    }
-}
+// impl AsSyllableOptions for Subtitles{
+//     fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+//         self.subtitles_options.as_syllable_options()
+//     }
+// }
 
-impl AsSyllableOptions for SubtitlesOptions {
-    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
-        if let Some(ref sen_options) = self.sentence_options {
-            sen_options.as_syllable_options()
-        } else {
-            None
-        }
-    }
-}
+// impl AsSyllableOptions for SubtitlesOptions {
+//     fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+//         if let Some(ref sen_options) = self.sentence_options {
+//             sen_options.as_syllable_options()
+//         } else {
+//             None
+//         }
+//     }
+// }
 
-impl AsSyllableOptions for Sentence {
-    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
-        if let Some(ref sen_options) = self.sentence_options {
-            sen_options.as_syllable_options()
-        } else {
-            None
-        }
-    }
-}
+// impl AsSyllableOptions for Sentence {
+//     fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+//         if let Some(ref sen_options) = self.sentence_options {
+//             sen_options.as_syllable_options()
+//         } else {
+//             None
+//         }
+//     }
+// }
 
-impl AsSyllableOptions for SentenceOptions {
-    fn as_syllable_options(&self) -> Option<&SyllableOptions> {
-        self.syllable_options.as_ref()
-    }
-}
+// impl AsSyllableOptions for SentenceOptions {
+//     fn as_syllable_options(&self) -> Option<&SyllableOptions> {
+//         self.syllable_options.as_ref()
+//     }
+// }
 
 impl AsSyllableOptions for Syllable {
     fn as_syllable_options(&self) -> Option<&SyllableOptions> {
