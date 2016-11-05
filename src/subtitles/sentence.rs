@@ -137,6 +137,7 @@ pub struct SentenceOptions {
     #[serde(skip_serializing_if="Option::is_none")]
     pub fade_time_after: Option<u16>,
     #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(rename = "position")]
     pub row_position: Option<RowPosition>,
 }
 

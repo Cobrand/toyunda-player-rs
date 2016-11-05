@@ -233,7 +233,7 @@ impl Subtitles {
                     (PosX::Centered,
                      PosY::FromTopPercent(l as f32 * 0.15 + 0.01))
                 }
-                RowPosition::ForcePos { x, y } => {
+                RowPosition::ForcePos(Point { x, y }) => {
                     (PosX::FromLeftPercent(x), PosY::FromTopPercent(y))
                 }
             };
