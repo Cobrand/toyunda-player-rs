@@ -597,13 +597,14 @@ impl<'a> ToyundaPlayer<'a> {
                     "You are about to discard unsaved changes, save now ?",
                     None, None);
                 match res {
-                    Ok(1) => {
+                    Ok(ClickedButton::CustomButton(&ButtonData {button_id: 1, ..})) => {
                         self.save_subtitles(true);
                         true
                     },
-                    Ok(2) => true,
-                    Ok(3) => false,
-                    Ok(i) => {
+                    Ok(ClickedButton::CustomButton(&ButtonData {button_id: 2, ..})) => true,
+                    Ok(ClickedButton::CustomButton(&ButtonData {button_id: 3, ..})) |
+                    Ok(ClickedButton::CloseButton) => false,
+                    Ok(ClickedButton::CustomButton(&ButtonData {button_id: i, ..})) => {
                         warn!("Unexpected {} when received answer from message_box",i);
                         false
                     },

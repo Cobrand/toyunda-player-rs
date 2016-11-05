@@ -161,7 +161,7 @@ impl<'a> SDLDisplayer<'a> {
                                                              (logo_height / 2) as i32,
                                                              syllable_bottom,
                                                              logo_height,
-                                                             logo_height)));
+                                                             logo_height))).unwrap();
                     }
                     None => {}
                 };
@@ -246,7 +246,7 @@ impl<'a> SDLDisplayer<'a> {
                                      regular_h + outline_width * 2);
         self.renderer.copy(&texture,
                            None,
-                           Some(text_rect.clone()));
+                           Some(text_rect.clone())).unwrap();
         text_rect
     }
 }

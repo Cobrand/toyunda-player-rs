@@ -1,26 +1,15 @@
 extern crate sdl2_ttf;
 use std::ops::Index;
 use std::cmp::Ordering;
-use sdl2::rwops::RWops;
 
 pub struct FontSet {
-    // rwops needs to live with the font itself
-    // it is not used for anything, but if it were to be placed somewhere else
-    // it would probably call Drop while the font is being used (which is bad)
-    #[allow(dead_code)]
-    rwops_regular: RWops<'static>,
-    #[allow(dead_code)]
-    rwops_bold: RWops<'static>,
-    #[allow(dead_code)]
-    rwops_lbold: RWops<'static>,
-    /// size of the loaded font
     font_size: u16,
     /// Font object without outline
-    font_regular: sdl2_ttf::Font,
+    font_regular: sdl2_ttf::Font<'static>,
     /// Font object with light outline
-    font_lightbold: sdl2_ttf::Font,
+    font_lightbold: sdl2_ttf::Font<'static>,
     /// Font object with outline
-    font_bold: sdl2_ttf::Font,
+    font_bold: sdl2_ttf::Font<'static>,
 }
 
 impl Eq for FontSet {}
@@ -96,19 +85,16 @@ impl FontList {
         let font_size_max = 128;
         let font_size_increment = 1;
         'fontlist: while (font_size < font_size_max) {
-            let mut rwops_regular = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
-            let mut rwops_bold = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
-            let mut rwops_lbold = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let rwops_regular : RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let rwops_bold : RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let rwops_lbold : RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
             let font_regular =
-                try!(ttf_context.load_font_from_rwops(&mut rwops_regular, font_size));
-            let mut font_bold = try!(ttf_context.load_font_from_rwops(&mut rwops_bold, font_size));
-            let mut font_lbold = try!(ttf_context.load_font_from_rwops(&mut rwops_lbold, font_size));
+                try!(ttf_context.load_font_from_rwops(rwops_regular, font_size));
+            let mut font_bold = try!(ttf_context.load_font_from_rwops(rwops_bold, font_size));
+            let mut font_lbold = try!(ttf_context.load_font_from_rwops(rwops_lbold, font_size));
             font_lbold.set_outline_width(FontSet::get_outline_width(font_size,1));
             font_bold.set_outline_width(FontSet::get_outline_width(font_size,2));
             result.fonts.push(FontSet {
-                rwops_regular: rwops_regular,
-                rwops_bold: rwops_bold,
-                rwops_lbold: rwops_lbold,
                 font_size: font_size,
                 font_regular: font_regular,
                 font_bold: font_bold,

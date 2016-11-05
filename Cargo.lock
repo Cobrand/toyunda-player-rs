@@ -12,10 +12,10 @@ dependencies = [
  "mount 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mpv 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "router 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)",
- "sdl2-sys 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)",
- "sdl2_image 0.23.0 (git+https://github.com/Cobrand/rust-sdl2_image)",
- "sdl2_ttf 0.23.0 (git+https://github.com/Cobrand/rust-sdl2_ttf)",
+ "sdl2 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2_image 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2_ttf 0.25.0 (git+https://github.com/Cobrand/rust-sdl2_ttf)",
  "serde 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -412,43 +412,43 @@ dependencies = [
 
 [[package]]
 name = "sdl2"
-version = "0.23.0"
-source = "git+https://github.com/Cobrand/rust-sdl2#0901f264ed34e2ed8f9b4e26cf815d5429b3ec32"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2-sys 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)",
+ "sdl2-sys 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "sdl2-sys"
-version = "0.23.0"
-source = "git+https://github.com/Cobrand/rust-sdl2#0901f264ed34e2ed8f9b4e26cf815d5429b3ec32"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "sdl2_image"
-version = "0.23.0"
-source = "git+https://github.com/Cobrand/rust-sdl2_image#5fc26dfea6d410e7ac29bec4db92b5bcb6ad556e"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)",
- "sdl2-sys 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)",
+ "sdl2 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "sdl2_ttf"
-version = "0.23.0"
-source = "git+https://github.com/Cobrand/rust-sdl2_ttf#9f60c8b114f4f2a6b8dc3467830c449c8b4ac31a"
+version = "0.25.0"
+source = "git+https://github.com/Cobrand/rust-sdl2_ttf#355b4af42478f8b907fd3b4134bf29f71396c4e3"
 dependencies = [
  "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)",
- "sdl2-sys 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)",
+ "sdl2 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -696,10 +696,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum router 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b94397bfa5b772b4375be4da12560a7c1c1e74b2e35c46ed312958aad56df726"
 "checksum rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)" = "6159e4e6e559c81bd706afe9c8fd68f547d3e851ce12e76b1de7914bab61691b"
 "checksum rustc_version 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"
-"checksum sdl2 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)" = "<none>"
-"checksum sdl2-sys 0.23.0 (git+https://github.com/Cobrand/rust-sdl2)" = "<none>"
-"checksum sdl2_image 0.23.0 (git+https://github.com/Cobrand/rust-sdl2_image)" = "<none>"
-"checksum sdl2_ttf 0.23.0 (git+https://github.com/Cobrand/rust-sdl2_ttf)" = "<none>"
+"checksum sdl2 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2e15a33054d1b982ca8eec453666757046af6f95e7dd09e2747d67ab0aeca1bd"
+"checksum sdl2-sys 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)" = "79698e1a87967badc92c3d559f5a73157a05a644f85cdada02de91d4639edc00"
+"checksum sdl2_image 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ccc3c5fffeeed080695bcdaf0788a08c9b5d8489a02c7de2a2f2f16d0f40cda2"
+"checksum sdl2_ttf 0.25.0 (git+https://github.com/Cobrand/rust-sdl2_ttf)" = "<none>"
 "checksum semver 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"
 "checksum sequence_trie 0.0.13 (registry+https://github.com/rust-lang/crates.io-index)" = "d5b4eb0f7d1ff9b9666d8b8ff543f3705dd464025269a5b0e1988ffa60ca1be8"
 "checksum serde 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)" = "addfcab8c811b4e016a78d8699fc48cbdb41f90829ce66bf5fa700cfc746e96e"
