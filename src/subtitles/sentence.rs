@@ -54,7 +54,7 @@ impl SentenceOptions {
             display_logo: self.display_logo,
             transition_time_after: self.transition_time_after,
             fade_time_after: self.fade_time_after,
-            transition_time_before: self.fade_time_before,
+            transition_time_before: self.transition_time_before,
             fade_time_before: self.fade_time_before,
             row_position: self.row_position
         }
