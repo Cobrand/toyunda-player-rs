@@ -168,16 +168,15 @@ impl<'a> ToyundaPlayer<'a> {
             let listen_address : String =
                 String::from(arg_matches.value_of("manager_listen_address").unwrap_or("0.0.0.0"));
             // list of directories analyzed
-            // TODO : allow multiple in command line
-            // should be fairly easy to implement
-            // - then why dont you do it moron ?
-            let yaml_dir: Vec<_> = if let Some(yaml_directory) =
-                                          arg_matches.value_of("yaml_directory") {
-                vec![PathBuf::from(yaml_directory)]
+            let yaml_dirs = if let Some(yaml_directories) =
+                                          arg_matches.values_of("yaml_directory") {
+                yaml_directories.map(|v| {
+                    PathBuf::from(v)
+                }).collect::<Vec<_>>()
             } else {
                 vec![]
             };
-            let manager = Manager::new(&*format!("{}:{}",listen_address,port), Arc::downgrade(&self.state), yaml_dir, self.songs_history.as_ref());
+            let manager = Manager::new(&*format!("{}:{}",listen_address,port), Arc::downgrade(&self.state), yaml_dirs, self.songs_history.as_ref());
             match manager {
                 Ok(manager) => {self.manager = Some(manager);},
                 Err(e) => {error!("Error when initializing manager : '{}'",e);}

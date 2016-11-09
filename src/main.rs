@@ -165,6 +165,7 @@ fn main() {
             .short("d")
             .long("directory")
             .takes_value(true)
+            .multiple(true)
             .help("Where to look the yaml files at")
             .conflicts_with("edit_mode"))
         .arg(Arg::with_name("songs_history")
