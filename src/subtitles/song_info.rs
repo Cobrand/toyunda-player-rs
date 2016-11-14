@@ -96,7 +96,6 @@ pub enum Language {
     Other(String),
 }
 
-
 #[derive(Debug,Clone)]
 pub enum MusicType {
     AMV,
@@ -132,9 +131,47 @@ impl MusicType {
     }
 }
 
+impl Serialize for MediaType {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error>
+        where S: Serializer
+    {
+        serializer.serialize_str(match *self {
+            MediaType::Anime => "Anime",
+            MediaType::VideoGame => "VideoGame",
+            MediaType::Movie => "Movie",
+            MediaType::Original => "Original",
+            MediaType::Other(ref string) => string.as_str(),
+        })
+    }
+}
+
+impl Deserialize for MediaType {
+    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error>
+        where D: Deserializer
+    {
+        struct Visitor;
+        impl ::serde::de::Visitor for Visitor {
+            type Value = MediaType;
+            fn visit_str<E>(&mut self, value: &str) -> Result<MediaType,E>
+                where E: ::serde::de::Error
+            {
+                Ok(match value {
+                    "ANIME" | "Anime" => MediaType::Anime,
+                    "VideoGame" | "VG" | "videogame" | "VIDEOGAME" | "Video Game" => MediaType::VideoGame,
+                    "Movie" | "MOVIE" => MediaType::Movie,
+                    "Original" | "ORIGINAL" => MediaType::Original,
+                    s => MediaType::Other(String::from(s))
+                })
+            }
+        }
+        
+        deserializer.deserialize_str(Visitor)
+    }
+}
+
 /// Case of an AMV, please tell the source of the visual material
 #[allow(dead_code)]
-#[derive(Debug,Clone,Serialize,Deserialize)]
+#[derive(Debug,Clone)]
 pub enum MediaType {
     Anime,
     Movie,
