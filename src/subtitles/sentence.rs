@@ -1,5 +1,5 @@
 use super::{Syllable,SyllableOptions,Subtitles,SubtitlesOptions,AsSyllableOptions};
-use super::pos::RowPosition;
+use super::pos::{RowPosition,Size};
 use std::ops::Deref;
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
@@ -32,6 +32,7 @@ pub trait AsSentenceOptions {
                 transition_time_before: s.transition_time_before.or(other.transition_time_before),
                 fade_time_before: s.fade_time_before.or(other.fade_time_before),
                 row_position: s.row_position.or(other.row_position),
+                size: s.size.or(other.size),
             }),
             (Some(s),None) => Some(s.clone()),
             (None,Some(other)) => Some(other.clone()),
@@ -56,7 +57,8 @@ impl SentenceOptions {
             fade_time_after: self.fade_time_after,
             transition_time_before: self.transition_time_before,
             fade_time_before: self.fade_time_before,
-            row_position: self.row_position
+            row_position: self.row_position,
+            size: self.size
         }
     }
 
@@ -139,6 +141,7 @@ pub struct SentenceOptions {
     #[serde(skip_serializing_if="Option::is_none")]
     #[serde(rename = "position")]
     pub row_position: Option<RowPosition>,
+    pub size: Option<Size<Option<f32>>>
 }
 
 impl Deref for SentenceOptions {
@@ -162,6 +165,7 @@ pub struct SentenceParameters {
     pub transition_time_after: u16,
     pub fade_time_after: u16,
     pub row_position: Option<RowPosition>,
+    pub size:Size<Option<f32>> 
 }
 
 impl From<(SentenceOptions,i32)> for SentenceParameters {
@@ -174,6 +178,10 @@ impl From<(SentenceOptions,i32)> for SentenceParameters {
             transition_time_after: sentence_options.transition_time_after.unwrap_or(500),
             fade_time_after: sentence_options.fade_time_after.unwrap_or(200),
             row_position: sentence_options.row_position,
+            size: sentence_options.size.unwrap_or(Size {
+                width:Some(0.95),
+                height:Some(0.09)
+            })
         }
     }
 }

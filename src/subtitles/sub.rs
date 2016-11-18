@@ -1,5 +1,5 @@
 use super::song_info::SongInfo;
-use super::pos::*;
+use super::pos::{RowPosition,Point};
 use super::{Sentence,SentenceOptions,SentenceParameters,
         Syllable,SyllableOptions,SyllableParameters,AsSentenceOptions,
         AsSyllableOptions};
@@ -243,7 +243,7 @@ impl Subtitles {
             };
             let text_unit = TextUnit {
                 text: text_elts,
-                size: Size::FitPercent(Some(0.95), Some(0.09)),
+                size: Size::FitPercent(sentence_params.size.width, sentence_params.size.height),
                 pos: text_pos,
                 anchor: (0.5, 0.0),
             };

@@ -51,6 +51,12 @@ pub enum RowPosition {
     ForcePos(Point<f32>),
 }
 
+#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
+pub struct Size<T:Copy + Clone + Debug + PartialEq + Serialize + Deserialize>{
+    pub width:T,
+    pub height:T,
+}
+
 impl Default for RowPosition {
     fn default() -> RowPosition {
         RowPosition::Row(0)
