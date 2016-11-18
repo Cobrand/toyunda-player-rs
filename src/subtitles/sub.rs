@@ -232,7 +232,7 @@ impl Subtitles {
                     None => {}
                 }
             }
-            let text_pos = match sentence.position {
+            let text_pos = match sentence_params.row_position.unwrap_or(sentence.position) {
                 RowPosition::Row(l) => {
                     (PosX::Centered,
                      PosY::FromTopPercent(l as f32 * 0.15 + 0.01))
