@@ -159,7 +159,7 @@ impl<'a> SDLDisplayer<'a> {
                                            None,
                                            Some(SdlRect::new(syllable_center_x -
                                                              (logo_height / 2) as i32,
-                                                             syllable_bottom,
+                                                             syllable_bottom - syllable_height as i32 / 16,
                                                              logo_height,
                                                              logo_height))).unwrap();
                     }
