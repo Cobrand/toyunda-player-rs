@@ -180,6 +180,8 @@ impl Subtitles {
                 sentence.or_sentence_options(default_sentence_options);
             let default_syllable_options: Option<SyllableOptions> =
                 sentence_options.as_syllable_options(cur_offset);
+            let sentence_params =
+                SentenceParameters::from((sentence_options.unwrap_or(Default::default()),cur_offset));
             {
                 for tmp_syllables in sentence.syllables.windows(2) {
                     let (syllable1, syllable2) = (&tmp_syllables[0], &tmp_syllables[1]);
@@ -202,31 +204,33 @@ impl Subtitles {
                     _ => {}
                 }
             }
-            'syllables: for (n, syllable) in sentence.syllables.iter().enumerate() {
-                if current_time >= syllable.begin {
-                    logo_position = Some(n as u16);
-                } else {
-                    break 'syllables;
-                }
-            }
-            match sentence.syllables.last() {
-                Some(ref syllable) => {
-                    if (current_time > syllable.end.unwrap()) {
-                        logo_position = None;
+            if sentence_params.display_logo {
+                'syllables: for (n, syllable) in sentence.syllables.iter().enumerate() {
+                    if current_time >= syllable.begin {
+                        logo_position = Some(n as u16);
+                    } else {
+                        break 'syllables;
                     }
                 }
-                None => {}
-            }
-            match logo_position {
-                Some(logo_position) => {
-                    match text_elts.get_mut(logo_position as usize) {
-                        Some(ref mut text_elt) => {
-                            text_elt.attach_logo = true;
+                match sentence.syllables.last() {
+                    Some(ref syllable) => {
+                        if (current_time > syllable.end.unwrap()) {
+                            logo_position = None;
                         }
-                        None => error!("Unexpected None in getting from logo_position !"),
                     }
+                    None => {}
                 }
-                None => {}
+                match logo_position {
+                    Some(logo_position) => {
+                        match text_elts.get_mut(logo_position as usize) {
+                            Some(ref mut text_elt) => {
+                                text_elt.attach_logo = true;
+                            }
+                            None => error!("Unexpected None in getting from logo_position !"),
+                        }
+                    }
+                    None => {}
+                }
             }
             let text_pos = match sentence.position {
                 RowPosition::Row(l) => {
