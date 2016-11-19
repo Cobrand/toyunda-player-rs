@@ -141,6 +141,7 @@ pub struct SentenceOptions {
     #[serde(skip_serializing_if="Option::is_none")]
     #[serde(rename = "position")]
     pub row_position: Option<RowPosition>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub size: Option<Size<Option<f32>>>
 }
 
