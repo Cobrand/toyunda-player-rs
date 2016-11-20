@@ -185,12 +185,14 @@ impl Subtitles {
             {
                 for tmp_syllables in sentence.syllables.windows(2) {
                     let (syllable1, syllable2) = (&tmp_syllables[0], &tmp_syllables[1]);
+                    if !syllable1.text.is_empty() {
                     add_syllable(&mut text_elts,
                                  syllable1,
                                  Some(syllable2),
                                  default_syllable_options.as_ref(),
                                  current_time,
                                  sentence_alpha);
+                    }
                 }
                 match sentence.syllables.last() {
                     Some(last_syllable) => {
