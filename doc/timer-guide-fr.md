@@ -104,7 +104,8 @@ La plupart du temps, la valeur par défaut convient.
     "fade_time_before": 200, // temps en ms
     "transition_time_after": 300, // temps en ms
     "fade_time_after": 200, // temps en ms
-    "row_position": @RowPosition
+    "row_position": @RowPosition,
+    "size": @Size
 }
 ```
 
@@ -165,6 +166,25 @@ ou cela :
 Cette dernière possibilité centre le centre de la phrase en x. Une valeur "x" = 0.25 aurait mis le centre de la phrase à 25% de la position en x.
 Pour y, le point le plus haut est placé à 75% de la position de l'écran. y = 0
 
+### Size
+
+Size devrait plutot s'appeler "FitSize". Elle se présente comme suit : 
+
+```hson
+"size":{
+    "width":0.9, // optionnel
+    "height":0.2 // optionnel
+}
+```
+
+Les deux valeurs sont optionnelles mutuellement; si l'une manque, l'autre n'est pas optionelle !
+
+"width" et "height" correspond tous les deux aux pourcentages de la taille de l'écran (où 1 équivaut à 100%) auquel le texte (ou la phrase) donnée doit rentrer dans les dimensions mentionnées. Dans l'exemple ci dessus, le texte ne pourra pas dépasser 90% de la taille de la fenêtre en largeur et 20% de la taille de la fenêtre en hauteur. Les textes dits "normaux" sont environ à 8% de la taille en hauteur, et 95% de la taille en largeur. Si vous voulez faire une texte deux fois plus grand qu'une phrase normale, `"height":0.18` devrait suffire.
+
+Si une des valeurs n'est pas donnée, cela veut dire que la paramètre manquant est considéré comme illimité. Dans notre exemple, si la prhase est trop longue et dépasse initialement 90%, le texte deviendra plus petit. Enlever `"width":0.9` fera en sorte que le texte garde la même taille quelque soit la longueur de la phrase, mais il est possible que la phrase ne rentre pas dans l'écran !
+
+Si les deux paramètres sont manquants, une erreur de parsing est renvoyée. En effet, techniquement le texte aurait une taille illimitée ...
+
 ### Color
 
 ```hjson
@@ -175,7 +195,7 @@ Pour y, le point le plus haut est placé à 75% de la position de l'écran. y = 
 }
 ```
 
-Plus tard, on pourra supposer remplacer cette structure par une forme hexadécimale du type "FFFFFF"; mais cela n'a pas été implémenté pour l'instant.
+On peut aussi tout simplement remplacer "Color" par une valeur hexadécimale RGB comme "#RRGGBB", par exemple, 
 
 ### Transition
 
@@ -188,7 +208,7 @@ Une transition change certaines options de toute la phrase instantanément à un
 }
 ```
 
-Plusieurs transitions sont possibles par phrase, mais une transition ne touche que la phrase dans laquelle elle est.
+Plusieurs transitions sont possibles par phrase, mais une transition ne touche que la phrase dans laquelle elle est. Par exemple, le violet serait la couleur hexadécimale "#551A8B" et le rouge brut serait la couleur hexadécimale "FF0000"
 
 ## Fichier de metadonnées
 
