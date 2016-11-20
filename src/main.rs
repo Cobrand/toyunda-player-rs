@@ -12,6 +12,8 @@ extern crate mount;
 extern crate router;
 extern crate bodyparser;
 
+extern crate read_color;
+
 #[macro_use]
 extern crate lazy_static;
 
