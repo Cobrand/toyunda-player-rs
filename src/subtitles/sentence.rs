@@ -179,10 +179,13 @@ impl From<(SentenceOptions,i32)> for SentenceParameters {
             transition_time_after: sentence_options.transition_time_after.unwrap_or(500),
             fade_time_after: sentence_options.fade_time_after.unwrap_or(200),
             row_position: sentence_options.row_position,
-            size: sentence_options.size.unwrap_or(Size {
-                width:Some(0.95),
-                height:Some(0.09)
-            })
+            size: match sentence_options.size {
+                None | Some( Size { width:None,height:None}) => Size {
+                    width:Some(0.95),
+                    height:Some(0.09)
+                },
+                Some(e) => e
+            }
         }
     }
 }
