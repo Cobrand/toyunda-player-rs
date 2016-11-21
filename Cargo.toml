@@ -1,6 +1,6 @@
 [package]
 name = "toyunda-player-rs"
-version = "1.0.0"
+version = "1.0.1"
 license = "MIT/Apache-2.0"
 authors = ["Cobrand <cobrandw@gmail.com>"]
 build = "build.rs"
