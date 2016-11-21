@@ -65,14 +65,14 @@ function format_info2name(song_info) {
 	}
 	if (s.length != 0) {
 		if (song_info.language) {
-			if (song_info.language == "Jp") {
+			if (song_info.language == "JAP") {
 				s = "[JAP] " + s;
-			} else if (song_info.language == "Eng") {
+			} else if (song_info.language == "ENG") {
 				s = "[ENG] " + s;
-			} else if (song_info.language == "Fr") {
+			} else if (song_info.language == "FR") {
 				s = "[FR] " + s;
 			} else {
-				s = "[" + song_info.language.uppercase() + "] " + s ;
+				s = "[" + song_info.language.toUpperCase() + "] " + s ;
 			}
 		}
 	} else {
