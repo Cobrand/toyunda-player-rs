@@ -22,7 +22,7 @@ use ::toyunda_player::toyunda_history::*;
 use ::utils::RGB;
 use ::mpv_plug::MpvCache;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
-use mpv::Error::MPV_ERROR_PROPERTY_UNAVAILABLE;
+use mpv::Error::{MPV_ERROR_PROPERTY_UNAVAILABLE, MPV_ERROR_LOADING_FAILED};
 use clap::ArgMatches;
 use chrono::{DateTime,Local};
 
@@ -644,6 +644,19 @@ impl<'a> ToyundaPlayer<'a> {
                             _ => {}
                         }
                     },
+                    MpvEvent::EndFile(Err(MPV_ERROR_LOADING_FAILED)) => {
+                        match &self.state.read().unwrap().playing_state {
+                            &PlayingState::Playing(ref video_meta) => {
+                                error!("Failed to load video stream `{}` current song will be skipped",
+                                       video_meta.video_path.display());
+                            },
+                            _ => {}
+                        }
+                        match self.on_end_file() {
+                            Ok(ToyundaAction::Terminate) => {break 'main},
+                            _ => {}
+                        }
+                    }
                     MpvEvent::FileLoaded => {
                         match self.on_load_media() {
                             Ok(_) => {},
@@ -946,7 +959,7 @@ impl<'a> ToyundaPlayer<'a> {
                 let (win_width,win_height) = self.displayer.sdl_renderer().window().unwrap().size();
                 if ( y as u32 > win_height * 96 / 100 ) {
                     // bottom 4% : low enough to move
-                    let percent_pos : f64 = (100.0 * x as f64 / win_width as f64 ) ;
+                    let percent_pos : f64 = (100.0 * x as f64 / win_width as f64 );
                     if let Err(e) = self.mpv.set_property("percent-pos",percent_pos) {
                         match e {
                             MPV_ERROR_PROPERTY_UNAVAILABLE => {},

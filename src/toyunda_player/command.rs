@@ -113,10 +113,10 @@ impl<'a> ToyundaPlayer<'a> {
                         match self.state.read().unwrap().quit_when_finished {
                             None => {
                                 match self.options.mode {
-                                    ToyundaMode::KaraokeMode | ToyundaMode::EditMode => {
+                                    ToyundaMode::KaraokeMode => {
                                         Ok(ToyundaAction::Nothing)
                                     }
-                                    ToyundaMode::NormalMode =>
+                                    ToyundaMode::NormalMode | ToyundaMode::EditMode =>
                                         Ok(ToyundaAction::Terminate),
                                 }
                             }
