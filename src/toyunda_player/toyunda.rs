@@ -999,9 +999,26 @@ impl<'a> ToyundaPlayer<'a> {
                 };
                 Ok(ToyundaAction::Nothing)
             },
-            Event::DropFile { filename, .. } => {
+            Event::DropFile { filename, .. } => { 
+                let play_next = if mode != KaraokeMode {
+                    let state = &self.state.read().unwrap();
+                    if state.playlist.is_empty() && !state.playing_state.is_playing() {
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
                 match VideoMeta::new(filename) {
-                    Ok(video_meta) => self.execute_command(Command::AddToQueue(video_meta)),
+                    Ok(video_meta) => {
+                        let add_result = self.execute_command(Command::AddToQueue(video_meta));
+                        if play_next {
+                            add_result.and(self.execute_command(Command::PlayNext))
+                        } else {
+                            add_result
+                        }
+                    },
                     Err(e) => Err(Error::Text(e)),
                 }
             }
