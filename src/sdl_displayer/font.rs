@@ -1,15 +1,15 @@
-extern crate sdl2_ttf;
 use std::ops::Index;
 use std::cmp::Ordering;
+use sdl2::ttf::{Font, Sdl2TtfContext};
 
 pub struct FontSet {
     font_size: u16,
     /// Font object without outline
-    font_regular: sdl2_ttf::Font<'static>,
+    font_regular: Font<'static>,
     /// Font object with light outline
-    font_lightbold: sdl2_ttf::Font<'static>,
+    font_lightbold: Font<'static>,
     /// Font object with outline
-    font_bold: sdl2_ttf::Font<'static>,
+    font_bold: Font<'static>,
 }
 
 impl Eq for FontSet {}
@@ -41,17 +41,17 @@ impl Index<usize> for FontList {
 
 impl FontSet {
     #[inline]
-    pub fn get_regular_font(&self) -> &sdl2_ttf::Font {
+    pub fn get_regular_font(&self) -> &Font {
         &self.font_regular
     }
 
     #[inline]
-    pub fn get_outline_font(&self) -> &sdl2_ttf::Font {
+    pub fn get_outline_font(&self) -> &Font {
         &self.font_bold
     }
 
     #[inline]
-    pub fn get_light_outline_font(&self) -> &sdl2_ttf::Font {
+    pub fn get_light_outline_font(&self) -> &Font {
         &self.font_lightbold
     }
 
@@ -78,7 +78,7 @@ pub struct FontList {
 const DEJAVUSANS_MONO_BYTES: &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold-WithJap.ttf");
 
 impl FontList {
-    pub fn new(ttf_context: &sdl2_ttf::Sdl2TtfContext) -> Result<FontList, String> {
+    pub fn new(ttf_context: &Sdl2TtfContext) -> Result<FontList, String> {
         use sdl2::rwops::RWops;
         let mut result = FontList { fonts: Vec::<FontSet>::new() };
         let mut font_size = 3;

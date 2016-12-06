@@ -970,7 +970,7 @@ impl<'a> ToyundaPlayer<'a> {
                         };
                     }
                 } else if mode == EditMode {
-                    use sdl2::mouse::Mouse::*;
+                    use sdl2::mouse::MouseButton::*;
                     let key_id = match mouse_btn {
                         Left => Some(2),
                         Right => Some(3),
@@ -987,7 +987,7 @@ impl<'a> ToyundaPlayer<'a> {
                 if ( y as u32 > win_height * 96 / 100 ) {
                     // do nothing
                 } else if mode == EditMode {
-                    use sdl2::mouse::Mouse::*;
+                    use sdl2::mouse::MouseButton::*;
                     let key_id = match mouse_btn {
                         Left => Some(2),
                         Right => Some(3),

@@ -1,6 +1,6 @@
 use sdl2::render::{Renderer, BlendMode, Texture};
-use sdl2_image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
-use sdl2_ttf::{Font,Sdl2TtfContext, init as ttf_init};
+use sdl2::image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
+use sdl2::ttf::{Font,Sdl2TtfContext, init as ttf_init};
 use sdl2::rect::Rect as SdlRect;
 use sdl2::surface::Surface;
 use sdl2::pixels::Color as SdlColor;
