@@ -210,7 +210,7 @@ var vue = new Vue({
 			AJAX.post("/api/command",{
 				command:"add_to_queue",
 				id:this.draft_indexes[index],
-				pos:index
+				pos:0
 			},function(){
 				this.draft_indexes.splice(index, 1);
 			}.bind(this));
