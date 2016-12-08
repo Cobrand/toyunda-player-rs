@@ -2,7 +2,6 @@ extern crate serde_json;
 
 use super::*;
 use mpv::{MpvHandlerWithGl, Event as MpvEvent};
-use std::path::PathBuf;
 use ::subtitles::{Subtitles,Load,AsSentenceOptions};
 use ::overlay::pos::*;
 use ::overlay::{Display,OverlayFrame,TextUnit,TextSubUnit,Outline,Color,AlphaColor};
@@ -19,11 +18,11 @@ use ::toyunda_player::playing_state::*;
 use ::toyunda_player::manager::*;
 use ::toyunda_player::editor::*;
 use ::toyunda_player::toyunda_history::*;
+use ::toyunda_player::StartupParameters;
 use ::utils::RGB;
 use ::mpv_plug::MpvCache;
 use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
 use mpv::Error::{MPV_ERROR_PROPERTY_UNAVAILABLE, MPV_ERROR_LOADING_FAILED};
-use clap::ArgMatches;
 use chrono::{DateTime,Local};
 
 pub struct ToyundaPlayer<'a> {
@@ -111,11 +110,11 @@ impl<'a> ToyundaPlayer<'a> {
         }
     }
 
-    pub fn start(&mut self, arg_matches: ArgMatches) -> Result<()> {
+    pub fn start(&mut self, params: StartupParameters) -> Result<()> {
         let mut is_playlist_empty = true ;
-        if let Some(video_files) = arg_matches.values_of("VIDEO_FILE") {
+        if !params.video_files.is_empty() {
             let mut state = self.state.write().unwrap();
-            for value in video_files {
+            for value in &params.video_files {
                 match VideoMeta::new(value) {
                     Ok(video_meta) => {
                         state.playlist.push_back(video_meta);
@@ -126,30 +125,30 @@ impl<'a> ToyundaPlayer<'a> {
                     }
                 }
             }
-        }
-        if arg_matches.is_present("quit") {
-            self.state.write().unwrap().quit_when_finished = Some(true);
-        } else if arg_matches.is_present("no-quit") {
-            self.state.write().unwrap().quit_when_finished = Some(false);
-        }
+        };
+        if let Some(b) = params.quit {
+            self.state.write().unwrap().quit_when_finished = Some(b);
+        };
         let mut enable_manager : bool ;
-        if arg_matches.is_present("karaoke_mode") {
-            self.mode = ToyundaMode::KaraokeMode;
-            debug!("Enabling karaoke mode");
-            enable_manager = true ;
-        } else if arg_matches.is_present("edit_mode") {
-            self.mode = ToyundaMode::EditMode;
-            self.editor_state = None;
-            if let Err(e) = self.mpv.set_option("loop-file","inf") {
-                error!("loop file option failed : {}",e);
-            };
-            debug!("Enabling edit mode");
-            enable_manager = false;
-        } else {
-            self.mode = ToyundaMode::NormalMode;
-            enable_manager = true ;
-        }
-        if let Some(songs_history) = arg_matches.value_of("songs_history") {
+        self.mode = params.mode;
+        match params.mode {
+            ToyundaMode::EditMode => {
+                debug!("Enabling karaoke mode");
+                enable_manager = true ;
+            },
+            ToyundaMode::KaraokeMode => {
+                self.editor_state = None;
+                if let Err(e) = self.mpv.set_option("loop-file","inf") {
+                    error!("loop file option failed for edit mode : {}",e);
+                };
+                debug!("Enabling edit mode");
+                enable_manager = false;
+            },
+            ToyundaMode::NormalMode => {
+                enable_manager = true;
+            }
+        };
+        if let Some(songs_history) = params.songs_history {
             match SongsHistory::new(songs_history) {
                 Ok(songs_history) => {
                     self.songs_history = Some(songs_history);
@@ -159,48 +158,27 @@ impl<'a> ToyundaPlayer<'a> {
                 }
             }
         };
-        if arg_matches.is_present("no_manager") {
+        if params.no_manager {
             enable_manager = false ;
-        }
+        };
         if enable_manager {
-            let port : String =
-                String::from(arg_matches.value_of("manager_port").unwrap_or("8080"));
-            let listen_address : String =
-                String::from(arg_matches.value_of("manager_listen_address").unwrap_or("0.0.0.0"));
-            // list of directories analyzed
-            let yaml_dirs = if let Some(yaml_directories) =
-                                          arg_matches.values_of("yaml_directory") {
-                yaml_directories.map(|v| {
-                    PathBuf::from(v)
-                }).collect::<Vec<_>>()
-            } else {
-                vec![]
-            };
-            let manager = Manager::new(&*format!("{}:{}",listen_address,port), Arc::downgrade(&self.state), yaml_dirs, self.songs_history.as_ref());
+            let manager = Manager::new(&*format!("{}:{}",params.manager_listen_address,params.manager_listen_port), Arc::downgrade(&self.state), params.lookup_directories, self.songs_history.as_ref());
             match manager {
                 Ok(manager) => {self.manager = Some(manager);},
                 Err(e) => {error!("Error when initializing manager : '{}'",e);}
             }
         }
 
-        if let Some(volume) = arg_matches.value_of("volume") {
-            match volume.parse::<f64>() {
-                Ok(volume) => {
-                    match self.mpv.set_property("volume", volume) {
-                        Ok(_) => {
-                            debug!("Successfully overridden initial volume");
-                        }
-                        Err(e) => {
-                            error!("Could not change initial volume of mpv,\
-                                   error '{}' ({:?})", e, e);
-                        }
-                    };
+        if let Some(volume) = params.volume {
+            match self.mpv.set_property("volume", volume) {
+                Ok(_) => {
+                    debug!("Successfully overridden initial volume");
                 }
                 Err(e) => {
-                    error!("Error when parsing volume param, expected float, got '{}'; (error \
-                            {:?})",volume,e);
+                    error!("Could not change initial volume of mpv,\
+                           error '{}' ({:?})", e, e);
                 }
-            }
+            };
         }
         if (is_playlist_empty == false) {
             if let Err(e) = self.execute_command(Command::PlayNext) {

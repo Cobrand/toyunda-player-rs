@@ -1,8 +1,11 @@
 #![allow(unused_parens)]
-#![feature(custom_derive, plugin)] // necessary for serde
+#![feature(proc_macro)]
+//#![feature(custom_derive, plugin)] // necessary for serde
 #![feature(conservative_impl_trait)]
-#![plugin(serde_macros)]
 extern crate serde;
+
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate serde_yaml;
 
@@ -26,7 +29,7 @@ extern crate fern;
 extern crate chrono;
 #[macro_use]
 extern crate clap;
-use clap::{Arg, ArgMatches, App, SubCommand};
+use clap::{Arg, App, SubCommand};
 
 mod utils;
 mod overlay;
@@ -42,12 +45,14 @@ use toyunda_player::ToyundaPlayer;
 use sdl_displayer::SDLDisplayer;
 use std::os::raw::c_void;
 use toyunda_player::log_messages::{LOG_MESSAGES,LogMessage as ToyundaLogMessage};
+use toyunda_player::{StartupParameters, StartupOptions};
+use toyunda_player::ToyundaMode;
 
-fn player_start(matches:ArgMatches) {
+fn player_start(startup_parameters: StartupParameters) {
     // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
-    let renderer = init::init_sdl(&mut video_subsystem, &matches);
+    let renderer = init::init_sdl(&mut video_subsystem, &startup_parameters);
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     // INIT MPV
     let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
@@ -62,7 +67,7 @@ fn player_start(matches:ArgMatches) {
 
     let displayer = SDLDisplayer::new(renderer).expect("Failed to init displayer");
 
-    if matches.is_present("karaoke_mode") {
+    if startup_parameters.mode == ToyundaMode::KaraokeMode {
         let mouse_utils = sdl_context.mouse();
         mouse_utils.show_cursor(false);
         // dont show cursor on top of player in karaoke mode
@@ -70,7 +75,7 @@ fn player_start(matches:ArgMatches) {
     // Create a new displayer for the toyunda_player
 
     let mut toyunda_player = ToyundaPlayer::new(mpv, displayer);
-    match toyunda_player.start(matches) {
+    match toyunda_player.start(startup_parameters) {
         Err(e) => {
             error!("Failed to start player with given arguments, expect default parameters !\n\
                     '{}' ({:?})",
@@ -161,7 +166,7 @@ fn main() {
             .short("f")
             .long("fullscreen")
             .help("Enables fullscreen"))
-        .arg(Arg::with_name("yaml_directory")
+        .arg(Arg::with_name("yaml_directories")
             .short("d")
             .long("directory")
             .takes_value(true)
@@ -216,5 +221,12 @@ fn main() {
             ::std::process::exit(-1);
         }
     }
-    player_start(matches);
+    let startup_options = match StartupOptions::from_args(matches) {
+        Err(e) => {
+            error!("Error when parsing command line parameters: {}",e);
+            ::std::process::exit(1)
+        },
+        Ok(startup_options) => startup_options,
+    };
+    player_start(startup_options.to_params());
 }

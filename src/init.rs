@@ -3,7 +3,7 @@ extern crate sdl2_sys;
 use sdl2::render::Renderer;
 use std::os::raw::{c_void, c_char};
 use std::ffi::CStr;
-use clap::ArgMatches;
+use ::toyunda_player::StartupParameters;
 
 pub unsafe extern "C" fn get_proc_address(arg: *mut c_void, name: *const c_char) -> *mut c_void {
     let arg: &sdl2::VideoSubsystem = &*(arg as *mut sdl2::VideoSubsystem);
@@ -29,11 +29,11 @@ fn find_sdl_gl_driver() -> Option<u32> {
 }
 
 pub fn init_sdl<'a>(video_subsystem: &mut sdl2::VideoSubsystem,
-                    arg_matches: &ArgMatches)
+                    params: &StartupParameters)
                     -> Renderer<'a> {
     let opengl_driver_id = find_sdl_gl_driver().expect("Unable to find OpenGL video driver");
 
-    let mut window_builder = if arg_matches.is_present("fullscreen") {
+    let mut window_builder = if params.fullscreen {
         let mut builder = video_subsystem.window("Toyunda Player", 960, 540);
         builder.fullscreen_desktop();
         builder
