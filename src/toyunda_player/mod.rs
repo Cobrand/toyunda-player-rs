@@ -1,4 +1,4 @@
-mod options;
+mod toyunda_mode;
 mod toyunda;
 mod error;
 mod command;
@@ -14,7 +14,7 @@ pub mod log_messages;
 pub mod graphic_message;
 pub mod time_info;
 
-pub use self::options::*;
+pub use self::toyunda_mode::*;
 pub use self::toyunda::*;
 pub use self::video_meta::*;
 pub use self::playlist::*;

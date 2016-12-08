@@ -30,7 +30,7 @@ pub struct ToyundaPlayer<'a> {
     pub subtitles: Option<Subtitles>,
     pub mpv: Box<MpvHandlerWithGl>,
     pub displayer: SDLDisplayer<'a>,
-    pub options: ToyundaOptions,
+    pub mode: ToyundaMode,
     pub state: Arc<RwLock<State>>,
     pub manager: Option<Manager>,
     pub editor_state: Option<EditorState>,
@@ -63,7 +63,7 @@ impl<'a> ToyundaPlayer<'a> {
             subtitles: None,
             mpv: mpv_box,
             displayer: displayer,
-            options: ToyundaOptions::default(),
+            mode: ToyundaMode::NormalMode,
             state: Arc::new(RwLock::new(State {
                 playlist: Playlist::new(),
                 playing_state: PlayingState::Idle,
@@ -134,11 +134,11 @@ impl<'a> ToyundaPlayer<'a> {
         }
         let mut enable_manager : bool ;
         if arg_matches.is_present("karaoke_mode") {
-            self.options.mode = ToyundaMode::KaraokeMode;
+            self.mode = ToyundaMode::KaraokeMode;
             debug!("Enabling karaoke mode");
             enable_manager = true ;
         } else if arg_matches.is_present("edit_mode") {
-            self.options.mode = ToyundaMode::EditMode;
+            self.mode = ToyundaMode::EditMode;
             self.editor_state = None;
             if let Err(e) = self.mpv.set_option("loop-file","inf") {
                 error!("loop file option failed : {}",e);
@@ -146,7 +146,7 @@ impl<'a> ToyundaPlayer<'a> {
             debug!("Enabling edit mode");
             enable_manager = false;
         } else {
-            self.options.mode = ToyundaMode::NormalMode;
+            self.mode = ToyundaMode::NormalMode;
             enable_manager = true ;
         }
         if let Some(songs_history) = arg_matches.value_of("songs_history") {
@@ -216,7 +216,7 @@ impl<'a> ToyundaPlayer<'a> {
     pub fn on_load_media(&mut self) -> Result<ToyundaAction> {
         let res = self.import_cur_file_subtitles();
         if let Err(e) = res {
-            if self.options.mode == ToyundaMode::KaraokeMode {
+            if self.mode == ToyundaMode::KaraokeMode {
                 if let &PlayingState::Playing(ref video_meta) =
                     &self.state.write().unwrap().playing_state {
                         error!("Subtitles import error: {} , file {} will be skipped",
@@ -426,7 +426,7 @@ impl<'a> ToyundaPlayer<'a> {
     pub fn messages_as_overlay_frame(&mut self) -> OverlayFrame {
         use chrono::Duration;
         use ::toyunda_player::graphic_message::*;
-        let is_karaoke_mode = self.options.mode == ToyundaMode::KaraokeMode;
+        let is_karaoke_mode = self.mode == ToyundaMode::KaraokeMode;
         let graphic_messages = get_graphic_messages();
         let graphic_messages = graphic_messages.into_iter().filter(|m|{
             !is_karaoke_mode || m.category == Category::Announcement 
@@ -522,7 +522,7 @@ impl<'a> ToyundaPlayer<'a> {
                 };
             }
         }
-        if (self.options.mode == ToyundaMode::EditMode ) {
+        if (self.mode == ToyundaMode::EditMode ) {
             let percent_pos : f64 =
                 self.mpv_cache.cached_percent_pos().unwrap_or(0.0);
             let (window_width, window_height) =
@@ -662,7 +662,7 @@ impl<'a> ToyundaPlayer<'a> {
                             Ok(_) => {},
                             Err(e) => {
                                 error!("{}",e);
-                                if self.options.mode == ToyundaMode::KaraokeMode {
+                                if self.mode == ToyundaMode::KaraokeMode {
                                     command_results.push(self.execute_command(Command::PlayNext));
                                 }
                             }
@@ -726,7 +726,7 @@ impl<'a> ToyundaPlayer<'a> {
         use ::toyunda_player::ToyundaMode::*;
         let time = self.get_media_current_time();
         let (is_alt_pressed, is_ctrl_pressed, is_shift_pressed) = alt_keys_state;
-        let mode = self.options.mode; // shortcut
+        let mode = self.mode; // shortcut
         match event {
             Event::Quit { .. } |
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>

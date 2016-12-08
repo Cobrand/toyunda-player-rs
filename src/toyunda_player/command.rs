@@ -112,7 +112,7 @@ impl<'a> ToyundaPlayer<'a> {
                         try!(self.execute_command(Command::Stop));
                         match self.state.read().unwrap().quit_when_finished {
                             None => {
-                                match self.options.mode {
+                                match self.mode {
                                     ToyundaMode::KaraokeMode => {
                                         Ok(ToyundaAction::Nothing)
                                     }
