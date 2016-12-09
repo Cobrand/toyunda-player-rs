@@ -134,7 +134,8 @@ impl<'a> ToyundaPlayer<'a> {
         match params.mode {
             ToyundaMode::EditMode => {
                 debug!("Enabling karaoke mode");
-                enable_manager = true ;
+				enable_manager = false;
+
             },
             ToyundaMode::KaraokeMode => {
                 self.editor_state = None;
@@ -142,7 +143,7 @@ impl<'a> ToyundaPlayer<'a> {
                     error!("loop file option failed for edit mode : {}",e);
                 };
                 debug!("Enabling edit mode");
-                enable_manager = false;
+                enable_manager = true ;
             },
             ToyundaMode::NormalMode => {
                 enable_manager = true;
