@@ -7,22 +7,22 @@ pub trait RGB {
     fn r(&self) -> u8;
     fn g(&self) -> u8;
     fn b(&self) -> u8;
-    fn rgb(&self) -> (u8,u8,u8) {
-        (self.r(),self.g(),self.b())
+    fn rgb(&self) -> (u8, u8, u8) {
+        (self.r(), self.g(), self.b())
     }
-    fn new(r:u8,g:u8,b:u8) -> Self;
+    fn new(r: u8, g: u8, b: u8) -> Self;
 }
 
-pub trait RGBA:RGB {
+pub trait RGBA: RGB {
     fn a(&self) -> u8;
-    fn rgba(&self) -> (u8,u8,u8,u8) {
-        (self.r(),self.g(),self.b(),self.a())
+    fn rgba(&self) -> (u8, u8, u8, u8) {
+        (self.r(), self.g(), self.b(), self.a())
     }
-    fn new_rgba(r:u8,g:u8,b:u8,a:u8) -> Self;
+    fn new_rgba(r: u8, g: u8, b: u8, a: u8) -> Self;
 }
 
 /// will always return a flat color regardless or alpha
-pub fn mix_colors<C:RGB>(color1: C, color2: C, mix_ratio: f32) -> C {
+pub fn mix_colors<C: RGB>(color1: C, color2: C, mix_ratio: f32) -> C {
     let (r1, g1, b1) = color1.rgb();
     let (r2, g2, b2) = color2.rgb();
     let (r1, g1, b1) = (r1 as i16, g1 as i16, b1 as i16);
@@ -36,7 +36,7 @@ pub fn mix_colors<C:RGB>(color1: C, color2: C, mix_ratio: f32) -> C {
     C::new(r, g, b)
 }
 
-pub fn fade_color<C:RGBA>(color1: C, fade_ratio: f32) -> C {
+pub fn fade_color<C: RGBA>(color1: C, fade_ratio: f32) -> C {
     let (r, g, b, a): (u8, u8, u8, u8) = color1.rgba();
     C::new_rgba(r, g, b, (a as f32 * fade_ratio) as u8)
 }
@@ -51,7 +51,7 @@ pub fn parse_hex(hex: &str) -> Result<u32, String> {
     Ok(parsed)
 }
 
-pub fn parse_bgr<C:RGB>(bgr: &str) -> Result<C, String> {
+pub fn parse_bgr<C: RGB>(bgr: &str) -> Result<C, String> {
     let bgr = bgr.trim();
     if bgr.len() != 6 {
         Err(String::from("Invalid BGR format"))
@@ -61,7 +61,7 @@ pub fn parse_bgr<C:RGB>(bgr: &str) -> Result<C, String> {
         let blue = try!(parse_hex(blue)) as u8;
         let green = try!(parse_hex(green)) as u8;
         let red = try!(parse_hex(red)) as u8;
-        Ok(C::new(red,green,blue))
+        Ok(C::new(red, green, blue))
     }
 }
 
@@ -112,7 +112,8 @@ pub fn for_each_in_dir<P: AsRef<Path>, F: Fn(&Path) -> bool>(directory: P,
 fn test_bgr() {
     use ::overlay::Color;
     let sample_bgr = "FF0000";
-    assert_eq!(parse_bgr::<Color>(sample_bgr).unwrap(), Color::new(0, 0, 255));
+    assert_eq!(parse_bgr::<Color>(sample_bgr).unwrap(),
+               Color::new(0, 0, 255));
 }
 
 #[test]
@@ -122,10 +123,10 @@ fn test_parse_hex() {
 }
 
 // width and height must be between 0 and 1
-pub fn fit_dims(dims:(u32,u32),
-                 fit_width: Option<f32>,
-                 fit_height: Option<f32>)
-                 -> (Option<u32>, Option<u32>) {
+pub fn fit_dims(dims: (u32, u32),
+                fit_width: Option<f32>,
+                fit_height: Option<f32>)
+                -> (Option<u32>, Option<u32>) {
     (fit_width.and_then(|width| Some((width * (dims.0 as f32)) as u32)),
      fit_height.and_then(|height| Some((height * (dims.1 as f32)) as u32)))
 }

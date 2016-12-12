@@ -1,4 +1,4 @@
-use super::{Color,AlphaColor,Outline};
+use super::{Color, AlphaColor, Outline};
 
 #[derive(Debug)]
 pub struct TextSubUnit {

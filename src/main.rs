@@ -1,6 +1,6 @@
 #![allow(unused_parens)]
 #![feature(proc_macro)]
-//#![feature(custom_derive, plugin)] // necessary for serde
+// #![feature(custom_derive, plugin)] // necessary for serde
 #![feature(conservative_impl_trait)]
 extern crate serde;
 
@@ -42,22 +42,26 @@ mod update_json;
 
 use update_json::update_json;
 
-use toyunda_player::log_messages::{LOG_MESSAGES,LogMessage as ToyundaLogMessage};
+use toyunda_player::log_messages::{LOG_MESSAGES, LogMessage as ToyundaLogMessage};
 use toyunda_player::StartupOptions;
 
 fn main() {
     struct _DummyLog {};
     impl fern::Logger for _DummyLog {
-        fn log(&self, msg:&str, level:&log::LogLevel, _:&log::LogLocation) -> Result<(),fern::LogError> {
+        fn log(&self,
+               msg: &str,
+               level: &log::LogLevel,
+               _: &log::LogLocation)
+               -> Result<(), fern::LogError> {
             let level = level.clone();
             let msg = String::from(msg);
             let time = chrono::Local::now();
             std::thread::spawn(move || {
                 if let Ok(mut v) = LOG_MESSAGES.write() {
                     v.push(ToyundaLogMessage {
-                        level:level,
-                        time:time,
-                        msg:msg
+                        level: level,
+                        time: time,
+                        msg: msg,
                     });
                 }
             });
@@ -66,33 +70,38 @@ fn main() {
     }
     let toyunda_log_path = ::std::env::current_exe().unwrap().with_file_name("toyunda.log");
     let fileout_config = fern::DispatchConfig {
-        format: Box::new(|msg:&str, level: &log::LogLevel, _:&log::LogLocation|{
-            format!("[{}][{}] {}",chrono::Local::now().format("%F %T"),level,msg)
+        format: Box::new(|msg: &str, level: &log::LogLevel, _: &log::LogLocation| {
+            format!("[{}][{}] {}",
+                    chrono::Local::now().format("%F %T"),
+                    level,
+                    msg)
         }),
         output: vec![fern::OutputConfig::file(&toyunda_log_path)],
-        level: log::LogLevelFilter::Info
+        level: log::LogLevelFilter::Info,
     };
     // init the logger
     let stdout_config = fern::DispatchConfig {
-        format: Box::new(|msg:&str, level: &log::LogLevel, _:&log::LogLocation|{
-            format!("[{}][{}] {}",chrono::Local::now().format("%F %T"),level,msg)
+        format: Box::new(|msg: &str, level: &log::LogLevel, _: &log::LogLocation| {
+            format!("[{}][{}] {}",
+                    chrono::Local::now().format("%F %T"),
+                    level,
+                    msg)
         }),
         output: vec![fern::OutputConfig::stdout()],
-        level: log::LogLevelFilter::Warn
+        level: log::LogLevelFilter::Warn,
     };
     let logger_config = fern::DispatchConfig {
-        format: Box::new(|msg:&str, _level: &log::LogLevel, _:&log::LogLocation|{
+        format: Box::new(|msg: &str, _level: &log::LogLevel, _: &log::LogLocation| {
             String::from(msg)
         }),
-        output: vec![
-            fern::OutputConfig::child(stdout_config),
-            fern::OutputConfig::child(fileout_config),
-            fern::OutputConfig::custom(Box::new(_DummyLog{}))
-        ],
-        level: log::LogLevelFilter::Info
+        output: vec![fern::OutputConfig::child(stdout_config),
+                     fern::OutputConfig::child(fileout_config),
+                     fern::OutputConfig::custom(Box::new(_DummyLog {}))],
+        level: log::LogLevelFilter::Info,
     };
     if let Err(e) = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace) {
-        println!("Failed to initialize logger, no messages will be shown ! Error: {}",e);
+        println!("Failed to initialize logger, no messages will be shown ! Error: {}",
+                 e);
     };
     let matches = App::new("Toyunda Player")
         .version(crate_version!())
@@ -156,10 +165,10 @@ fn main() {
             .use_delimiter(false)
             .multiple(true))
         .subcommand(SubCommand::with_name("update")
-                    .about("updates a json file from .yaml data")
-                    .arg(Arg::with_name("JSON_FILE")
-                         .use_delimiter(false)
-                         .required(true)))
+            .about("updates a json file from .yaml data")
+            .arg(Arg::with_name("JSON_FILE")
+                .use_delimiter(false)
+                .required(true)))
         .get_matches();
 
     if let Some(sub_matches) = matches.subcommand_matches("update") {
@@ -171,9 +180,9 @@ fn main() {
     }
     let startup_options = match StartupOptions::from_args(matches) {
         Err(e) => {
-            error!("Error when parsing command line parameters: {}",e);
+            error!("Error when parsing command line parameters: {}", e);
             ::std::process::exit(1)
-        },
+        }
         Ok(startup_options) => startup_options,
     };
     init::player_start(startup_options.to_params());

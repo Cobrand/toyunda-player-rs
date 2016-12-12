@@ -36,7 +36,7 @@ impl StdError for Error {
 }
 
 impl From<MpvError> for Error {
-    fn from(e:MpvError) -> Error {
+    fn from(e: MpvError) -> Error {
         Error::MpvError(e)
     }
 }
@@ -44,28 +44,23 @@ impl From<MpvError> for Error {
 impl ::std::fmt::Display for Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match *self {
-            Error::Text(ref string) =>
-                write!(f, "{}", string),
-            Error::MpvError(ref mpv_error) =>
-                write!(f, "Error from Mpv : {}", mpv_error),
-            Error::FileNotFound(ref e) =>
-                write!(f, "File {} not found", e),
-            Error::JsonError(ref e) =>
-                write!(f, "JSON Error : {}", e),
-            Error::UnknownError =>
-                write!(f, "Unknown Error"), 
+            Error::Text(ref string) => write!(f, "{}", string),
+            Error::MpvError(ref mpv_error) => write!(f, "Error from Mpv : {}", mpv_error),
+            Error::FileNotFound(ref e) => write!(f, "File {} not found", e),
+            Error::JsonError(ref e) => write!(f, "JSON Error : {}", e),
+            Error::UnknownError => write!(f, "Unknown Error"), 
         }
     }
 }
 
 impl From<String> for Error {
-    fn from(s:String) -> Error {
+    fn from(s: String) -> Error {
         Error::Text(s)
     }
 }
 
 impl From<SerdeJsonError> for Error {
-    fn from(s:SerdeJsonError) -> Error {
+    fn from(s: SerdeJsonError) -> Error {
         Error::JsonError(s)
     }
 }

@@ -1,13 +1,13 @@
 use std::sync::RwLock;
 
-use chrono::{DateTime,Local};
+use chrono::{DateTime, Local};
 
 use log::LogLevel;
 
 pub struct LogMessage {
-    pub level : LogLevel,
-    pub time : DateTime<Local>,
-    pub msg : String
+    pub level: LogLevel,
+    pub time: DateTime<Local>,
+    pub msg: String,
 }
 
 lazy_static! {

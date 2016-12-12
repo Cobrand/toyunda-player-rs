@@ -1,8 +1,8 @@
 extern crate serde;
-use serde::{Serialize,Deserialize,Serializer,Deserializer};
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
 impl Serialize for Language {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error>
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
         where S: Serializer
     {
         serializer.serialize_str(match *self {
@@ -12,7 +12,7 @@ impl Serialize for Language {
             Language::Ger => "GER",
             Language::Rus => "RUS",
             Language::Instrumental => "INSTRUMENTAL",
-            Language::Other(ref string) => string.as_str()
+            Language::Other(ref string) => string.as_str(),
         })
     }
 }
@@ -24,7 +24,7 @@ impl Deserialize for Language {
         struct Visitor;
         impl ::serde::de::Visitor for Visitor {
             type Value = Language;
-            fn visit_str<E>(&mut self, value: &str) -> Result<Language,E>
+            fn visit_str<E>(&mut self, value: &str) -> Result<Language, E>
                 where E: ::serde::de::Error
             {
                 Ok(match value {
@@ -34,7 +34,7 @@ impl Deserialize for Language {
                     "RUS" | "Rus" | "rus" => Language::Rus,
                     "EN" | "ENG" | "En" | "en" => Language::En,
                     "INSTRUMENTAL" => Language::Instrumental,
-                    s => Language::Other(String::from(s))
+                    s => Language::Other(String::from(s)),
                 })
             }
         }
@@ -44,7 +44,7 @@ impl Deserialize for Language {
 }
 
 impl Serialize for MusicType {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error>
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
         where S: Serializer
     {
         serializer.serialize_str(match *self {
@@ -66,7 +66,7 @@ impl Deserialize for MusicType {
         struct Visitor;
         impl ::serde::de::Visitor for Visitor {
             type Value = MusicType;
-            fn visit_str<E>(&mut self, value: &str) -> Result<MusicType,E>
+            fn visit_str<E>(&mut self, value: &str) -> Result<MusicType, E>
                 where E: ::serde::de::Error
             {
                 Ok(match value {
@@ -75,11 +75,11 @@ impl Deserialize for MusicType {
                     "ED" | "ENDING" | "Ed" | "Ending" => MusicType::Ending,
                     "INS" | "INSERT" | "Insert" => MusicType::Insert,
                     "OST" | "Ost" => MusicType::OST,
-                    s => MusicType::Other(String::from(s))
+                    s => MusicType::Other(String::from(s)),
                 })
             }
         }
-        
+
         deserializer.deserialize_str(Visitor)
     }
 }
@@ -115,7 +115,7 @@ impl MusicType {
             MusicType::Ending => "ED",
             MusicType::Insert => "INS",
             MusicType::OST => "OST",
-            MusicType::Other(ref s) => s.as_str()
+            MusicType::Other(ref s) => s.as_str(),
         }
     }
 
@@ -126,13 +126,13 @@ impl MusicType {
             MusicType::Ending => "Ending",
             MusicType::Insert => "Insert",
             MusicType::OST => "Original Soundtrack",
-            MusicType::Other(ref s) => s.as_str()
+            MusicType::Other(ref s) => s.as_str(),
         }
     }
 }
 
 impl Serialize for MediaType {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error>
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
         where S: Serializer
     {
         serializer.serialize_str(match *self {
@@ -152,19 +152,21 @@ impl Deserialize for MediaType {
         struct Visitor;
         impl ::serde::de::Visitor for Visitor {
             type Value = MediaType;
-            fn visit_str<E>(&mut self, value: &str) -> Result<MediaType,E>
+            fn visit_str<E>(&mut self, value: &str) -> Result<MediaType, E>
                 where E: ::serde::de::Error
             {
                 Ok(match value {
                     "ANIME" | "Anime" => MediaType::Anime,
-                    "VideoGame" | "VG" | "videogame" | "VIDEOGAME" | "Video Game" => MediaType::VideoGame,
+                    "VideoGame" | "VG" | "videogame" | "VIDEOGAME" | "Video Game" => {
+                        MediaType::VideoGame
+                    }
                     "Movie" | "MOVIE" => MediaType::Movie,
                     "Original" | "ORIGINAL" => MediaType::Original,
-                    s => MediaType::Other(String::from(s))
+                    s => MediaType::Other(String::from(s)),
                 })
             }
         }
-        
+
         deserializer.deserialize_str(Visitor)
     }
 }
@@ -205,21 +207,24 @@ pub struct SongInfo {
 }
 
 impl SongInfo {
-    pub fn credit_sentences(&self) -> Option<(String,Option<String>)> {
+    pub fn credit_sentences(&self) -> Option<(String, Option<String>)> {
         let first_string = if let &Some(ref title) = &self.media_title {
-            match (&self.music_type,&self.music_number) {
-                (&None,_) => format!("{}",title),
-                (&Some(ref m_type),&Some(ref number)) => format!("{} - {} {}",title,m_type.short(),number),
-                (&Some(ref m_type),&None) => format!("{} - {}",title,m_type.long())
+            match (&self.music_type, &self.music_number) {
+                (&None, _) => format!("{}", title),
+                (&Some(ref m_type), &Some(ref number)) => {
+                    format!("{} - {} {}", title, m_type.short(), number)
+                }
+                (&Some(ref m_type), &None) => format!("{} - {}", title, m_type.long()),
             }
         } else {
             return None;
         };
-        let second_string = if let (&Some(ref artist),&Some(ref song_name)) = (&self.artist,&self.song_name) {
-            Some(format!("{} - {}",artist,song_name))
+        let second_string = if let (&Some(ref artist), &Some(ref song_name)) = (&self.artist,
+                                                                                &self.song_name) {
+            Some(format!("{} - {}", artist, song_name))
         } else {
             None
         };
-        Some((first_string,second_string))
+        Some((first_string, second_string))
     }
 }

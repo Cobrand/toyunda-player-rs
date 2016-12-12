@@ -2,7 +2,7 @@ use ::toyunda_player::*;
 use ::toyunda_player::error::{Result, Error};
 use std::cmp::{min, max};
 use ::toyunda_player::playing_state::*;
-use chrono::{DateTime,Local};
+use chrono::{DateTime, Local};
 
 #[derive(Debug)]
 pub enum Command {
@@ -16,7 +16,7 @@ pub enum Command {
     ToggleQuitOnFinish,
     PauseBeforeNext,
     AddToQueue(VideoMeta),
-    AddToQueueWithPos(VideoMeta,usize),
+    AddToQueueWithPos(VideoMeta, usize),
     DeleteFromQueue(usize),
     ReloadSubtitles,
     /// Stops the queue, but doesnt empty it
@@ -25,7 +25,7 @@ pub enum Command {
     PlayNext,
     ClearQueue,
     Quit,
-    Announcement(String,DateTime<Local>)
+    Announcement(String, DateTime<Local>),
 }
 
 impl<'a> ToyundaPlayer<'a> {
@@ -113,11 +113,10 @@ impl<'a> ToyundaPlayer<'a> {
                         match self.state.read().unwrap().quit_when_finished {
                             None => {
                                 match self.mode {
-                                    ToyundaMode::KaraokeMode => {
-                                        Ok(ToyundaAction::Nothing)
+                                    ToyundaMode::KaraokeMode => Ok(ToyundaAction::Nothing),
+                                    ToyundaMode::NormalMode | ToyundaMode::EditMode => {
+                                        Ok(ToyundaAction::Terminate)
                                     }
-                                    ToyundaMode::NormalMode | ToyundaMode::EditMode =>
-                                        Ok(ToyundaAction::Terminate),
                                 }
                             }
                             Some(b) => {
@@ -131,9 +130,7 @@ impl<'a> ToyundaPlayer<'a> {
                             }
                         }
                     }
-                    Some(video_meta) => {
-                        self.load_media_from_video_meta(video_meta)
-                    }
+                    Some(video_meta) => self.load_media_from_video_meta(video_meta),
                 }
             }
             Command::Stop => {
@@ -152,13 +149,16 @@ impl<'a> ToyundaPlayer<'a> {
                 self.state.write().unwrap().playlist.push_back(video_meta);
                 Ok(ToyundaAction::Nothing)
             }
-            Command::AddToQueueWithPos(video_meta,pos) => {
+            Command::AddToQueueWithPos(video_meta, pos) => {
                 if let Ok(mut state) = self.state.write() {
                     if state.playlist.len() >= pos {
-                        state.playlist.insert(pos,video_meta);
+                        state.playlist.insert(pos, video_meta);
                         Ok(ToyundaAction::Nothing)
                     } else {
-                        Err(format!("Trying to insert element at {} while playlist is of size {}",pos,state.playlist.len()).into())
+                        Err(format!("Trying to insert element at {} while playlist is of size {}",
+                                    pos,
+                                    state.playlist.len())
+                            .into())
                     }
                 } else {
                     Err(format!("Unable to get state object, is the lock poisoned ?").into())
@@ -168,28 +168,27 @@ impl<'a> ToyundaPlayer<'a> {
                 try!(self.import_cur_file_subtitles());
                 Ok(ToyundaAction::Nothing)
             }
-            Command::Quit => {
-                Ok(ToyundaAction::Terminate)
-            }
+            Command::Quit => Ok(ToyundaAction::Terminate),
             Command::PauseBeforeNext => {
                 self.state.write().unwrap().pause_before_next = true;
                 Ok(ToyundaAction::Nothing)
             }
             Command::ToggleQuitOnFinish => {
-                let b : bool = self.state.read().unwrap().quit_when_finished.unwrap_or(false);
+                let b: bool = self.state.read().unwrap().quit_when_finished.unwrap_or(false);
                 self.state.write().unwrap().quit_when_finished = Some(!b);
                 Ok(ToyundaAction::Nothing)
-            },
-            Command::Announcement(text,datetime) => {
-                self.announcements.push((text,datetime));
+            }
+            Command::Announcement(text, datetime) => {
+                self.announcements.push((text, datetime));
                 Ok(ToyundaAction::Nothing)
-            },
+            }
             Command::DeleteFromQueue(p) => {
                 if let Ok(mut state) = self.state.write() {
                     if p < state.playlist.len() {
                         state.playlist.remove(p);
                     } else {
-                        warn!("Trying to remove {}th element from playlist, but is out of bounds",p);
+                        warn!("Trying to remove {}th element from playlist, but is out of bounds",
+                              p);
                     }
                 }
                 Ok(ToyundaAction::Nothing)

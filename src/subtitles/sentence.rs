@@ -1,5 +1,5 @@
-use super::{Syllable,SyllableOptions,Subtitles,SubtitlesOptions,AsSyllableOptions};
-use super::pos::{RowPosition,Size};
+use super::{Syllable, SyllableOptions, Subtitles, SubtitlesOptions, AsSyllableOptions};
+use super::pos::{RowPosition, Size};
 use std::ops::Deref;
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
@@ -13,36 +13,41 @@ pub struct Sentence {
 
 pub trait AsSentenceOptions {
     fn as_sentence_options(&self) -> Option<&SentenceOptions>;
-    fn or_sentence_options(&self,other:Option<&SentenceOptions>) -> Option<SentenceOptions> {
-        match (self.as_sentence_options(),other) {
-            (Some(s),Some(other)) => Some(SentenceOptions {
-                transitions: {
-                    use std::cmp::Ord;
-                    let mut t = s.transitions.iter()
-                        .chain(other.transitions.iter())
-                        .cloned()
-                        .collect::<Vec<SentenceTransition>>();
-                    t.sort_by(|a,b| Ord::cmp(&a.offset,&b.offset));
-                    t
-                },
-                syllable_options: s.syllable_options.or_syllable_options(other.syllable_options.as_ref()),
-                display_logo: s.display_logo.or(other.display_logo),
-                transition_time_after: s.transition_time_after.or(other.transition_time_after),
-                fade_time_after: s.fade_time_after.or(other.fade_time_after),
-                transition_time_before: s.transition_time_before.or(other.transition_time_before),
-                fade_time_before: s.fade_time_before.or(other.fade_time_before),
-                row_position: s.row_position.or(other.row_position),
-                size: s.size.or(other.size),
-            }),
-            (Some(s),None) => Some(s.clone()),
-            (None,Some(other)) => Some(other.clone()),
-            (None,None) => None
+    fn or_sentence_options(&self, other: Option<&SentenceOptions>) -> Option<SentenceOptions> {
+        match (self.as_sentence_options(), other) {
+            (Some(s), Some(other)) => {
+                Some(SentenceOptions {
+                    transitions: {
+                        use std::cmp::Ord;
+                        let mut t = s.transitions
+                            .iter()
+                            .chain(other.transitions.iter())
+                            .cloned()
+                            .collect::<Vec<SentenceTransition>>();
+                        t.sort_by(|a, b| Ord::cmp(&a.offset, &b.offset));
+                        t
+                    },
+                    syllable_options: s.syllable_options
+                        .or_syllable_options(other.syllable_options.as_ref()),
+                    display_logo: s.display_logo.or(other.display_logo),
+                    transition_time_after: s.transition_time_after.or(other.transition_time_after),
+                    fade_time_after: s.fade_time_after.or(other.fade_time_after),
+                    transition_time_before: s.transition_time_before
+                        .or(other.transition_time_before),
+                    fade_time_before: s.fade_time_before.or(other.fade_time_before),
+                    row_position: s.row_position.or(other.row_position),
+                    size: s.size.or(other.size),
+                })
+            }
+            (Some(s), None) => Some(s.clone()),
+            (None, Some(other)) => Some(other.clone()),
+            (None, None) => None,
         }
     }
     fn as_syllable_options(&self, offset: i32) -> Option<SyllableOptions> {
         match self.as_sentence_options() {
             None => None,
-            Some(sentence_options) => sentence_options.merge_at(offset).syllable_options
+            Some(sentence_options) => sentence_options.merge_at(offset).syllable_options,
         }
     }
 }
@@ -58,17 +63,18 @@ impl SentenceOptions {
             transition_time_before: self.transition_time_before,
             fade_time_before: self.fade_time_before,
             row_position: self.row_position,
-            size: self.size
+            size: self.size,
         }
     }
 
     pub fn merge_at(&self, offset: i32) -> SentenceOptions {
         let mut sentence_options = Some(self.bare());
-        let iter = self.transitions.iter()
+        let iter = self.transitions
+            .iter()
             .take_while(|t| t.offset <= offset);
         for s in iter {
             sentence_options = s.new_options.or_sentence_options(sentence_options.as_ref());
-        };
+        }
         sentence_options.unwrap()
     }
 }
@@ -97,11 +103,11 @@ impl AsSentenceOptions for SubtitlesOptions {
     }
 }
 
-impl<T:AsSentenceOptions> AsSentenceOptions for Option<T> {
+impl<T: AsSentenceOptions> AsSentenceOptions for Option<T> {
     fn as_sentence_options(&self) -> Option<&SentenceOptions> {
         match *self {
             Some(ref t) => t.as_sentence_options(),
-            None => None
+            None => None,
         }
     }
 }
@@ -110,7 +116,7 @@ impl Sentence {
     /// used mainly for debugging purposes
     #[allow(dead_code)]
     pub fn text(&self) -> String {
-        self.syllables.iter().fold(String::new(),|mut string,syllable| {
+        self.syllables.iter().fold(String::new(), |mut string, syllable| {
             string.push_str(&*syllable.text);
             string
         })
@@ -142,7 +148,7 @@ pub struct SentenceOptions {
     #[serde(rename = "position")]
     pub row_position: Option<RowPosition>,
     #[serde(skip_serializing_if="Option::is_none")]
-    pub size: Option<Size<Option<f32>>>
+    pub size: Option<Size<Option<f32>>>,
 }
 
 impl Deref for SentenceOptions {
@@ -155,7 +161,7 @@ impl Deref for SentenceOptions {
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct SentenceTransition {
     pub offset: i32,
-    pub new_options: SentenceOptions
+    pub new_options: SentenceOptions,
 }
 
 #[derive(Debug,Clone)]
@@ -166,12 +172,12 @@ pub struct SentenceParameters {
     pub transition_time_after: u16,
     pub fade_time_after: u16,
     pub row_position: Option<RowPosition>,
-    pub size:Size<Option<f32>> 
+    pub size: Size<Option<f32>>,
 }
 
-impl From<(SentenceOptions,i32)> for SentenceParameters {
-    fn from((sentence_options, time_offset): (SentenceOptions,i32)) -> Self {
-        let sentence_options : SentenceOptions = sentence_options.merge_at(time_offset);
+impl From<(SentenceOptions, i32)> for SentenceParameters {
+    fn from((sentence_options, time_offset): (SentenceOptions, i32)) -> Self {
+        let sentence_options: SentenceOptions = sentence_options.merge_at(time_offset);
         SentenceParameters {
             display_logo: sentence_options.display_logo.unwrap_or(true),
             transition_time_before: sentence_options.transition_time_before.unwrap_or(800),
@@ -180,35 +186,38 @@ impl From<(SentenceOptions,i32)> for SentenceParameters {
             fade_time_after: sentence_options.fade_time_after.unwrap_or(200),
             row_position: sentence_options.row_position,
             size: match sentence_options.size {
-                None | Some( Size { width:None,height:None}) => Size {
-                    width:Some(0.95),
-                    height:Some(0.09)
-                },
-                Some(e) => e
-            }
+                None |
+                Some(Size { width: None, height: None }) => {
+                    Size {
+                        width: Some(0.95),
+                        height: Some(0.09),
+                    }
+                }
+                Some(e) => e,
+            },
         }
     }
 }
 
 #[test]
-fn test_sentence_options_propagation(){
+fn test_sentence_options_propagation() {
     use super::*;
     use utils::RGB;
     let default_options = SentenceOptions {
         syllable_options: Some(SyllableOptions {
-            alive_color: Some(Color::new(128,0,0)),
-            dead_color: Some(Color::new(0,128,0)),
+            alive_color: Some(Color::new(128, 0, 0)),
+            dead_color: Some(Color::new(0, 128, 0)),
             transition_color: None,
-            outline: None
+            outline: None,
         }),
         ..SentenceOptions::default()
     };
     let syllable_options = SyllableOptions {
-        alive_color: Some(Color::new(172,172,172)),
+        alive_color: Some(Color::new(172, 172, 172)),
         ..SyllableOptions::default()
     };
     let syllable_parameters = SyllableParameters::from(syllable_options.or_syllable_options(default_options.as_syllable_options()).unwrap());
-    assert_eq!(syllable_parameters.alive_color,Color::new(172,172,172));
-    assert_eq!(syllable_parameters.dead_color,Color::new(0,128,0));
-    assert_eq!(syllable_parameters.transition_color,Color::new(255,0,0));
+    assert_eq!(syllable_parameters.alive_color, Color::new(172, 172, 172));
+    assert_eq!(syllable_parameters.dead_color, Color::new(0, 128, 0));
+    assert_eq!(syllable_parameters.transition_color, Color::new(255, 0, 0));
 }

@@ -1,8 +1,7 @@
 use super::song_info::SongInfo;
-use super::pos::{RowPosition,Point};
-use super::{Sentence,SentenceOptions,SentenceParameters,
-        Syllable,SyllableOptions,SyllableParameters,AsSentenceOptions,
-        AsSyllableOptions};
+use super::pos::{RowPosition, Point};
+use super::{Sentence, SentenceOptions, SentenceParameters, Syllable, SyllableOptions,
+            SyllableParameters, AsSentenceOptions, AsSyllableOptions};
 use ::overlay::*;
 use ::overlay::pos::*;
 use std::ops::Deref;
@@ -19,43 +18,55 @@ pub struct Subtitles {
 
 /// subtitles : already stored Subtitles
 /// sentence : Sentence to add to the subtitles
-fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
+fn set_best_sentence_row(sentences: (&[Sentence], &[Sentence]),
                          sentence: &mut Sentence,
                          default_sentence_options: Option<&SentenceOptions>) {
-    if let Some(row_pos) = sentence.sentence_options.as_ref().and_then(|o|o.row_position) {
-        sentence.position = row_pos ;
+    if let Some(row_pos) = sentence.sentence_options.as_ref().and_then(|o| o.row_position) {
+        sentence.position = row_pos;
         return; // life is meaningless
     }
-    let (before_sentences,after_sentences) = sentences ;
-    let sentence_options: Option<SentenceOptions> =
-        sentence.sentence_options.or_sentence_options(default_sentence_options);
+    let (before_sentences, after_sentences) = sentences;
+    let sentence_options: Option<SentenceOptions> = sentence.sentence_options
+        .or_sentence_options(default_sentence_options);
     let sentence_parameters =
-        SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()),-10000i32));
+        SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()),
+                                  -10000i32));
     let mut best_row = 0u8;
     {
-        let filter_fun = |sentence_candidate:&&Sentence|{
-            match (sentence.syllables.first(),sentence.syllables.last(),
-                   sentence_candidate.syllables.first(),sentence_candidate.syllables.last()) {
-                (None,_,_,_) | (_,None,_,_) | (_,_,None,_) | (_,_,_,None)  => false,
-                (Some(ref first_syllable),Some(ref last_syllable),
-                 Some(ref first_syllable_candidate),Some(ref last_syllable_candidate)) => {
-                    let sentence_candidate_options : Option<SentenceOptions> =
-                        sentence_candidate.sentence_options.or_sentence_options(default_sentence_options);
+        let filter_fun = |sentence_candidate: &&Sentence| {
+            match (sentence.syllables.first(),
+                   sentence.syllables.last(),
+                   sentence_candidate.syllables.first(),
+                   sentence_candidate.syllables.last()) {
+                (None, _, _, _) | (_, None, _, _) | (_, _, None, _) | (_, _, _, None) => false,
+                (Some(ref first_syllable),
+                 Some(ref last_syllable),
+                 Some(ref first_syllable_candidate),
+                 Some(ref last_syllable_candidate)) => {
+                    let sentence_candidate_options: Option<SentenceOptions> =
+                        sentence_candidate.sentence_options
+                            .or_sentence_options(default_sentence_options);
                     let sentence_candidate_parameters =
                         SentenceParameters::from(
                             (sentence_candidate_options.unwrap_or(SentenceOptions::default()),-10000i32));
                     let first_frame = first_syllable.begin
                         .saturating_sub(sentence_parameters.transition_time_before as u32);
-                    let last_frame = last_syllable.end.expect("last syllable has no end")
+                    let last_frame = last_syllable.end
+                        .expect("last syllable has no end")
                         .saturating_add(sentence_parameters.transition_time_after as u32);
                     let first_frame_candidate = first_syllable_candidate.begin
                         .saturating_sub(sentence_candidate_parameters.transition_time_before as u32);
-                    let last_frame_candidate = last_syllable_candidate.end.expect("last syllable has no end")
+                    let last_frame_candidate = last_syllable_candidate.end
+                        .expect("last syllable has no end")
                         .saturating_add(sentence_candidate_parameters.transition_time_after as u32);
-                    if (last_frame_candidate >= first_frame  && last_frame_candidate <= last_frame ) ||
-                       (first_frame_candidate >= first_frame && first_frame_candidate <= last_frame) ||
-                       (last_frame >= first_frame_candidate  && last_frame <= last_frame_candidate ) ||
-                       (first_frame >= first_frame_candidate && first_frame <= last_frame_candidate) {
+                    if (last_frame_candidate >= first_frame &&
+                        last_frame_candidate <= last_frame) ||
+                       (first_frame_candidate >= first_frame &&
+                        first_frame_candidate <= last_frame) ||
+                       (last_frame >= first_frame_candidate &&
+                        last_frame <= last_frame_candidate) ||
+                       (first_frame >= first_frame_candidate &&
+                        first_frame <= last_frame_candidate) {
                         true
                     } else {
                         false
@@ -67,24 +78,31 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
         // step 1 : filter -> filter_map to remove "options" and maybe convert directly in
         // RowPosition::Row(_)
         let sentences_candidate_before = before_sentences.iter().filter(&filter_fun);
-        let sentences_candidate_after = after_sentences.iter().filter(|s|{
-            if let Some(ref sentence_options) = s.sentence_options {
-                sentence_options.row_position.is_some()
-            } else {
-                false
-            }
-        }).filter(&filter_fun);
+        let sentences_candidate_after = after_sentences.iter()
+            .filter(|s| {
+                if let Some(ref sentence_options) = s.sentence_options {
+                    sentence_options.row_position.is_some()
+                } else {
+                    false
+                }
+            })
+            .filter(&filter_fun);
         let mut taken = vec![];
         for sentence in sentences_candidate_before {
             match sentence.position {
                 RowPosition::Row(i) => {
                     taken.push(i);
-                },
+                }
                 _ => {}
             }
-        };
+        }
         for sentence in sentences_candidate_after {
-            if let &RowPosition::Row(i) = sentence.sentence_options.as_ref().unwrap().row_position.as_ref().unwrap() {
+            if let &RowPosition::Row(i) = sentence.sentence_options
+                .as_ref()
+                .unwrap()
+                .row_position
+                .as_ref()
+                .unwrap() {
                 taken.push(i);
             };
         }
@@ -96,7 +114,7 @@ fn set_best_sentence_row(sentences: (&[Sentence],&[Sentence]),
 }
 
 impl Subtitles {
-    pub fn credit_sentences(&self) -> Option<(String,Option<String>)> {
+    pub fn credit_sentences(&self) -> Option<(String, Option<String>)> {
         self.song_info.credit_sentences()
     }
 
@@ -117,7 +135,7 @@ impl Subtitles {
     }
 
     /// length in ms
-    pub fn post_init(&mut self,duration:u32) {
+    pub fn post_init(&mut self, duration: u32) {
         self.adjust_sentences_row();
         let mut options = &mut self.subtitles_options;
         let credits_time = 8000;
@@ -128,8 +146,7 @@ impl Subtitles {
             options.start_credits_time = 4000;
         }
         if (options.end_credits_time == 0) {
-            options.end_credits_time = 
-                duration.saturating_sub(4000 + credits_time);
+            options.end_credits_time = duration.saturating_sub(4000 + credits_time);
         }
     }
 
@@ -137,22 +154,24 @@ impl Subtitles {
         for i in 0..self.sentences.len() {
             let (first_half, mut last_half) = self.sentences.split_at_mut(i);
             let (mut middle, last_half) = last_half.split_first_mut().unwrap();
-            set_best_sentence_row((first_half,last_half),
+            set_best_sentence_row((first_half, last_half),
                                   middle,
                                   self.subtitles_options.as_sentence_options());
         }
     }
 
     // TODO create a  subtitles::Error type and replace String with this
-    pub fn to_overlay_frame(&self,current_time:u32) -> Result<OverlayFrame,String> {
-        let mut text_units : Vec<TextUnit> = vec![];
-        let default_sentence_options: Option<&SentenceOptions> =
-            self.subtitles_options.as_sentence_options();
+    pub fn to_overlay_frame(&self, current_time: u32) -> Result<OverlayFrame, String> {
+        let mut text_units: Vec<TextUnit> = vec![];
+        let default_sentence_options: Option<&SentenceOptions> = self.subtitles_options
+            .as_sentence_options();
         let sentence_iter = self.sentences.iter().enumerate().filter(|&(_, ref sentence)| {
-            let sentence_options: Option<SentenceOptions> =
-                sentence.sentence_options.or_sentence_options(default_sentence_options);
+            let sentence_options: Option<SentenceOptions> = sentence.sentence_options
+                .or_sentence_options(default_sentence_options);
             let sentence_parameters =
-                SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()), current_time as i32 - sentence.syllables.first().unwrap().begin as i32));
+                SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()),
+                                          current_time as i32 -
+                                          sentence.syllables.first().unwrap().begin as i32));
             match (sentence.syllables.first(), sentence.syllables.last()) {
                 (None, _) | (_, None) => false,
                 (Some(&Syllable { begin: first_syllable_begin, .. }),
@@ -171,7 +190,8 @@ impl Subtitles {
             }
         }); // get all the sentences displayed on screen
         for (_sentence_number, ref sentence) in sentence_iter {
-            let cur_offset : i32 = current_time as i32 - sentence.syllables.first().unwrap().begin as i32;
+            let cur_offset: i32 = current_time as i32 -
+                                  sentence.syllables.first().unwrap().begin as i32;
             let sentence_alpha =
                 compute_sentence_alpha(sentence, default_sentence_options, current_time);
             let mut text_elts = vec![];
@@ -181,17 +201,18 @@ impl Subtitles {
             let default_syllable_options: Option<SyllableOptions> =
                 sentence_options.as_syllable_options(cur_offset);
             let sentence_params =
-                SentenceParameters::from((sentence_options.unwrap_or(Default::default()),cur_offset));
+                SentenceParameters::from((sentence_options.unwrap_or(Default::default()),
+                                          cur_offset));
             {
                 for tmp_syllables in sentence.syllables.windows(2) {
                     let (syllable1, syllable2) = (&tmp_syllables[0], &tmp_syllables[1]);
                     if !syllable1.text.is_empty() {
-                    add_syllable(&mut text_elts,
-                                 syllable1,
-                                 Some(syllable2),
-                                 default_syllable_options.as_ref(),
-                                 current_time,
-                                 sentence_alpha);
+                        add_syllable(&mut text_elts,
+                                     syllable1,
+                                     Some(syllable2),
+                                     default_syllable_options.as_ref(),
+                                     current_time,
+                                     sentence_alpha);
                     }
                 }
                 match sentence.syllables.last() {
@@ -236,8 +257,7 @@ impl Subtitles {
             }
             let text_pos = match sentence_params.row_position.unwrap_or(sentence.position) {
                 RowPosition::Row(l) => {
-                    (PosX::Centered,
-                     PosY::FromTopPercent(l as f32 * 0.15 + 0.01))
+                    (PosX::Centered, PosY::FromTopPercent(l as f32 * 0.15 + 0.01))
                 }
                 RowPosition::ForcePos(Point { x, y }) => {
                     (PosX::FromLeftPercent(x), PosY::FromTopPercent(y))
@@ -250,10 +270,8 @@ impl Subtitles {
                 anchor: (0.5, 0.0),
             };
             text_units.push(text_unit);
-        };
-        Ok(OverlayFrame {
-            text_units:text_units
-        })
+        }
+        Ok(OverlayFrame { text_units: text_units })
     }
 }
 
@@ -273,7 +291,7 @@ pub struct SubtitlesOptions {
     #[serde(default)]
     pub end_credits_time: u32,
     #[serde(default)]
-    pub credits_time:u32
+    pub credits_time: u32,
 }
 
 fn add_syllable(mut text_subunits: &mut Vec<TextSubUnit>,
@@ -334,7 +352,9 @@ fn compute_sentence_alpha(sentence: &Sentence,
     let sentence_options: Option<SentenceOptions> = sentence.sentence_options
         .or_sentence_options(default_sentence_options);
     let sentence_parameters =
-        SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()),frame_number as i32 - sentence.syllables.first().unwrap().begin as i32));
+        SentenceParameters::from((sentence_options.unwrap_or(SentenceOptions::default()),
+                                  frame_number as i32 -
+                                  sentence.syllables.first().unwrap().begin as i32));
     match (sentence.syllables.first(), sentence.syllables.last()) {
         (Some(&Syllable { begin: frame_begin, .. }),
          Some(&Syllable { end: Some(frame_end), .. })) => {

@@ -55,12 +55,12 @@ impl FontSet {
         &self.font_lightbold
     }
 
-    pub fn get_outline_width(font_size:u16,width:usize) -> u16 {
+    pub fn get_outline_width(font_size: u16, width: usize) -> u16 {
         match width {
             0 => 0,
             1 => (font_size / 30) + 1,
             2 => (font_size / 20) + 2,
-            _ => 0
+            _ => 0,
         }
     }
 
@@ -75,7 +75,8 @@ pub struct FontList {
     fonts: Vec<FontSet>,
 }
 
-const DEJAVUSANS_MONO_BYTES: &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold-WithJap.ttf");
+const DEJAVUSANS_MONO_BYTES: &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold-WithJap.\
+                                                             ttf");
 
 impl FontList {
     pub fn new(ttf_context: &Sdl2TtfContext) -> Result<FontList, String> {
@@ -85,15 +86,14 @@ impl FontList {
         let font_size_max = 128;
         let font_size_increment = 1;
         'fontlist: while (font_size < font_size_max) {
-            let rwops_regular : RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
-            let rwops_bold : RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
-            let rwops_lbold : RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
-            let font_regular =
-                try!(ttf_context.load_font_from_rwops(rwops_regular, font_size));
+            let rwops_regular: RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let rwops_bold: RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let rwops_lbold: RWops<'static> = try!(RWops::from_bytes(DEJAVUSANS_MONO_BYTES));
+            let font_regular = try!(ttf_context.load_font_from_rwops(rwops_regular, font_size));
             let mut font_bold = try!(ttf_context.load_font_from_rwops(rwops_bold, font_size));
             let mut font_lbold = try!(ttf_context.load_font_from_rwops(rwops_lbold, font_size));
-            font_lbold.set_outline_width(FontSet::get_outline_width(font_size,1));
-            font_bold.set_outline_width(FontSet::get_outline_width(font_size,2));
+            font_lbold.set_outline_width(FontSet::get_outline_width(font_size, 1));
+            font_bold.set_outline_width(FontSet::get_outline_width(font_size, 2));
             result.fonts.push(FontSet {
                 font_size: font_size,
                 font_regular: font_regular,
@@ -127,7 +127,10 @@ impl FontList {
                             0 => &fontset.font_regular,
                             1 => &fontset.font_lightbold,
                             2 => &fontset.font_bold,
-                            _ => {warn!("wrong font_set size set");&fontset.font_regular},
+                            _ => {
+                                warn!("wrong font_set size set");
+                                &fontset.font_regular
+                            }
                         };
                         let string_dims = search_font.size_of(string)
                             .expect("Failed to get dimensions");

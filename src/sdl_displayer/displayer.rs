@@ -1,6 +1,6 @@
 use sdl2::render::{Renderer, BlendMode, Texture};
 use sdl2::image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
-use sdl2::ttf::{Font,Sdl2TtfContext, init as ttf_init};
+use sdl2::ttf::{Font, Sdl2TtfContext, init as ttf_init};
 use sdl2::rect::Rect as SdlRect;
 use sdl2::surface::Surface;
 use sdl2::pixels::Color as SdlColor;
@@ -13,26 +13,26 @@ use super::font::*;
 use super::*;
 
 impl From<Rect> for SdlRect {
-    fn from(r:Rect) -> SdlRect {
-        SdlRect::new(r.x,r.y,r.width,r.height)
+    fn from(r: Rect) -> SdlRect {
+        SdlRect::new(r.x, r.y, r.width, r.height)
     }
 }
 
 impl From<AlphaColor> for SdlColor {
-    fn from(c:AlphaColor) -> SdlColor {
-        SdlColor::RGBA(c.red,c.green,c.blue,c.alpha)
+    fn from(c: AlphaColor) -> SdlColor {
+        SdlColor::RGBA(c.red, c.green, c.blue, c.alpha)
     }
 }
 
 impl AlphaColor {
     pub fn to_sdl_color(self) -> SdlColor {
-        SdlColor::RGBA(self.red,self.green,self.blue,self.alpha)
+        SdlColor::RGBA(self.red, self.green, self.blue, self.alpha)
     }
 }
 
 impl Color {
     pub fn to_sdl_color(self) -> SdlColor {
-        SdlColor::RGB(self.red,self.green,self.blue)
+        SdlColor::RGB(self.red, self.green, self.blue)
     }
 }
 
@@ -107,16 +107,16 @@ impl<'a> SDLDisplayer<'a> {
         &self.renderer
     }
 
-    fn display_unit(&mut self,text_unit:&TextUnit,params:&SDLDisplayParameters) -> Rect {
-        let (offset_x,offset_y) = params.offset.unwrap_or((0,0));
-        let (canevas_width, canevas_height) : (u32,u32) = match params.output_size {
+    fn display_unit(&mut self, text_unit: &TextUnit, params: &SDLDisplayParameters) -> Rect {
+        let (offset_x, offset_y) = params.offset.unwrap_or((0, 0));
+        let (canevas_width, canevas_height): (u32, u32) = match params.output_size {
             None => self.sdl_renderer().window().unwrap().size(),
-            Some(e) => e
+            Some(e) => e,
         };
-        let (fit_width, fit_height) : (Option<u32>,Option<u32>) = match text_unit.size {
+        let (fit_width, fit_height): (Option<u32>, Option<u32>) = match text_unit.size {
             Size::FitPercent(option_x, option_y) => {
-                fit_dims((canevas_width,canevas_height),option_x, option_y)
-            },
+                fit_dims((canevas_width, canevas_height), option_x, option_y)
+            }
             Size::Fit(x, y) => (x, y),
         };
 
@@ -128,11 +128,11 @@ impl<'a> SDLDisplayer<'a> {
             .unwrap_or(0);
         let all_text = text_unit.to_string();
         let font_set_id = self.fonts
-            .get_fittest_font_set_id(all_text.as_str(),
-                                     (fit_width, fit_height),
-                                     max_outline)
+            .get_fittest_font_set_id(all_text.as_str(), (fit_width, fit_height), max_outline)
             .unwrap();
-        let (text_width, text_height) = self.fonts.get_font_set(font_set_id).unwrap()
+        let (text_width, text_height) = self.fonts
+            .get_font_set(font_set_id)
+            .unwrap()
             .get_outline_font()
             .size_of(all_text.as_str())
             .expect("Unable to get outline pixel size of str");
@@ -143,11 +143,10 @@ impl<'a> SDLDisplayer<'a> {
         let mut width_offset: u32 = 0;
         for text_subunit in text_unit.text.iter() {
             // for each text element, blit it over
-            let syllable_rect =
-                self.blit_text_subunit(&text_subunit,
-                                       font_set_id,
-                                       (offset_x + text_pos_x + width_offset as i32,
-                                        offset_y + text_pos_y));
+            let syllable_rect = self.blit_text_subunit(&text_subunit,
+                                                       font_set_id,
+                                                       (offset_x + text_pos_x + width_offset as i32,
+                                                        offset_y + text_pos_y));
             if text_subunit.attach_logo {
                 let (syllable_center_x, _) = syllable_rect.center().into();
                 let syllable_bottom = syllable_rect.bottom();
@@ -155,38 +154,47 @@ impl<'a> SDLDisplayer<'a> {
                 let logo_height = syllable_height * 70 / 100;
                 match self.lyrics_logo {
                     Some(ref texture) => {
-                        self.renderer.copy(&texture,
-                                           None,
-                                           Some(SdlRect::new(syllable_center_x -
-                                                             (logo_height / 2) as i32,
-                                                             syllable_bottom - syllable_height as i32 / 16,
-                                                             logo_height,
-                                                             logo_height))).unwrap();
+                        self.renderer
+                            .copy(&texture,
+                                  None,
+                                  Some(SdlRect::new(syllable_center_x - (logo_height / 2) as i32,
+                                                    syllable_bottom -
+                                                    syllable_height as i32 / 16,
+                                                    logo_height,
+                                                    logo_height)))
+                            .unwrap();
                     }
                     None => {}
                 };
             };
-            let (w, _): (u32, u32) =
-                self.fonts.get_font_set(font_set_id).unwrap()
-                          .get_regular_font()
-                          .size_of(text_subunit.text.as_str()).unwrap_or((0,0));
+            let (w, _): (u32, u32) = self.fonts
+                .get_font_set(font_set_id)
+                .unwrap()
+                .get_regular_font()
+                .size_of(text_subunit.text.as_str())
+                .unwrap_or((0, 0));
             width_offset = width_offset + w;
-        };
+        }
         Rect {
-            x:offset_x + text_pos_x,
-            y:offset_y + text_pos_y,
-            width:text_width,
-            height:text_height
+            x: offset_x + text_pos_x,
+            y: offset_y + text_pos_y,
+            width: text_width,
+            height: text_height,
         }
     }
 
     fn blit_text_subunit(&mut self,
-                         text_subunit:&TextSubUnit,
-                         font_set_id:usize,
-                         origin:(i32,i32)) -> SdlRect {
+                         text_subunit: &TextSubUnit,
+                         font_set_id: usize,
+                         origin: (i32, i32))
+                         -> SdlRect {
         use ::sdl2::pixels::PixelFormatEnum::ARGB8888;
-        fn blit_font_text(dest:&mut Surface,font:&Font,text:&str,color:SdlColor,delta_outline:u32) {
-            let (dest_w,dest_h) = dest.size();
+        fn blit_font_text(dest: &mut Surface,
+                          font: &Font,
+                          text: &str,
+                          color: SdlColor,
+                          delta_outline: u32) {
+            let (dest_w, dest_h) = dest.size();
             let subdest_rect = SdlRect::new(delta_outline as i32,
                                             delta_outline as i32,
                                             dest_w - (delta_outline * 2),
@@ -195,28 +203,29 @@ impl<'a> SDLDisplayer<'a> {
                 .blended(color)
                 .unwrap();
             let _ = font_surface.set_blend_mode(BlendMode::Blend);
-            font_surface.blit(None,dest.deref_mut(),Some(subdest_rect))
+            font_surface.blit(None, dest.deref_mut(), Some(subdest_rect))
                 .expect("Failed to blit surface, Display error ?");
         };
 
         let font_set = self.fonts.get_font_set(font_set_id).unwrap();
-        let outline_width = FontSet::get_outline_width(font_set.get_font_size(),2) as u32;
+        let outline_width = FontSet::get_outline_width(font_set.get_font_size(), 2) as u32;
         let regular_font = font_set.get_regular_font();
         let light_bold_font = font_set.get_light_outline_font();
         let bold_font = font_set.get_outline_font();
         let regular_surface = regular_font.render(text_subunit.text.as_str())
             .blended(text_subunit.color)
             .unwrap();
-        let (regular_w,regular_h) = regular_surface.size();
+        let (regular_w, regular_h) = regular_surface.size();
         let mut surface = Surface::new(regular_w + outline_width * 2,
                                        regular_h + outline_width * 2,
                                        ARGB8888)
             .expect("Failed to create new Surface");
         let _ = surface.set_blend_mode(BlendMode::Blend);
         match text_subunit.outline {
-            Outline::None => {},
+            Outline::None => {}
             Outline::Light(color) => {
-                let light_outline_width = FontSet::get_outline_width(font_set.get_font_size(),1) as u32;
+                let light_outline_width =
+                    FontSet::get_outline_width(font_set.get_font_size(), 1) as u32;
                 blit_font_text(&mut surface,
                                light_bold_font,
                                &text_subunit.text,
@@ -236,7 +245,8 @@ impl<'a> SDLDisplayer<'a> {
                        &text_subunit.text,
                        text_subunit.color.to_sdl_color(),
                        outline_width);
-        let mut texture = self.renderer.create_texture_from_surface(surface)
+        let mut texture = self.renderer
+            .create_texture_from_surface(surface)
             .expect("Failed to create Texture from Surface");
         let _ = texture.set_blend_mode(BlendMode::Blend);
         texture.set_alpha_mod(text_subunit.color.alpha);
@@ -244,9 +254,9 @@ impl<'a> SDLDisplayer<'a> {
                                      origin.1,
                                      regular_w + outline_width * 2,
                                      regular_h + outline_width * 2);
-        self.renderer.copy(&texture,
-                           None,
-                           Some(text_rect.clone())).unwrap();
+        self.renderer
+            .copy(&texture, None, Some(text_rect.clone()))
+            .unwrap();
         text_rect
     }
 }
@@ -254,10 +264,12 @@ impl<'a> SDLDisplayer<'a> {
 impl<'a> Display for SDLDisplayer<'a> {
     type Parameters = SDLDisplayParameters;
     fn display(&mut self,
-               overlay_frame:&OverlayFrame,
-               params:&SDLDisplayParameters) -> Vec<Rect> {
-        overlay_frame.text_units.iter().map(|text_unit|{
-            self.display_unit(text_unit,params)
-        }).collect()
+               overlay_frame: &OverlayFrame,
+               params: &SDLDisplayParameters)
+               -> Vec<Rect> {
+        overlay_frame.text_units
+            .iter()
+            .map(|text_unit| self.display_unit(text_unit, params))
+            .collect()
     }
 }

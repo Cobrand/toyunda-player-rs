@@ -22,7 +22,7 @@ pub struct VideoMeta {
     pub video_duration: u32,
     /// UNIX TIMESTAMP
     #[serde(skip_deserializing)]
-    pub last_played: Option<i64>
+    pub last_played: Option<i64>,
 }
 
 impl VideoMeta {
@@ -64,7 +64,7 @@ impl VideoMeta {
                         song_info: SongInfo::default(),
                         time_info: TimeInfo::default(),
                         video_duration: 0,
-                        last_played: None
+                        last_played: None,
                     })
                 }
             }
@@ -76,7 +76,7 @@ impl VideoMeta {
     }
 
     pub fn set_last_played(&mut self, songs_history: &SongsHistory) {
-        if let Some(ref vec) = songs_history.get(&*format!("{}",self)) {
+        if let Some(ref vec) = songs_history.get(&*format!("{}", self)) {
             if let Some(last) = vec.last() {
                 self.last_played = Some(last.timestamp());
             }
@@ -135,10 +135,15 @@ impl VideoMeta {
 impl fmt::Display for VideoMeta {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use std::ffi::OsStr;
-        if let Some((string,_)) = self.song_info.credit_sentences() {
+        if let Some((string, _)) = self.song_info.credit_sentences() {
             write!(f, "{}", string)
         } else {
-            write!(f, "{}", self.video_path.file_stem().unwrap_or(OsStr::new("[UNKNOWN FILE]")).to_string_lossy())
+            write!(f,
+                   "{}",
+                   self.video_path
+                       .file_stem()
+                       .unwrap_or(OsStr::new("[UNKNOWN FILE]"))
+                       .to_string_lossy())
         }
     }
 }

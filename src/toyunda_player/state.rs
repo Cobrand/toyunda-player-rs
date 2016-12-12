@@ -9,5 +9,5 @@ pub struct State {
     pub display_subtitles: bool,
     #[serde(skip_serializing_if="Option::is_none")]
     pub quit_when_finished: Option<bool>,
-    pub pause_before_next: bool
+    pub pause_before_next: bool,
 }

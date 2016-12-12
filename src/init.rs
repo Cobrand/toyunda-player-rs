@@ -4,7 +4,7 @@ extern crate mpv;
 use sdl2::render::Renderer;
 use std::os::raw::{c_void, c_char};
 use std::ffi::CStr;
-use ::toyunda_player::{StartupParameters,ToyundaPlayer,ToyundaMode};
+use ::toyunda_player::{StartupParameters, ToyundaPlayer, ToyundaMode};
 use sdl_displayer::SDLDisplayer;
 
 unsafe extern "C" fn get_proc_address(arg: *mut c_void, name: *const c_char) -> *mut c_void {
@@ -24,7 +24,7 @@ pub fn player_start(startup_parameters: StartupParameters) {
     mpv_builder.set_option("sid", "no").unwrap(); // disables subtitles if any
     mpv_builder.set_option("softvol", "yes").unwrap(); // enables softvol so it can go higher than 100%
     mpv_builder.set_option("softvol-max", 250.0).unwrap(); // makes the max volume at 250%
-    mpv_builder.set_option("aid",2i64).unwrap(); // aid to 2; normalized audio if there is one
+    mpv_builder.set_option("aid", 2i64).unwrap(); // aid to 2; normalized audio if there is one
     mpv_builder.try_hardware_decoding().unwrap(); // try hardware decoding instead of software decoding
     let mpv = mpv_builder.build_with_gl(Some(get_proc_address), video_subsystem_ptr)
         .expect("Error while initializing MPV");
@@ -80,8 +80,8 @@ fn find_sdl_gl_driver() -> Option<u32> {
 }
 
 fn init_sdl<'a>(video_subsystem: &mut sdl2::VideoSubsystem,
-                    params: &StartupParameters)
-                    -> Renderer<'a> {
+                params: &StartupParameters)
+                -> Renderer<'a> {
     let opengl_driver_id = find_sdl_gl_driver().expect("Unable to find OpenGL video driver");
 
     let mut window_builder = if params.fullscreen {

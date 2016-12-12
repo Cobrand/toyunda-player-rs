@@ -54,7 +54,7 @@ struct WebCommand {
     id: Option<u32>,
     list: Option<Vec<u32>>,
     text: Option<String>,
-    pos: Option<u32>
+    pos: Option<u32>,
 }
 
 pub struct Manager {
@@ -143,7 +143,10 @@ impl Manager {
                                 if let Some(video_meta) = list.get(id as usize) {
                                     match web_command.pos {
                                         None => Ok(vec![Command::AddToQueue(video_meta.clone())]),
-                                        Some(pos) => Ok(vec![Command::AddToQueueWithPos(video_meta.clone(),pos as usize)])
+                                        Some(pos) => {
+                                            Ok(vec![Command::AddToQueueWithPos(video_meta.clone(),
+                                                                               pos as usize)])
+                                        }
                                     }
                                 } else {
                                     Err(format!("Bad Index {}", id))
@@ -154,14 +157,18 @@ impl Manager {
                         } else {
                             Err(String::from("'id' field is needed"))
                         }
-                    },
+                    }
                     WebCommandType::AddMultipleToQueue => {
                         if let Some(ref ids) = web_command.list {
                             if let Some(list) = list.upgrade() {
-                                let commands = ids.iter().filter_map(|id|{
-                                    list.get(*id as usize)
-                                        .map(|video_meta| Command::AddToQueue(video_meta.clone()))
-                                }).collect::<Vec<_>>();
+                                let commands = ids.iter()
+                                    .filter_map(|id| {
+                                        list.get(*id as usize)
+                                            .map(|video_meta| {
+                                                Command::AddToQueue(video_meta.clone())
+                                            })
+                                    })
+                                    .collect::<Vec<_>>();
                                 Ok(commands)
                             } else {
                                 Err(String::from("Gone"))
@@ -169,30 +176,23 @@ impl Manager {
                         } else {
                             Err(String::from("'list' field is needed"))
                         }
-                    },
+                    }
                     WebCommandType::DeleteFromQueue => {
                         if let Some(pos) = web_command.pos {
                             Ok(vec![Command::DeleteFromQueue(pos as usize)])
                         } else {
                             Err(format!("'pos' field is needed"))
                         }
-                    },
-                    WebCommandType::PauseBeforeNext => {
-                        Ok(vec![Command::PauseBeforeNext])
                     }
-                    WebCommandType::QuitOnFinish => {
-                        Ok(vec![Command::ToggleQuitOnFinish])
-                    },
-                    WebCommandType::Quit => {
-                        Ok(vec![Command::Quit])
-                    },
-                    WebCommandType::ToggleSubtitles =>
-                        Ok(vec![Command::ToggleDisplaySubtitles]),
+                    WebCommandType::PauseBeforeNext => Ok(vec![Command::PauseBeforeNext]),
+                    WebCommandType::QuitOnFinish => Ok(vec![Command::ToggleQuitOnFinish]),
+                    WebCommandType::Quit => Ok(vec![Command::Quit]),
+                    WebCommandType::ToggleSubtitles => Ok(vec![Command::ToggleDisplaySubtitles]),
                     WebCommandType::Announcement => {
                         if let Some(ref s) = web_command.text {
                             use chrono::Local;
                             if s.len() != 0 {
-                                Ok(vec![Command::Announcement(s.clone(),Local::now())])
+                                Ok(vec![Command::Announcement(s.clone(), Local::now())])
                             } else {
                                 Err(String::from("field 'text' is present but empty"))
                             }
@@ -205,7 +205,8 @@ impl Manager {
                     for command in commands {
                         if let Err(e) = tx.send(command) {
                             error!("An error happened when trying\
-                            to send a command to the other thread : {}",e);
+                            to send a command to the other thread : {}",
+                                   e);
                             return Ok(Response::with(status::InternalServerError));
                         }
                     }
@@ -224,16 +225,12 @@ impl Manager {
         let json_mime: Mime = "application/json".parse().unwrap();
         if let Ok(ref messages) = LOG_MESSAGES.read() {
             let messages = messages.iter()
-                                   .map(|m| {
-                format!("[{}] {}: {}",m.time.format("%F %T"),m.level,m.msg)
-            })
-                                   .collect::<Vec<_>>();
+                .map(|m| format!("[{}] {}: {}", m.time.format("%F %T"), m.level, m.msg))
+                .collect::<Vec<_>>();
             match serde_json::to_string(&messages) {
-                Ok(string) => {
-                    Ok(Response::with((status::Ok, string, json_mime)))
-                },
+                Ok(string) => Ok(Response::with((status::Ok, string, json_mime))),
                 Err(e) => {
-                    error!("Error when displaying logs : {}",e);
+                    error!("Error when displaying logs : {}", e);
                     // TODO replace this with an Error and handle Iron errors better
                     Ok(Response::with(status::InternalServerError))
                 }
@@ -265,22 +262,24 @@ impl Manager {
         let (tx, rx) = channel();
         let toyunda_state_cloned = toyunda_state.clone();
         let mut api_handler = Router::new();
-        api_handler.get("state", move |_r: &mut Request| {
-            Self::state_request(toyunda_state_cloned.clone())
-        }, "get_state");
+        api_handler.get("state",
+                        move |_r: &mut Request| {
+                            Self::state_request(toyunda_state_cloned.clone())
+                        },
+                        "get_state");
         let tx_command = Mutex::new(tx);
         let weak_list = Arc::downgrade(&yaml_files);
         let weak_list2 = weak_list.clone();
-        api_handler.post("command", move |request: &mut Request| {
-            let tx_command = tx_command.lock().unwrap().clone();
-            Self::command(request, tx_command, weak_list2.clone())
-        }, "do_command");
-        api_handler.get("listing", move |_r: &mut Request| {
-            Self::list_request(weak_list.clone())
-        }, "get_listing");
-        api_handler.get("logs", move |_r: &mut Request| {
-            Self::logs()
-        }, "get_logs");
+        api_handler.post("command",
+                         move |request: &mut Request| {
+                             let tx_command = tx_command.lock().unwrap().clone();
+                             Self::command(request, tx_command, weak_list2.clone())
+                         },
+                         "do_command");
+        api_handler.get("listing",
+                        move |_r: &mut Request| Self::list_request(weak_list.clone()),
+                        "get_listing");
+        api_handler.get("logs", move |_r: &mut Request| Self::logs(), "get_logs");
         let mut mount = Mount::new();
         let web_directory = ::std::env::current_exe().unwrap().parent().unwrap().join("web/");
         mount.mount("/", Static::new(&web_directory));
