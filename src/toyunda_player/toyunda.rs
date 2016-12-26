@@ -135,16 +135,15 @@ impl<'a> ToyundaPlayer<'a> {
         self.mode = params.mode;
         match params.mode {
             ToyundaMode::EditMode => {
-                debug!("Enabling karaoke mode");
-                enable_manager = false;
-
-            }
-            ToyundaMode::KaraokeMode => {
                 self.editor_state = None;
+                enable_manager = false;
                 if let Err(e) = self.mpv.set_option("loop-file", "inf") {
                     error!("loop file option failed for edit mode : {}", e);
                 };
                 debug!("Enabling edit mode");
+            }
+            ToyundaMode::KaraokeMode => {
+                debug!("Enabling karaoke mode");
                 enable_manager = true;
             }
             ToyundaMode::NormalMode => {
