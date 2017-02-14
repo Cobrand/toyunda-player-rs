@@ -25,10 +25,10 @@ use mpv::EndFileReason::MPV_END_FILE_REASON_EOF;
 use mpv::Error::{MPV_ERROR_PROPERTY_UNAVAILABLE, MPV_ERROR_LOADING_FAILED};
 use chrono::{DateTime, Local};
 
-pub struct ToyundaPlayer<'a> {
+pub struct ToyundaPlayer<'r,'ttf> {
     pub subtitles: Option<Subtitles>,
     pub mpv: Box<MpvHandlerWithGl>,
-    pub displayer: SDLDisplayer<'a>,
+    pub displayer: SDLDisplayer<'r,'ttf>,
     pub mode: ToyundaMode,
     pub state: Arc<RwLock<State>>,
     pub manager: Option<Manager>,
@@ -56,8 +56,8 @@ pub enum ToyundaAction {
     Terminate,
 }
 
-impl<'a> ToyundaPlayer<'a> {
-    pub fn new(mpv_box: Box<MpvHandlerWithGl>, displayer: SDLDisplayer<'a>) -> ToyundaPlayer<'a> {
+impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
+    pub fn new(mpv_box: Box<MpvHandlerWithGl>, displayer: SDLDisplayer<'r,'ttf>) -> ToyundaPlayer<'r,'ttf> {
         ToyundaPlayer {
             subtitles: None,
             mpv: mpv_box,

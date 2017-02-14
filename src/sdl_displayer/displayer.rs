@@ -1,6 +1,6 @@
 use sdl2::render::{Renderer, BlendMode, Texture};
 use sdl2::image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
-use sdl2::ttf::{Font, Sdl2TtfContext, init as ttf_init};
+use sdl2::ttf::{Font, Sdl2TtfContext};
 use sdl2::rect::Rect as SdlRect;
 use sdl2::surface::Surface;
 use sdl2::pixels::Color as SdlColor;
@@ -36,18 +36,17 @@ impl Color {
     }
 }
 
-pub struct SDLDisplayer<'a> {
-    pub fonts: FontList,
-    pub renderer: Renderer<'a>,
+pub struct SDLDisplayer<'ren,'ttf> {
+    pub fonts: FontList<'ttf>,
+    pub renderer: Renderer<'ren>,
     #[allow(dead_code)]
-    ttf_context: Sdl2TtfContext,
+    ttf_context: &'ttf Sdl2TtfContext,
     pub lyrics_logo: Option<Texture>,
 }
 
-impl<'a> SDLDisplayer<'a> {
-    pub fn new(mut renderer: Renderer<'a>) -> Result<SDLDisplayer<'a>, ()> {
+impl<'r,'ttf> SDLDisplayer<'r,'ttf> {
+    pub fn new(mut renderer: Renderer<'r>, ttf_context: &'ttf Sdl2TtfContext) -> Result<SDLDisplayer<'r, 'ttf>, ()> {
         renderer.set_blend_mode(BlendMode::Blend);
-        let ttf_context = ttf_init().unwrap();
         let font_list = FontList::new(&ttf_context).unwrap();
         let _image_context = image_init(INIT_PNG | INIT_JPG).unwrap();
         // we dont care if imag econtext dies, we only load images once (for now)
@@ -98,12 +97,12 @@ impl<'a> SDLDisplayer<'a> {
     }
 
     #[inline]
-    pub fn sdl_renderer_mut(&mut self) -> &mut Renderer<'a> {
+    pub fn sdl_renderer_mut(&mut self) -> &mut Renderer<'r> {
         &mut self.renderer
     }
 
     #[inline]
-    pub fn sdl_renderer(&self) -> &Renderer<'a> {
+    pub fn sdl_renderer(&self) -> &Renderer<'r> {
         &self.renderer
     }
 
@@ -261,7 +260,7 @@ impl<'a> SDLDisplayer<'a> {
     }
 }
 
-impl<'a> Display for SDLDisplayer<'a> {
+impl<'r,'ttf> Display for SDLDisplayer<'r,'ttf> {
     type Parameters = SDLDisplayParameters;
     fn display(&mut self,
                overlay_frame: &OverlayFrame,

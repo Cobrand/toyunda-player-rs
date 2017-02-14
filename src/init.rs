@@ -29,8 +29,9 @@ pub fn player_start(startup_parameters: StartupParameters) {
     let mpv = mpv_builder.build_with_gl(Some(get_proc_address), video_subsystem_ptr)
         .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
-
-    let displayer = SDLDisplayer::new(renderer).expect("Failed to init displayer");
+   
+    let ttf = sdl2::ttf::init().expect("Failed to init TTF");
+    let displayer = SDLDisplayer::new(renderer, &ttf).expect("Failed to init displayer");
 
     if startup_parameters.mode == ToyundaMode::KaraokeMode {
         let mouse_utils = sdl_context.mouse();

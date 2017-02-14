@@ -28,7 +28,7 @@ pub enum Command {
     Announcement(String, DateTime<Local>),
 }
 
-impl<'a> ToyundaPlayer<'a> {
+impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
     pub fn execute_command(&mut self, command: Command) -> Result<ToyundaAction> {
         match command {
             Command::SetSpeed(speed) => {

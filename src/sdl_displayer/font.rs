@@ -2,44 +2,44 @@ use std::ops::Index;
 use std::cmp::Ordering;
 use sdl2::ttf::{Font, Sdl2TtfContext};
 
-pub struct FontSet {
+pub struct FontSet<'ttf> {
     font_size: u16,
     /// Font object without outline
-    font_regular: Font<'static>,
+    font_regular: Font<'ttf,'static>,
     /// Font object with light outline
-    font_lightbold: Font<'static>,
+    font_lightbold: Font<'ttf,'static>,
     /// Font object with outline
-    font_bold: Font<'static>,
+    font_bold: Font<'ttf,'static>,
 }
 
-impl Eq for FontSet {}
+impl<'ttf> Eq for FontSet<'ttf> {}
 
-impl PartialEq for FontSet {
+impl<'ttf> PartialEq for FontSet<'ttf> {
     fn eq(&self, other: &Self) -> bool {
         self.font_size.eq(&other.font_size)
     }
 }
 
-impl PartialOrd for FontSet {
+impl<'ttf> PartialOrd for FontSet<'ttf> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.font_size.partial_cmp(&other.font_size)
     }
 }
 
-impl Ord for FontSet {
+impl<'ttf> Ord for FontSet<'ttf> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.font_size.cmp(&other.font_size)
     }
 }
 
-impl Index<usize> for FontList {
-    type Output = FontSet;
-    fn index(&self, index: usize) -> &FontSet {
+impl<'ttf> Index<usize> for FontList<'ttf> {
+    type Output = FontSet<'ttf>;
+    fn index(&self, index: usize) -> &FontSet<'ttf> {
         &self.get_font_set(index).unwrap()
     }
 }
 
-impl FontSet {
+impl<'ttf> FontSet<'ttf> {
     #[inline]
     pub fn get_regular_font(&self) -> &Font {
         &self.font_regular
@@ -70,16 +70,16 @@ impl FontSet {
 }
 
 // MADE PUBLIC FOR TESTS, MAKE PRIVATE WHEN NOT NECESSARY ANYMORE
-pub struct FontList {
+pub struct FontList<'ttf> {
     // font list is a SORTED font list
-    fonts: Vec<FontSet>,
+    fonts: Vec<FontSet<'ttf>>,
 }
 
 const DEJAVUSANS_MONO_BYTES: &'static [u8] = include_bytes!("../../res/DejaVuSansMono-Bold-WithJap.\
                                                              ttf");
 
-impl FontList {
-    pub fn new(ttf_context: &Sdl2TtfContext) -> Result<FontList, String> {
+impl<'ttf> FontList<'ttf> {
+    pub fn new(ttf_context: &'ttf Sdl2TtfContext) -> Result<FontList<'ttf>, String> {
         use sdl2::rwops::RWops;
         let mut result = FontList { fonts: Vec::<FontSet>::new() };
         let mut font_size = 3;
@@ -105,7 +105,7 @@ impl FontList {
         Ok(result)
     }
 
-    pub fn get_font_set(&self, index: usize) -> Option<&FontSet> {
+    pub fn get_font_set(&self, index: usize) -> Option<&FontSet<'ttf>> {
         self.fonts.get(index)
     }
 
