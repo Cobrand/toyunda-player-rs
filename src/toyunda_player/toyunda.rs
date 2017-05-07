@@ -246,9 +246,8 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
                             songs_history.insert_song_history_entry(&*format!("{}", &video_meta));
                         };
                         if let Err(e) = self.displayer
-                            .renderer
+                            .canvas
                             .window_mut()
-                            .unwrap()
                             .set_title(&*format!("Toyunda Player - {}", video_meta)) {
                             warn!("Unexpected error when setting title : {}", e);
                         };
@@ -468,7 +467,7 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
 
     pub fn render_overlay(&mut self) -> Result<()> {
         use sdl2::rect::Rect;
-        let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
+        let (width, height) = self.displayer.sdl_canvas().window().size();
         let time_pos = self.get_media_current_time();
         let display_params: DisplayParams = match (self.mpv_cache.cached_width(),
                                                    self.mpv_cache.cached_height()) {
@@ -520,15 +519,15 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
         if (self.mode == ToyundaMode::EditMode) {
             let percent_pos: f64 = self.mpv_cache.cached_percent_pos().unwrap_or(0.0);
             let (window_width, window_height) =
-                self.displayer.sdl_renderer().window().unwrap().size();
+                self.displayer.sdl_canvas().window().size();
             let rect_width = window_width * 5 / 1000;
             let rect_height = rect_width * 2;
             let (rect_origin_x, rect_origin_y) =
                 ((((window_width - rect_width) as f64) * percent_pos / 100.0) as i32,
                  (window_height - rect_height) as i32);
-            self.displayer.sdl_renderer_mut().set_draw_color(SdlColor::RGB(0, 0, 255));
+            self.displayer.sdl_canvas_mut().set_draw_color(SdlColor::RGB(0, 0, 255));
             self.displayer
-                .sdl_renderer_mut()
+                .sdl_canvas_mut()
                 .fill_rect(Rect::new(rect_origin_x, rect_origin_y, rect_width, rect_height))
                 .unwrap();
         };
@@ -553,7 +552,7 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
 
     pub fn on_end_file(&mut self) -> Result<ToyundaAction> {
         self.state.write().unwrap().playing_state = PlayingState::Idle;
-        if let Err(e) = self.displayer.renderer.window_mut().unwrap().set_title("Toyunda Player") {
+        if let Err(e) = self.displayer.canvas.window_mut().set_title("Toyunda Player") {
             warn!("Unexpected error when setting title : {}", e);
         };
         self.clear_subtitles();
@@ -620,7 +619,7 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
         // be processed in the place only.
         let mut command_results: Vec<Result<ToyundaAction>> = Vec::with_capacity(16);
         'main: loop {
-            let (width, height) = self.displayer.sdl_renderer().window().unwrap().size();
+            let (width, height) = self.displayer.sdl_canvas().window().size();
             let alt_keys = get_alt_keys(event_pump.keyboard_state());
             self.mpv
                 .draw(0, width as i32, -(height as i32))
@@ -958,7 +957,7 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
             }
             Event::MouseButtonDown { x, y, mouse_btn, .. } if mode != KaraokeMode => {
                 let (win_width, win_height) =
-                    self.displayer.sdl_renderer().window().unwrap().size();
+                    self.displayer.sdl_canvas().window().size();
                 if (y as u32 > win_height * 96 / 100) {
                     // bottom 4% : low enough to move
                     let percent_pos: f64 = (100.0 * x as f64 / win_width as f64);
@@ -985,7 +984,7 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
                 Ok(ToyundaAction::Nothing)
             }
             Event::MouseButtonUp { y, mouse_btn, .. } if mode != KaraokeMode => {
-                let (_, win_height) = self.displayer.sdl_renderer().window().unwrap().size();
+                let (_, win_height) = self.displayer.sdl_canvas().window().size();
                 if (y as u32 > win_height * 96 / 100) {
                     // do nothing
                 } else if mode == EditMode {

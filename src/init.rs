@@ -1,7 +1,8 @@
 extern crate sdl2;
 extern crate sdl2_sys;
 extern crate mpv;
-use sdl2::render::Renderer;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
 use std::os::raw::{c_void, c_char};
 use std::ffi::CStr;
 use ::toyunda_player::{StartupParameters, ToyundaPlayer, ToyundaMode};
@@ -17,7 +18,7 @@ pub fn player_start(startup_parameters: StartupParameters) {
     // INIT SDL
     let sdl_context = sdl2::init().unwrap();
     let mut video_subsystem = sdl_context.video().unwrap();
-    let renderer = init_sdl(&mut video_subsystem, &startup_parameters);
+    let canvas = init_sdl(&mut video_subsystem, &startup_parameters);
     let video_subsystem_ptr = &mut video_subsystem as *mut _ as *mut c_void;
     // INIT MPV
     let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
@@ -30,8 +31,9 @@ pub fn player_start(startup_parameters: StartupParameters) {
         .expect("Error while initializing MPV");
     // BIND MPV WITH SDL
    
+    let texture_creator = canvas.texture_creator();
     let ttf = sdl2::ttf::init().expect("Failed to init TTF");
-    let displayer = SDLDisplayer::new(renderer, &ttf).expect("Failed to init displayer");
+    let displayer = SDLDisplayer::new(canvas, &ttf, &texture_creator).expect("Failed to init displayer");
 
     if startup_parameters.mode == ToyundaMode::KaraokeMode {
         let mouse_utils = sdl_context.mouse();
@@ -82,7 +84,7 @@ fn find_sdl_gl_driver() -> Option<u32> {
 
 fn init_sdl<'a>(video_subsystem: &mut sdl2::VideoSubsystem,
                 params: &StartupParameters)
-                -> Renderer<'a> {
+                -> Canvas<Window> {
     let opengl_driver_id = find_sdl_gl_driver().expect("Unable to find OpenGL video driver");
 
     let mut window_builder = if params.fullscreen {
@@ -97,14 +99,13 @@ fn init_sdl<'a>(video_subsystem: &mut sdl2::VideoSubsystem,
         .opengl()
         .build()
         .unwrap();
-    let renderer = window.renderer()
+    let canvas = window.into_canvas()
         .present_vsync()
         .index(opengl_driver_id)
         .build()
-        .expect("Failed to create renderer with given parameters");
-    renderer.window()
-        .expect("Failed to extract window from displayer")
+        .expect("Failed to create canvas with given parameters");
+    canvas.window()
         .gl_set_context_to_current()
         .unwrap();
-    renderer
+    canvas
 }

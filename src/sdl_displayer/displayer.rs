@@ -1,4 +1,5 @@
-use sdl2::render::{Renderer, BlendMode, Texture};
+use sdl2::render::{TextureCreator, Canvas, BlendMode, Texture};
+use sdl2::video::{Window, WindowContext};
 use sdl2::image::{LoadTexture, INIT_PNG, INIT_JPG, init as image_init};
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use sdl2::rect::Rect as SdlRect;
@@ -36,23 +37,27 @@ impl Color {
     }
 }
 
-pub struct SDLDisplayer<'ren,'ttf> {
+pub struct SDLDisplayer<'renderer, 'ttf> {
     pub fonts: FontList<'ttf>,
-    pub renderer: Renderer<'ren>,
+    pub canvas: Canvas<Window>,
+    pub texture_creator: &'renderer TextureCreator<WindowContext>,
     #[allow(dead_code)]
     ttf_context: &'ttf Sdl2TtfContext,
-    pub lyrics_logo: Option<Texture>,
+    pub lyrics_logo: Option<Texture<'renderer>>,
 }
 
 impl<'r,'ttf> SDLDisplayer<'r,'ttf> {
-    pub fn new(mut renderer: Renderer<'r>, ttf_context: &'ttf Sdl2TtfContext) -> Result<SDLDisplayer<'r, 'ttf>, ()> {
-        renderer.set_blend_mode(BlendMode::Blend);
+    pub fn new(mut canvas: Canvas<Window>,
+               ttf_context: &'ttf Sdl2TtfContext,
+               texture_creator: &'r TextureCreator<WindowContext>)
+               -> Result<SDLDisplayer<'r, 'ttf>, ()> {
+        canvas.set_blend_mode(BlendMode::Blend);
         let font_list = FontList::new(&ttf_context).unwrap();
         let _image_context = image_init(INIT_PNG | INIT_JPG).unwrap();
         // we dont care if imag econtext dies, we only load images once (for now)
         let lyrics_logo: Option<Texture> = match ::std::env::current_exe() {
             Ok(current_exe_path) => {
-                match renderer.load_texture(&*current_exe_path.with_file_name("logo_toyunda.png")) {
+                match texture_creator.load_texture(&*current_exe_path.with_file_name("logo_toyunda.png")) {
                     Ok(texture) => Some(texture),
                     Err(e) => {
                         error!("Failed to load logo_toyunda.png : error '{}' ({:?})", e, e);
@@ -68,7 +73,8 @@ impl<'r,'ttf> SDLDisplayer<'r,'ttf> {
         let displayer = SDLDisplayer {
             fonts: font_list,
             ttf_context: ttf_context,
-            renderer: renderer,
+            texture_creator: texture_creator,
+            canvas: canvas,
             lyrics_logo: lyrics_logo,
         };
         Ok(displayer)
@@ -82,7 +88,7 @@ impl<'r,'ttf> SDLDisplayer<'r,'ttf> {
             ::sdl2::messagebox::show_simple_message_box(::sdl2::messagebox::MESSAGEBOX_ERROR,
                                                         title,
                                                         info,
-                                                        self.sdl_renderer().window());
+                                                        self.sdl_canvas().window());
         match res {
             Ok(_) => {}
             Err(ShowMessageError::SdlError(string)) => {
@@ -93,23 +99,23 @@ impl<'r,'ttf> SDLDisplayer<'r,'ttf> {
     }
 
     pub fn render(&mut self) {
-        self.renderer.window().unwrap().gl_swap_window();
+        self.canvas.window().gl_swap_window();
     }
 
     #[inline]
-    pub fn sdl_renderer_mut(&mut self) -> &mut Renderer<'r> {
-        &mut self.renderer
+    pub fn sdl_canvas_mut(&mut self) -> &mut Canvas<Window> {
+        &mut self.canvas
     }
 
     #[inline]
-    pub fn sdl_renderer(&self) -> &Renderer<'r> {
-        &self.renderer
+    pub fn sdl_canvas(&self) -> &Canvas<Window> {
+        &self.canvas
     }
 
     fn display_unit(&mut self, text_unit: &TextUnit, params: &SDLDisplayParameters) -> Rect {
         let (offset_x, offset_y) = params.offset.unwrap_or((0, 0));
         let (canevas_width, canevas_height): (u32, u32) = match params.output_size {
-            None => self.sdl_renderer().window().unwrap().size(),
+            None => self.sdl_canvas().window().size(),
             Some(e) => e,
         };
         let (fit_width, fit_height): (Option<u32>, Option<u32>) = match text_unit.size {
@@ -153,7 +159,7 @@ impl<'r,'ttf> SDLDisplayer<'r,'ttf> {
                 let logo_height = syllable_height * 70 / 100;
                 match self.lyrics_logo {
                     Some(ref texture) => {
-                        self.renderer
+                        self.canvas
                             .copy(&texture,
                                   None,
                                   Some(SdlRect::new(syllable_center_x - (logo_height / 2) as i32,
@@ -244,7 +250,7 @@ impl<'r,'ttf> SDLDisplayer<'r,'ttf> {
                        &text_subunit.text,
                        text_subunit.color.to_sdl_color(),
                        outline_width);
-        let mut texture = self.renderer
+        let mut texture = self.texture_creator
             .create_texture_from_surface(surface)
             .expect("Failed to create Texture from Surface");
         let _ = texture.set_blend_mode(BlendMode::Blend);
@@ -253,7 +259,7 @@ impl<'r,'ttf> SDLDisplayer<'r,'ttf> {
                                      origin.1,
                                      regular_w + outline_width * 2,
                                      regular_h + outline_width * 2);
-        self.renderer
+        self.canvas
             .copy(&texture, None, Some(text_rect.clone()))
             .unwrap();
         text_rect

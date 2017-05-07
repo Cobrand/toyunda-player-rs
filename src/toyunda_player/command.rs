@@ -64,7 +64,7 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
             Command::ToggleFullscreen => {
                 use sdl2::video::FullscreenType;
                 let new_fullscreen_type =
-                    match self.displayer.sdl_renderer().window().unwrap().fullscreen_state() {
+                    match self.displayer.sdl_canvas().window().fullscreen_state() {
                         FullscreenType::True | FullscreenType::Desktop => {
                             // TODO warn if 'True'
                             FullscreenType::Off
@@ -72,9 +72,8 @@ impl<'r,'ttf> ToyundaPlayer<'r,'ttf> {
                         FullscreenType::Off => FullscreenType::Desktop,
                     };
                 self.displayer
-                    .sdl_renderer_mut()
+                    .sdl_canvas_mut()
                     .window_mut()
-                    .unwrap()
                     .set_fullscreen(new_fullscreen_type)
                     .map_err(|e| Error::Text(e))
                     .map(|_| ToyundaAction::Nothing)
