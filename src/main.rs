@@ -1,5 +1,4 @@
 #![allow(unused_parens)]
-#![feature(proc_macro)]
 // #![feature(custom_derive, plugin)] // necessary for serde
 #![feature(conservative_impl_trait)]
 extern crate serde;

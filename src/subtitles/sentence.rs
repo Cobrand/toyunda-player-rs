@@ -148,7 +148,7 @@ pub struct SentenceOptions {
     #[serde(rename = "position")]
     pub row_position: Option<RowPosition>,
     #[serde(skip_serializing_if="Option::is_none")]
-    pub size: Option<Size<Option<f32>>>,
+    pub size: Option<Size>,
 }
 
 impl Deref for SentenceOptions {
@@ -172,7 +172,7 @@ pub struct SentenceParameters {
     pub transition_time_after: u16,
     pub fade_time_after: u16,
     pub row_position: Option<RowPosition>,
-    pub size: Size<Option<f32>>,
+    pub size: Size,
 }
 
 impl From<(SentenceOptions, i32)> for SentenceParameters {

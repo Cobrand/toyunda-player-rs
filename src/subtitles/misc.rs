@@ -1,20 +1,38 @@
-use serde::de::{self, Deserialize, Deserializer};
+use serde::de::{self, Deserialize, Deserializer, Error as DeError};
 use serde::ser::{Serialize, Serializer};
 use ::overlay::{Color as OverlayColor, Outline as OverlayOutline};
 use ::utils::RGB;
 
-impl Deserialize for Color {
-    fn deserialize<D: Deserializer>(deserializer: &mut D) -> Result<Self, D::Error> {
-        struct Visitor;
-        impl de::Visitor for Visitor {
-            type Value = Color;
-            fn visit_str<E>(&mut self, value: &str) -> Result<Color, E>
-                where E: de::Error
-            {
-                let mut chars = value.chars();
-                if chars.next() == Some('#') {
-                    match ::read_color::rgb(&mut chars) {
-                        None => Err(E::custom(format!("Color {} is not valid", value))),
+impl Serialize for Color {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        serializer.serialize_str(format!("#{:02X}{:02X}{:02X}",self.red,self.green,self.blue).as_str())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum JsonColor {
+    Hex(String),
+    Struct{
+        red: u8,
+        green: u8,
+        blue: u8,
+    }
+}
+
+impl<'de> Deserialize<'de> for Color {
+    fn deserialize<D>(deserializer: D) -> Result<Color, D::Error>
+        where D: Deserializer<'de>
+    {
+        let json_color : JsonColor = JsonColor::deserialize(deserializer)?;
+        match json_color {
+            JsonColor::Hex(string) => {
+                let mut chars_iter = string.trim().chars();
+                if chars_iter.next() == Some('#') {
+                    match ::read_color::rgb(&mut chars_iter) {
+                        None => Err(D::Error::custom(format!("Color {} is not valid", string.trim()))),
                         Some(answer) => {
                             Ok(Color {
                                 red: answer[0],
@@ -24,27 +42,11 @@ impl Deserialize for Color {
                         }
                     }
                 } else {
-                    Err(E::custom(format!("Color must be of the format #RRGGBB; found {}", value)))
+                    Err(D::Error::custom(format!("Color must be of the format #RRGGBB; found {}", string.trim())))
                 }
-            }
-
-            fn visit_map<M>(&mut self, visitor: M) -> Result<Color, M::Error>
-                where M: de::MapVisitor
-            {
-                let mut mvd = de::value::MapVisitorDeserializer::new(visitor);
-                let dummy: Result<ColorDummy, _> = Deserialize::deserialize(&mut mvd);
-                dummy.map(|dummy| dummy.transform())
-            }
+            },
+            JsonColor::Struct{red, green, blue} => Ok(Color {red, green, blue})
         }
-        deserializer.deserialize(Visitor)
-    }
-}
-
-impl Serialize for Color {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
-        where S: Serializer
-    {
-        serializer.serialize_str(format!("#{:02X}{:02X}{:02X}",self.red,self.green,self.blue).as_str())
     }
 }
 
@@ -53,23 +55,6 @@ pub struct Color {
     pub red: u8,
     pub green: u8,
     pub blue: u8,
-}
-
-#[derive(Debug,Clone,Copy,Deserialize)]
-struct ColorDummy {
-    pub red: u8,
-    pub green: u8,
-    pub blue: u8,
-}
-
-impl ColorDummy {
-    pub fn transform(self) -> Color {
-        Color {
-            red: self.red,
-            green: self.green,
-            blue: self.blue,
-        }
-    }
 }
 
 impl Default for Color {

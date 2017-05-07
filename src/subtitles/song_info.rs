@@ -1,8 +1,8 @@
-extern crate serde;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use std::fmt;
 
 impl Serialize for Language {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
         serializer.serialize_str(match *self {
@@ -17,14 +17,18 @@ impl Serialize for Language {
     }
 }
 
-impl Deserialize for Language {
-    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error>
-        where D: Deserializer
+impl<'de> Deserialize<'de> for Language {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
     {
         struct Visitor;
-        impl ::serde::de::Visitor for Visitor {
+        impl<'de> ::serde::de::Visitor<'de> for Visitor {
             type Value = Language;
-            fn visit_str<E>(&mut self, value: &str) -> Result<Language, E>
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str(r#"a language ("JAP", "EN", "INSTRUMENTAL", ...)"#)
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Language, E>
                 where E: ::serde::de::Error
             {
                 Ok(match value {
@@ -44,7 +48,7 @@ impl Deserialize for Language {
 }
 
 impl Serialize for MusicType {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
         serializer.serialize_str(match *self {
@@ -59,14 +63,19 @@ impl Serialize for MusicType {
     }
 }
 
-impl Deserialize for MusicType {
-    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error>
-        where D: Deserializer
+impl<'de> Deserialize<'de> for MusicType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
     {
         struct Visitor;
-        impl ::serde::de::Visitor for Visitor {
+        impl<'de> ::serde::de::Visitor<'de> for Visitor {
             type Value = MusicType;
-            fn visit_str<E>(&mut self, value: &str) -> Result<MusicType, E>
+            
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str(r#"a music type ("OP", "ED", "OST", ...)"#)
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<MusicType, E>
                 where E: ::serde::de::Error
             {
                 Ok(match value {
@@ -132,7 +141,7 @@ impl MusicType {
 }
 
 impl Serialize for MediaType {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
         serializer.serialize_str(match *self {
@@ -145,14 +154,19 @@ impl Serialize for MediaType {
     }
 }
 
-impl Deserialize for MediaType {
-    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error>
-        where D: Deserializer
+impl<'de> Deserialize<'de> for MediaType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
     {
         struct Visitor;
-        impl ::serde::de::Visitor for Visitor {
+        impl<'de> ::serde::de::Visitor<'de> for Visitor {
             type Value = MediaType;
-            fn visit_str<E>(&mut self, value: &str) -> Result<MediaType, E>
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a valid source media type")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<MediaType, E>
                 where E: ::serde::de::Error
             {
                 Ok(match value {
