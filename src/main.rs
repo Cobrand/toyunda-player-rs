@@ -21,7 +21,7 @@ extern crate lazy_static;
 
 extern crate mpv;
 extern crate sdl2;
-extern crate sdl2_sys;
+
 #[macro_use]
 extern crate log;
 extern crate fern;

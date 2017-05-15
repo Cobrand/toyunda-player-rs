@@ -1,5 +1,4 @@
 extern crate sdl2;
-extern crate sdl2_sys;
 extern crate mpv;
 use sdl2::render::Canvas;
 use sdl2::video::Window;

@@ -6,7 +6,7 @@ authors = ["Cobrand <cobrandw@gmail.com>"]
 build = "build.rs"
 
 [dependencies.sdl2]
-version = "0.30.0-beta"
+version = "0.30"
 default-features = false
 features = ["image","ttf"]
 
@@ -14,7 +14,6 @@ features = ["image","ttf"]
 mpv = "0.2"
 log = "0.3"
 clap = "2"
-sdl2-sys = "0.30.0-beta"
 
 read_color = "0.1"
 
